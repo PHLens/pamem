@@ -1,3 +1,4 @@
 # Agent Workflow
 
 - Add agent-local workflow or communication rules that remain stable across projects.
+- The shared development flow is governed by the `shared-devflow` skill; this file is only for local supplements.
