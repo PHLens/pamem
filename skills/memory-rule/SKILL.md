@@ -5,7 +5,7 @@ description: Governs agent memory loading, writing, promotion, compression, conf
 
 # Memory Rule
 
-This skill governs how persistent memory is structured, loaded, updated, promoted, and archived.
+This plugin skill governs how persistent memory is structured, loaded, updated, promoted, and archived.
 
 ## Hard Boundary
 
@@ -63,6 +63,12 @@ The following communication rules are treated as Layer 0 shared rules:
 - Historical snapshots
 - Old findings or logs that are no longer startup-relevant
 
+## Plugin Skill Identity
+
+- `memory-rule` is a plugin-provided skill entry point, not a note file.
+- `sync-request` is a plugin-provided skill entry point, not a note file.
+- Memory files may reference these skills as procedures to apply, but they should not imply that a file like `notes/memory-rules.md` is the source of truth.
+
 ## Startup Load Order
 
 On wake-up, load in this order:
@@ -113,7 +119,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Error corrections and prohibitions | `notes/corrections.md` | Explicit "do not do X" or corrected assumptions |
 | Reusable technical findings | `notes/findings.md` | Reusable outcomes only, never raw evidence chains |
 | Active task state | `notes/current-task.md` | Only the current task summary and next-step state |
-| Closed task summaries | `notes/work-log.md` | Summary only, never full transcripts |
+| Closed task summaries | `notes/work-log.md` | Summary only, never full transcripts; keep newest entries first |
 
 ## Current Task vs Planning Files
 
@@ -242,6 +248,14 @@ When a task closes:
 - Remove it from `notes/current-task.md`
 - Keep only a concise summary in `notes/work-log.md`
 - Do not preserve `task_plan.md`, `findings.md`, or `progress.md` as long-term memory by default
+
+## Work Log Order
+
+`notes/work-log.md` must be maintained in reverse-chronological order.
+
+- Newest date sections go at the top
+- Newest entries inside a date section go above older entries when practical
+- Keep milestone summaries, not execution transcripts
 
 ## Active Context Rules
 

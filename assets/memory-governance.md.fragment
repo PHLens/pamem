@@ -1,7 +1,7 @@
 ## Memory Governance
-Before any persistent memory read, write, compress, or archive action, apply `memory-rule`.
+Before any persistent memory read, write, compress, or archive action, apply the `memory-rule` plugin skill.
 
-Use `memory-rule` when:
+Use the `memory-rule` plugin skill when:
 - updating `MEMORY.md`
 - writing to `notes/`
 - promoting task facts into durable memory
