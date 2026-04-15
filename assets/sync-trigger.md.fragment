@@ -1,0 +1,3 @@
+## Sync Trigger
+If durable local memory or managed workspace config changes need cross-device retention, use `sync-request` to create a sync request in `~/sync-queue/pending/` for Adam.
+Do not run sync directly from this agent.

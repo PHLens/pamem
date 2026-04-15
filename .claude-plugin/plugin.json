@@ -1,0 +1,17 @@
+{
+  "name": "pamem",
+  "version": "0.3.0",
+  "description": "Persistent agent memory runtime with shared governance, hooks, and workspace bootstrap.",
+  "author": {
+    "name": "Percy Lee"
+  },
+  "license": "MIT",
+  "keywords": [
+    "agent-memory",
+    "hooks",
+    "bootstrap",
+    "sync"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

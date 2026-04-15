@@ -1,0 +1,21 @@
+# Memory Index
+
+## Memory Governance
+Before any persistent memory read, write, compress, or archive action, apply `memory-rule`.
+
+Use `memory-rule` when:
+- updating `MEMORY.md`
+- writing to `notes/`
+- promoting task facts into durable memory
+- compressing or archiving completed work
+- resolving conflicting preferences, rules, or corrections
+
+## Sync Trigger
+If durable local memory or managed workspace config changes need cross-device retention, use `sync-request` to create a sync request in `~/sync-queue/pending/` for Adam.
+Do not run sync directly from this agent.
+
+## Key Knowledge
+- Add pointers to stable notes files here.
+
+## Active Context
+- No active context recorded yet.

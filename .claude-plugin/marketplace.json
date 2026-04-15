@@ -1,0 +1,28 @@
+{
+  "name": "phlens",
+  "owner": {
+    "name": "PHLens"
+  },
+  "metadata": {
+    "description": "Claude Code plugins published by PHLens."
+  },
+  "plugins": [
+    {
+      "name": "pamem",
+      "source": "./",
+      "description": "Persistent agent memory runtime with governance, hooks, and bootstrap.",
+      "version": "0.3.0",
+      "author": {
+        "name": "Percy Lee"
+      },
+      "category": "Productivity",
+      "tags": [
+        "memory",
+        "persistent-memory",
+        "hooks",
+        "bootstrap",
+        "agents"
+      ]
+    }
+  ]
+}

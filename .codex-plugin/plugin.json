@@ -1,0 +1,33 @@
+{
+  "name": "pamem",
+  "version": "0.3.0",
+  "description": "Persistent agent memory runtime with shared governance, hooks, and workspace bootstrap.",
+  "author": {
+    "name": "Percy Lee"
+  },
+  "license": "MIT",
+  "keywords": [
+    "agent-memory",
+    "hooks",
+    "bootstrap",
+    "sync"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Persistent Agent Memory Runtime",
+    "shortDescription": "Persistent agent memory runtime with shared governance and bootstrap",
+    "longDescription": "Bundles shared memory governance, sync request generation, hooks, and bootstrap templates so persistent agents start from the same stable runtime instead of ad hoc memory scaffolding.",
+    "developerName": "Percy Lee",
+    "category": "Productivity",
+    "capabilities": [
+      "Write",
+      "Automation"
+    ],
+    "defaultPrompt": [
+      "Install the memory foundation into this agent workspace.",
+      "Repair this agent workspace's memory hooks and templates.",
+      "Bootstrap persistent memory structure for a new agent."
+    ],
+    "brandColor": "#2563EB"
+  }
+}
