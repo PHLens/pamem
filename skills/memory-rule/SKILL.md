@@ -97,6 +97,12 @@ When rules conflict, higher precedence wins:
 
 Lower-precedence memory may extend but must not override higher-precedence rules.
 
+## Agent Workflow Boundary
+
+- `notes/agent-workflow.md` is for agent-local, durable workflow or communication rules.
+- The shared development flow belongs to the `shared-devflow` skill, not to `notes/agent-workflow.md`.
+- `notes/agent-workflow.md` may supplement that shared flow, but it must not redefine or override it.
+
 ## Write Gate
 
 Before writing any memory, classify it:
@@ -114,7 +120,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Type | Where | Notes |
 |------|-------|-------|
 | Collaboration preferences | `notes/user-preferences.md` | Durable communication and collaboration preferences |
-| Agent-local workflow rules | `notes/agent-workflow.md` | Agent-local workflow and communication rules that remain stable across projects |
+| Agent-local workflow rules | `notes/agent-workflow.md` | Agent-local workflow and communication rules that remain stable across projects; they supplement but do not replace the shared `shared-devflow` skill |
 | Project-specific rules | `notes/projects/<project-key>.md` | Project-specific workflow, environment, or repository policy |
 | Error corrections and prohibitions | `notes/corrections.md` | Explicit "do not do X" or corrected assumptions |
 | Reusable technical findings | `notes/findings.md` | Reusable outcomes only, never raw evidence chains |
