@@ -4,6 +4,8 @@ This guide covers Codex bootstrap for `pamem`.
 
 For the plugin overview, memory-layer model, and Claude install command, see [README.md](README.md).
 
+Codex bootstrap is workspace-local. It does not install or enable the Claude plugin and it does not modify `.claude/settings.json`.
+
 ## Install
 
 Codex uses the workspace bootstrap scripts shipped in the repository.
@@ -17,7 +19,7 @@ $HOME/plugins/pamem/scripts/install-pamem.sh <workspace>
 Example:
 
 ```bash
-$HOME/plugins/pamem/scripts/install-pamem.sh "$HOME/.claude/agent-memory/my-agent"
+$HOME/plugins/pamem/scripts/install-pamem.sh "$HOME/.slock/agents/<agent-id>"
 ```
 
 ## Repair
@@ -36,6 +38,8 @@ Remove managed bootstrap entries from a workspace:
 $HOME/plugins/pamem/scripts/remove-pamem.sh <workspace>
 ```
 
+This removal path removes the Codex `SessionStart` hook entry added by the bootstrap. It leaves `.pamem/` and other workspace files in place so the workspace can be repaired later.
+
 ## What Codex Bootstrap Creates
 
 The Codex bootstrap creates or repairs:
@@ -50,15 +54,15 @@ The Codex bootstrap creates or repairs:
 - `.codex/hooks.json`
 - `.pamem/`
 
-If the workspace already has `pamem@...` enabled in `.claude/settings.json`, the bootstrap skips manual Claude hook insertion and only repairs shared files plus Codex bootstrap.
-
 ## Verify
 
 After installation, check:
 
 - `MEMORY.md` exists
 - `notes/current-task.md` exists
-- Claude workspace has `pamem@phlens` enabled, or Codex workspace has `.codex/hooks.json`
+- `.pamem/` exists
+- `.codex/config.toml` enables `codex_hooks = true`
+- `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
 - startup loads the memory index
 
 ## Update
