@@ -10,6 +10,8 @@ It intentionally describes the **protocol and boundaries**, not a concrete sync 
 
 `sync-request` provides the shared way to ask for cross-device retention when durable local memory or managed workspace config changes should be propagated elsewhere.
 
+It is intentionally **not** a channel for project work, source code, branches, or PR workflow.
+
 In short:
 
 - `pamem` manages local memory runtime
@@ -27,6 +29,9 @@ It does not include:
 - remote copy or delete logic
 - note publication logic
 - environment-specific sync policy
+- source-code delivery
+- branch or PR transport
+- review-state propagation for project work
 
 That part is intentionally left external.
 
@@ -58,6 +63,9 @@ Do not create a request for:
 - raw logs
 - transient planning files
 - unstable in-progress chatter
+- source code or repo history
+- feature branches, PRs, or review status
+- project work whose main purpose is code delivery rather than memory/config retention
 
 ## Queue Model
 

@@ -1,11 +1,13 @@
 ---
 name: sync-request
-description: Generate sync requests for Adam when durable local memory, reusable notes, or managed workspace config changes need cross-device retention. Use to create or refresh pending sync request files in ~/sync-queue, but never to execute sync directly.
+description: Generate sync requests for Adam when durable local memory, reusable notes, or managed workspace config changes need cross-device retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
 ---
 
 # Sync Request
 
 Use this skill to generate sync requests for Adam. This skill is shared across agents and only creates request files.
+
+It is for **memory/config retention only**. It is **not** a mechanism for syncing project work, source code, Git branches, or PR status.
 
 ## Hard Boundary
 
@@ -13,6 +15,7 @@ Use this skill to generate sync requests for Adam. This skill is shared across a
 - Do not run `cfg add`, `git commit`, `git push`, `scp`, or remote copy/delete steps as part of this skill.
 - Do not move request files into `processing`, `done`, or `rejected`.
 - Do not edit another agent's request unless the user explicitly asks.
+- Do not use this skill to propagate project work such as source code edits, repo branches, commits, or PR metadata.
 
 ## Queue Layout
 
@@ -53,6 +56,8 @@ Do not create a request for:
 - Temporary scratch notes
 - Open-task chatter that has not stabilized
 - Source code changes by themselves unless a managed config or durable note also changed
+- Project work deliverables such as feature branches, PRs, review state, or repository history
+- Requests whose primary purpose is to ship code rather than retain memory or managed config
 
 ## Stable Rule and Preference Sources
 
@@ -85,6 +90,8 @@ Choose:
 - `config-sync` for managed workspace or global config changes
 - `note-sync` for durable summaries or reusable notes
 - `both` when the same unit of work includes both kinds of changes
+
+Do not use any request type to represent project-work transport. If the work is mainly code or repo state, it belongs in the normal project workflow, not `sync-request`.
 
 ## Request Schema
 
