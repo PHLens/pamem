@@ -23,12 +23,32 @@ MEMORY_PATH="$WORKSPACE/MEMORY.md"
 SESSION_CMD='.pamem/scripts/memory-session-start.sh'
 PRECOMPACT_CMD='.pamem/scripts/memory-pre-compact.sh'
 
-mkdir -p "$NOTES_DIR/projects" "$CODEX_DIR" "$FOUNDATION_SCRIPTS_DIR" "$FOUNDATION_ASSETS_DIR"
+mkdir -p "$NOTES_DIR/projects" "$CODEX_DIR" "$FOUNDATION_DIR"
 
-cp -R "$ASSETS_DIR"/. "$FOUNDATION_ASSETS_DIR"/
-cp "$PLUGIN_ROOT/scripts/memory-session-start.sh" "$FOUNDATION_SCRIPTS_DIR/memory-session-start.sh"
-cp "$PLUGIN_ROOT/scripts/memory-pre-compact.sh" "$FOUNDATION_SCRIPTS_DIR/memory-pre-compact.sh"
-chmod +x "$FOUNDATION_SCRIPTS_DIR/memory-session-start.sh" "$FOUNDATION_SCRIPTS_DIR/memory-pre-compact.sh"
+relative_link_target() {
+  local src="$1"
+  local dst="$2"
+  realpath --relative-to="$(dirname "$dst")" "$src"
+}
+
+ensure_runtime_link() {
+  local src="$1"
+  local dst="$2"
+  local rel_src
+
+  rel_src="$(relative_link_target "$src" "$dst")"
+  mkdir -p "$(dirname "$dst")"
+
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$rel_src" ]; then
+    return 0
+  fi
+
+  rm -rf "$dst"
+  ln -s "$rel_src" "$dst"
+}
+
+ensure_runtime_link "$PLUGIN_ROOT/scripts" "$FOUNDATION_SCRIPTS_DIR"
+ensure_runtime_link "$ASSETS_DIR" "$FOUNDATION_ASSETS_DIR"
 
 copy_if_missing() {
   local src="$1"

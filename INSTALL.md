@@ -8,18 +8,20 @@ Codex bootstrap is workspace-local. It does not install or enable the Claude plu
 
 ## Install
 
-Codex uses the workspace bootstrap scripts shipped in the repository.
+Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
+workspace-local hooks and memory files, but points `.pamem/scripts` and
+`.pamem/assets` back to the installed plugin with symlinks.
 
 Install into a workspace:
 
 ```bash
-$HOME/plugins/pamem/scripts/install-pamem.sh <workspace>
+$HOME/.claude/plugins/marketplaces/phlens/scripts/install-pamem.sh <workspace>
 ```
 
 Example:
 
 ```bash
-$HOME/plugins/pamem/scripts/install-pamem.sh "$HOME/.slock/agents/<agent-id>"
+$HOME/.claude/plugins/marketplaces/phlens/scripts/install-pamem.sh "$HOME/.slock/agents/<agent-id>"
 ```
 
 ## Repair
@@ -27,7 +29,7 @@ $HOME/plugins/pamem/scripts/install-pamem.sh "$HOME/.slock/agents/<agent-id>"
 Repair an existing workspace:
 
 ```bash
-$HOME/plugins/pamem/scripts/repair-pamem.sh <workspace>
+$HOME/.claude/plugins/marketplaces/phlens/scripts/repair-pamem.sh <workspace>
 ```
 
 ## Remove
@@ -35,7 +37,7 @@ $HOME/plugins/pamem/scripts/repair-pamem.sh <workspace>
 Remove managed bootstrap entries from a workspace:
 
 ```bash
-$HOME/plugins/pamem/scripts/remove-pamem.sh <workspace>
+$HOME/.claude/plugins/marketplaces/phlens/scripts/remove-pamem.sh <workspace>
 ```
 
 This removal path removes the Codex `SessionStart` hook entry added by the bootstrap. It leaves `.pamem/` and other workspace files in place so the workspace can be repaired later.
@@ -53,6 +55,9 @@ The Codex bootstrap creates or repairs:
 - `.codex/config.toml`
 - `.codex/hooks.json`
 - `.pamem/`
+
+Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
+the installed Claude marketplace plugin rather than copied runtime files.
 
 ## Verify
 
@@ -81,7 +86,7 @@ claude plugin update pamem@phlens
 Pull the latest repository and rerun:
 
 ```bash
-$HOME/plugins/pamem/scripts/repair-pamem.sh <workspace>
+$HOME/.claude/plugins/marketplaces/phlens/scripts/repair-pamem.sh <workspace>
 ```
 
 ## Security Notes

@@ -28,6 +28,10 @@ claude plugin marketplace add git@github.com:PHLens/pamem.git
 claude plugin install pamem@phlens --scope project
 ```
 
+Codex bootstrap reuses that same marketplace install by symlinking the
+workspace `.pamem/scripts` and `.pamem/assets` paths back to the installed
+plugin runtime.
+
 ### More
 
 - [DESIGN.md](DESIGN.md): memory layers, design philosophy, and plugin responsibilities
