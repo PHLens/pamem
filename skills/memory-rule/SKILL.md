@@ -25,6 +25,39 @@ notes/    = Structured content storage
 
 - Keep persistent memory files in English unless there is an explicit local exception.
 
+## Multi-Instance Concurrency
+
+When multiple agent instances run concurrently on different tasks, shared memory files become write-contended. The following rules prevent data loss and merge conflicts.
+
+### Principles
+
+- Shared memory (`MEMORY.md`, `notes/current-task.md`, `notes/work-log.md`, `notes/projects/`) is **read-only during task execution**.
+- All task state lives in the task worktree (`task_plan.md`, `findings.md`, `progress.md`).
+- Shared memory writes are deferred to **task completion** only.
+
+### Pointer Format
+
+When multiple instances may be active, pointer files use a list format so entries from different instances coexist:
+
+- `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> → <pointer to notes/projects/ file>`.
+- `notes/current-task.md`: list of active worktrees with one-line descriptions, format `<worktree-path> → <one-line task description>`.
+
+On task start, add an entry. On task end, remove it and summarize into `notes/projects/<project-key>.md`.
+
+### Conflict Tolerance
+
+If last-write-wins occurs on a pointer file:
+
+- The loss is limited to a pointer line, not task content.
+- Full state is recoverable from the worktree's `progress.md`.
+- Do not attempt file-locking or atomic-append protocols; the pointer format makes them unnecessary.
+
+### Write Sequencing
+
+1. **Task start:** Add pointer line to `notes/current-task.md` (and `MEMORY.md` Active Context if needed).
+2. **Task execution:** Write only to worktree-local files. Read shared memory freely.
+3. **Task completion:** Remove pointer from `notes/current-task.md`, update `notes/projects/<project-key>.md`, optionally append to `notes/work-log.md`.
+
 ## Memory Layers
 
 ### Layer 0: Constitution
@@ -155,31 +188,16 @@ Do not merge `notes/current-task.md` and `task_plan.md` into one file.
 
 Recommended `notes/current-task.md` template:
 
+When multiple instances may be active, use the pointer-list template:
+
 ```markdown
 # Current Task
 
-## Task
-- <task name>
-
-## Project
-- <project-key or none>
-
-## Status
-- active | blocked | review | done | idle
-
-## Current Phase
-- <phase name or "not using planning-with-files">
-
-## Blocker
-- <current blocker or none>
-
-## Next Step
-- <next concrete action>
-
-## Source of Truth
-- `task_plan.md` if planning-with-files is active
-- otherwise this file is the source of truth
+## Active Worktrees
+- `<worktree-path>` → <one-line task description>
 ```
+
+When only a single instance is active, the full template (Task, Project, Status, Current Phase, Blocker, Next Step, Source of Truth) may still be used.
 
 ## Planning Upgrade Rules
 
