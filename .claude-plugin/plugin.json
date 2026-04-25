@@ -1,6 +1,6 @@
 {
   "name": "pamem",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Persistent agent memory runtime with shared governance, hooks, and workspace bootstrap.",
   "author": {
     "name": "Percy Lee"
