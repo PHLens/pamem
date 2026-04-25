@@ -112,6 +112,9 @@ Required fields:
   "sources": [
     "/absolute/path/to/file-or-dir"
   ],
+  "deletions": [
+    "/absolute/path/to/removed/file-or-dir"
+  ],
   "summary": "Short summary of what changed.",
   "why_sync": "Why this should be preserved or propagated."
 }
@@ -119,6 +122,7 @@ Required fields:
 
 Optional fields:
 
+- `deletions` — list of absolute paths that were removed and should be cleaned up on other devices (e.g. merged or moved files, stale skill directories)
 - `constraints`
 - `notes`
 - `supersedes`
@@ -128,6 +132,8 @@ Rules:
 - `workspace` should be an absolute path
 - `sources` should use absolute paths
 - `sources` should identify the authoritative files or directories to sync, including durable preference or communication files when relevant
+- `deletions` should list paths that no longer exist and must be removed on other devices to prevent stale state (e.g. merged note files, moved skill directories)
+- Do not include paths in `deletions` that are also in `sources`; if a file was replaced, list only the new path in `sources`
 - `summary` should stay short and outcome-focused
 - `why_sync` should explain future value, not replay a transcript
 
@@ -155,13 +161,14 @@ Use a filesystem-safe UTC timestamp such as:
 
 1. Classify the change as `config-sync`, `note-sync`, or `both`
 2. Collect the durable source paths that justify sync
-3. Write a short `summary`
-4. Write a short `why_sync`
-5. Ensure the queue directories exist
-6. Check `~/sync-queue/pending/` for an obvious duplicate request from the same agent
-7. If an equivalent pending request already exists, update it instead of creating a duplicate
-8. Otherwise create a new JSON request in `pending/`
-9. Report the request path back to the user
+3. Collect any paths that were deleted, moved, or merged and need cleanup on other devices → add to `deletions`
+4. Write a short `summary`
+5. Write a short `why_sync`
+6. Ensure the queue directories exist
+7. Check `~/sync-queue/pending/` for an obvious duplicate request from the same agent
+8. If an equivalent pending request already exists, update it instead of creating a duplicate
+9. Otherwise create a new JSON request in `pending/`
+10. Report the request path back to the user
 
 ## Duplicate Handling
 
