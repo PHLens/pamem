@@ -110,7 +110,7 @@ On wake-up, load in this order:
 1. `MEMORY.md`
 2. `notes/user-preferences.md`
 3. `notes/agent-workflow.md`
-4. `notes/findings.md`
+4. `notes/experience.md`
 5. Active project rules, if present
 6. `notes/current-task.md`, only if a task is still open
 
@@ -156,9 +156,9 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Collaboration preferences | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Agent-local workflow rules | `notes/agent-workflow.md` | Agent-local workflow and communication rules that remain stable across projects; they supplement but do not replace the shared `shared-devflow` skill |
 | Project-specific rules | `notes/projects/<project-key>.md` | Project-specific workflow, environment, or repository policy |
-| Error corrections and prohibitions | `notes/findings.md` | Corrected assumptions with `type: correction`; merged into findings to avoid split source of truth |
-| Reusable technical findings | `notes/findings.md` | Reusable outcomes with `type: finding`; never raw evidence chains |
-| Methodological meta-knowledge | `notes/findings.md` | Learnings about how to work better with `type: meta`; e.g. tool tips, workflow improvements |
+| Error corrections and prohibitions | `notes/experience.md` | Corrected assumptions with `type: correction` |
+| Reusable technical findings | `notes/experience.md` | Reusable outcomes with `type: finding`; never raw evidence chains |
+| Methodological meta-knowledge | `notes/experience.md` | Learnings about how to work better with `type: meta`; e.g. tool tips, workflow improvements |
 | Active task state | `notes/current-task.md` | Only the current task summary and next-step state |
 | Closed task summaries | `notes/work-log.md` | Summary only, never full transcripts; keep newest entries first |
 
@@ -173,7 +173,7 @@ Use `notes/current-task.md` as the default working-memory summary file.
 Use `planning-with-files` only for complex task execution tracking, not for persistent memory storage.
 
 - `task_plan.md` is the detailed execution source when `planning-with-files` is active
-- `findings.md` stores task-scoped discoveries for that task
+- `findings.md` stores task-scoped discoveries for that task (not to be confused with `notes/experience.md` which stores durable meta-knowledge)
 - `progress.md` stores task-scoped session progress for that task
 - These planning files are local execution scratchpads, not long-term memory
 
@@ -298,9 +298,9 @@ When a task closes:
 | Don't Write | Why | Where Instead |
 |-------------|-----|---------------|
 | Closed task details | Clutters index | `notes/work-log.md` |
-| Evidence chains | Linear narrative, not reusable | `notes/findings.md` (outcomes only) |
+| Evidence chains | Linear narrative, not reusable | `notes/experience.md` (outcomes only) |
 | Session transcripts | Historical, not actionable | Not saved |
-| Raw command outputs | Transient data | Not saved or summarized in findings |
+| Raw command outputs | Transient data | Not saved or summarized in experience |
 | Long explanations | Index should be pointers | `notes/` files |
 
 ## Update Discipline
@@ -334,7 +334,7 @@ When a task closes:
 └── notes/
     ├── user-preferences.md
     ├── agent-workflow.md
-    ├── findings.md
+    ├── experience.md
     ├── current-task.md
     ├── work-log.md
     └── projects/
@@ -362,9 +362,9 @@ When an interaction produces a durable insight, classify it:
 
 | Classification | Destination | Examples |
 |---|---|---|
-| Meta: how to work better | `notes/findings.md` with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
-| Meta: corrected assumption | `notes/findings.md` with `type: correction` | "WeChat mobile UA does not bypass captcha" |
-| Meta: reusable decision | `notes/findings.md` with `type: finding` | "For Chinese sites, browser path > requests" |
+| Meta: how to work better | `notes/experience.md` with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
+| Meta: corrected assumption | `notes/experience.md` with `type: correction` | "WeChat mobile UA does not bypass captcha" |
+| Meta: reusable decision | `notes/experience.md` with `type: finding` | "For Chinese sites, browser path > requests" |
 | Domain: concept or fact | External wiki/vault | Technical concepts, source summaries, MOCs |
 
 ### Finding Writeback
@@ -380,11 +380,11 @@ Writeback triggers (any of):
 
 Writeback rules:
 
-- **Auto-write**: factual meta discoveries (tool tips, environment quirks, corrected assumptions) — write directly to `notes/findings.md`
-- **Confirm first**: rule changes, workflow modifications, or entries that supersede existing findings — propose to user before writing
+- **Auto-write**: factual meta discoveries (tool tips, environment quirks, corrected assumptions) — write directly to `notes/experience.md`
+- **Confirm first**: rule changes, workflow modifications, or entries that supersede existing experience — propose to user before writing
 - **Never write back**: domain knowledge, one-off troubleshooting, simple factual lookups, task-local observations
 
-Writeback format — each entry in `notes/findings.md`:
+Writeback format — each entry in `notes/experience.md`:
 
 ```markdown
 ## <Title>
@@ -403,7 +403,7 @@ Format:
 
 ```markdown
 ## Key Knowledge
-- `notes/findings.md` — 4 findings: MCP config, Inkscape render, topic-research browser, topic-research arch
+- `notes/experience.md` — 4 entries: MCP config, Inkscape render, topic-research browser, topic-research arch
 - `notes/user-preferences.md` — note ops, autonomy, comms style, vault path
 ```
 
@@ -463,7 +463,7 @@ If agent has access to shared notes repo:
 |-------|------------|
 | Stuff everything in MEMORY.md | Organize in notes/ directory |
 | Keep closed work in Active Context | Move to work-log.md |
-| Repeat corrections in multiple places | Single authoritative entry in `notes/findings.md` with `type: correction` |
+| Repeat corrections in multiple places | Single authoritative entry in `notes/experience.md` with `type: correction` |
 | Write evidence chains | Record outcome/lesson only |
 | Create new notes file for one-time info | Add to an existing appropriate file |
 | Append contradictory rules | Supersede old entries explicitly |
