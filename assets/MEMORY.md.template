@@ -15,7 +15,9 @@ If durable local memory or managed workspace config changes need cross-device re
 Do not run sync directly from this agent.
 
 ## Key Knowledge
-- Add pointers to stable notes files here.
+- `notes/user-preferences.md` — collaboration preferences and constraints
+- `notes/agent-workflow.md` — agent-local workflow and operational defaults
+- `notes/findings.md` — findings, corrections, and meta-knowledge
 
 ## Active Context
 - No active context recorded yet.

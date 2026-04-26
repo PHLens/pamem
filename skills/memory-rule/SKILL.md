@@ -82,6 +82,7 @@ The following communication rules are treated as Layer 0 shared rules:
 - Project or repo workflow rules
 - Durable corrections and prohibitions
 - Reusable technical findings with future decision value
+- Methodological experience gained during interaction (meta-knowledge)
 
 ### Layer 2: Working Memory
 
@@ -109,7 +110,7 @@ On wake-up, load in this order:
 1. `MEMORY.md`
 2. `notes/user-preferences.md`
 3. `notes/agent-workflow.md`
-4. `notes/corrections.md`
+4. `notes/findings.md`
 5. Active project rules, if present
 6. `notes/current-task.md`, only if a task is still open
 
@@ -155,8 +156,9 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Collaboration preferences | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Agent-local workflow rules | `notes/agent-workflow.md` | Agent-local workflow and communication rules that remain stable across projects; they supplement but do not replace the shared `shared-devflow` skill |
 | Project-specific rules | `notes/projects/<project-key>.md` | Project-specific workflow, environment, or repository policy |
-| Error corrections and prohibitions | `notes/corrections.md` | Explicit "do not do X" or corrected assumptions |
-| Reusable technical findings | `notes/findings.md` | Reusable outcomes only, never raw evidence chains |
+| Error corrections and prohibitions | `notes/findings.md` | Corrected assumptions with `type: correction`; merged into findings to avoid split source of truth |
+| Reusable technical findings | `notes/findings.md` | Reusable outcomes with `type: finding`; never raw evidence chains |
+| Methodological meta-knowledge | `notes/findings.md` | Learnings about how to work better with `type: meta`; e.g. tool tips, workflow improvements |
 | Active task state | `notes/current-task.md` | Only the current task summary and next-step state |
 | Closed task summaries | `notes/work-log.md` | Summary only, never full transcripts; keep newest entries first |
 
@@ -229,7 +231,7 @@ Planning files feed memory by summary and promotion, not by direct persistence.
 - `task_plan.md`, `findings.md`, and `progress.md` remain task-local execution records
 - `notes/current-task.md` is the exported recovery summary for startup and compact recovery
 - `notes/work-log.md` stores the closed-task summary
-- Only reusable findings, corrections, or durable rules may be promoted into stable memory
+- Only reusable findings, corrections, meta-knowledge, or durable rules may be promoted into stable memory
 
 ## Entry Discipline
 
@@ -310,7 +312,7 @@ When a task closes:
 3. Write details in the authoritative notes file
 4. Remove stale or duplicate startup-visible entries
 
-### When learning new preferences, rules, or corrections
+### When learning new preferences, rules, corrections, or meta-knowledge
 
 1. Check whether an authoritative entry already exists
 2. Update by replacement or supersession, not duplication
@@ -332,7 +334,6 @@ When a task closes:
 └── notes/
     ├── user-preferences.md
     ├── agent-workflow.md
-    ├── corrections.md
     ├── findings.md
     ├── current-task.md
     ├── work-log.md
@@ -347,6 +348,80 @@ When a task closes:
 - Closed work leaves startup-visible memory immediately
 - Archive stores summaries, not step-by-step logs
 - If a file becomes repetitive, consolidate and supersede instead of appending
+
+## Memory as Meta-Knowledge
+
+Agent memory is the **schema layer** for the agent's entire knowledge system. Its purpose is not to store all knowledge, but to store the meta-knowledge that enables efficient retrieval and application of external knowledge.
+
+### Meta vs Domain Boundary
+
+- **Meta-knowledge** (write to `notes/`): methodology, principles, tool tips, workflow rules, corrected assumptions, "knowing where to look"
+- **Domain knowledge** (write to external wiki/vault): concepts, facts, analyses, source material
+
+When an interaction produces a durable insight, classify it:
+
+| Classification | Destination | Examples |
+|---|---|---|
+| Meta: how to work better | `notes/findings.md` with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
+| Meta: corrected assumption | `notes/findings.md` with `type: correction` | "WeChat mobile UA does not bypass captcha" |
+| Meta: reusable decision | `notes/findings.md` with `type: finding` | "For Chinese sites, browser path > requests" |
+| Domain: concept or fact | External wiki/vault | Technical concepts, source summaries, MOCs |
+
+### Finding Writeback
+
+During interaction, when a meta-knowledge insight is discovered, promote it immediately rather than waiting for task completion.
+
+Writeback triggers (any of):
+
+- A tool usage revealed a non-obvious behavior or pitfall
+- A workflow assumption was proven wrong
+- A technique was discovered that would improve future interactions
+- A correction was made to a previous approach
+
+Writeback rules:
+
+- **Auto-write**: factual meta discoveries (tool tips, environment quirks, corrected assumptions) — write directly to `notes/findings.md`
+- **Confirm first**: rule changes, workflow modifications, or entries that supersede existing findings — propose to user before writing
+- **Never write back**: domain knowledge, one-off troubleshooting, simple factual lookups, task-local observations
+
+Writeback format — each entry in `notes/findings.md`:
+
+```markdown
+## <Title>
+- **type**: finding | correction | meta
+- **scope**: <what this affects>
+- **statement**: <concise statement of the insight>
+- **last_confirmed**: <date>
+- **supersedes**: <prior entry title>, when applicable
+```
+
+### MEMORY.md Summaries
+
+Each entry in `MEMORY.md` Key Knowledge should include a one-line summary after the dash, so the agent can decide whether to load a file without reading it first.
+
+Format:
+
+```markdown
+## Key Knowledge
+- `notes/findings.md` — 4 findings: MCP config, Inkscape render, topic-research browser, topic-research arch
+- `notes/user-preferences.md` — note ops, autonomy, comms style, vault path
+```
+
+This enables **selective loading**: on startup, read `MEMORY.md` first, then load only the notes files relevant to the current context instead of all files unconditionally.
+
+### Memory Lint
+
+On startup or when explicitly requested, perform a quick health check on `notes/`:
+
+| Check | Condition | Action |
+|---|---|---|
+| Stale finding | `last_confirmed` older than 90 days and not re-verified | Flag for re-confirmation |
+| Superseded entry | Entry has `supersedes` pointing to another entry still present | Remove or collapse the superseded entry |
+| Empty note | File has only heading or template placeholder | Remove from startup load order until populated |
+| Conflicting entries | Two entries in same scope contradict each other | Flag for conflict repair |
+| Orphan pointer | MEMORY.md references a note that does not exist | Remove the pointer |
+
+Memory lint is informational only — it reports issues but does not auto-fix. Conflicts and stale entries should be resolved by supersession, not deletion.
 
 ## Conflict Repair
 
@@ -388,11 +463,11 @@ If agent has access to shared notes repo:
 |-------|------------|
 | Stuff everything in MEMORY.md | Organize in notes/ directory |
 | Keep closed work in Active Context | Move to work-log.md |
-| Repeat corrections in multiple places | Single authoritative entry |
+| Repeat corrections in multiple places | Single authoritative entry in `notes/findings.md` with `type: correction` |
 | Write evidence chains | Record outcome/lesson only |
 | Create new notes file for one-time info | Add to an existing appropriate file |
 | Append contradictory rules | Supersede old entries explicitly |
 | Load archive by default | Load archive only when task-relevant |
 
 ## Last Updated
-2026-04-14
+2026-04-26
