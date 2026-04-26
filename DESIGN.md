@@ -40,7 +40,7 @@ Examples:
 
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
-- `notes/findings.md`
+- `notes/experience.md`
 - `notes/projects/*`
 
 ### Layer 2: Working Memory
@@ -102,7 +102,7 @@ flowchart TD
 - `MEMORY.md`
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
-- `notes/findings.md`
+- `notes/experience.md`
 - `notes/current-task.md`
 - `notes/work-log.md`
 
