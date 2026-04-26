@@ -68,7 +68,7 @@ Common examples:
 - `<workspace>/MEMORY.md`
 - `<workspace>/notes/user-preferences.md`
 - `<workspace>/notes/agent-workflow.md`
-- `<workspace>/notes/corrections.md`
+- `<workspace>/notes/findings.md`
 - `<workspace>/notes/projects/<project-key>.md`
 
 Rules:

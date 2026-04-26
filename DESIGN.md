@@ -9,7 +9,7 @@ The model has 4 layers.
 ```mermaid
 flowchart TD
     L0["Layer 0: Constitution<br/>Shared runtime rules, startup loading, precedence, write gates"]
-    L1["Layer 1: Stable Memory<br/>User preferences, workflow rules, durable corrections, reusable findings"]
+    L1["Layer 1: Stable Memory<br/>User preferences, workflow rules, findings, corrections, meta-knowledge"]
     L2["Layer 2: Working Memory<br/>Current task, blocker, next step, resumable context"]
     L3["Layer 3: Archive<br/>Closed-task summaries and history not loaded by default"]
 
@@ -40,7 +40,7 @@ Examples:
 
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
-- `notes/corrections.md`
+- `notes/findings.md`
 - `notes/projects/*`
 
 ### Layer 2: Working Memory
@@ -102,7 +102,7 @@ flowchart TD
 - `MEMORY.md`
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
-- `notes/corrections.md`
+- `notes/findings.md`
 - `notes/current-task.md`
 - `notes/work-log.md`
 
@@ -120,7 +120,7 @@ The runtime should be shared. The memory content should remain local to each age
 
 ### Explicit Promotion
 
-Only durable rules, preferences, corrections, and reusable findings should move into stable memory.
+Only durable rules, preferences, corrections, reusable findings, and meta-knowledge should move into stable memory.
 
 ### Startup-Safe By Default
 
@@ -133,3 +133,7 @@ Runtime state should avoid machine-specific leakage wherever possible.
 ### Runtime Over Content
 
 The plugin manages the memory system, not the agent's actual memories.
+
+### Meta-Knowledge Over Knowledge
+
+Agent memory is the schema layer, not the wiki. Its growth direction is not "knowing more facts" but "judging more accurately and retrieving more efficiently". Domain knowledge belongs in external wikis; memory stores the meta-knowledge of how to find and apply that knowledge. The memory system should compound over time: each interaction can yield methodological experience (tool tips, corrected assumptions, workflow improvements) that makes future interactions more effective.

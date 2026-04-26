@@ -141,7 +141,7 @@ The external executor may:
 - **Layer 1: Stable Memory**
   - user preferences
   - workflow rules
-  - corrections
+  - findings (includes corrections)
   - project notes
 - **Layer 3: Archive**
   - closed-task summaries when they should be retained externally
