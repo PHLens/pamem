@@ -19,6 +19,14 @@ Persistent agent memory becomes unstable when every workspace assembles its own 
 
 It is the runtime, not the memory content itself.
 
+The memory content should live in an explicitly configured private memory store when cross-runtime continuity matters. That store may be local-only, synced by a private Git repository, or handled by another private backend.
+
+This keeps the model clear:
+
+- `pamem` repository: runtime, hooks, skills, templates, governance
+- `pamem` memory store: private user/workspace memory and project recovery context
+- external wiki: shared professional knowledge, source notes, and curated domain indexes
+
 ## How
 
 ### Claude Code
