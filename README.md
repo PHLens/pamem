@@ -21,6 +21,8 @@ It is the runtime, not the memory content itself.
 
 The memory content should live in an explicitly configured private memory store when cross-runtime continuity matters. That store may be local-only, synced by a private Git repository, or handled by another private backend.
 
+A memory store can expose profiles for roles such as developer, reviewer, architect, and QA while still remaining one repository. Stable memory updates should be staged as reviewable requests before promotion.
+
 This keeps the model clear:
 
 - `pamem` repository: runtime, hooks, skills, templates, governance
