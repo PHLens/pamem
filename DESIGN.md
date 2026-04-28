@@ -110,9 +110,33 @@ But it does not decide the actual contents of those files for a specific agent.
 
 ## Design Philosophy
 
-### Stable Governance, Local Data
+### Stable Governance, Portable Private Data
 
-The runtime should be shared. The memory content should remain local to each agent.
+The runtime should be shared. The memory content should be portable, private, and owned by the user or workspace.
+
+`pamem` should not treat memory as an invisible per-runtime cache. If Claude, Codex, Hermes, or another runtime all participate in the same long-running work, they need a common memory authority rather than separate divergent local memories.
+
+The intended split is:
+
+```text
+pamem repository
+  runtime, hooks, skills, templates, governance
+
+pamem memory store
+  private user/workspace memory content
+  project recovery notes
+  agent operating experience
+  preferences and corrections
+  archive summaries
+```
+
+The memory store may be a local directory, private Git repository, encrypted synced folder, or another private backend. The important property is that it is explicitly configured and can be shared across runtimes when the user wants consistent memory.
+
+This keeps `pamem` from mixing three different concerns:
+
+- runtime distribution
+- private memory content
+- sync execution
 
 ### Thin Index, Not Transcript
 
@@ -130,6 +154,8 @@ A new or resumed session should recover the right structure without manual repai
 
 Runtime state should avoid machine-specific leakage wherever possible.
 
+Portable does not mean public. Most memory content is private by default.
+
 ### Runtime Over Content
 
 The plugin manages the memory system, not the agent's actual memories.
@@ -137,3 +163,290 @@ The plugin manages the memory system, not the agent's actual memories.
 ### Meta-Knowledge Over Knowledge
 
 Agent memory is the schema layer, not the wiki. Its growth direction is not "knowing more facts" but "judging more accurately and retrieving more efficiently". Domain knowledge belongs in external wikis; memory stores the meta-knowledge of how to find and apply that knowledge. The memory system should compound over time: each interaction can yield methodological experience (tool tips, corrected assumptions, workflow improvements) that makes future interactions more effective.
+
+## Cross-Runtime Consistency
+
+`pamem` should support the case where a user switches between Claude, Codex, Hermes, or another agent runtime and expects project memory to remain coherent.
+
+The consistency model is explicit:
+
+```text
+same memory store -> shared memory continuity
+different memory stores -> divergent memory until synced or reconciled
+```
+
+This is different from systems that achieve continuity by routing every device through one long-running agent profile. `pamem` should work even when the runtime changes, as long as each runtime reads and writes the same configured memory store.
+
+### What Belongs In The Memory Store
+
+The memory store should contain memory needed to recover and improve agent behavior:
+
+- user preferences
+- project working context
+- repo-specific operating notes
+- role-specific operating rules
+- runtime-specific tool experience
+- reusable corrections
+- environment experience
+- "read these files first" recovery pointers
+- closed-task summaries worth retaining
+
+It should not become a professional knowledge base.
+
+Domain knowledge belongs in external systems such as LoreForge or another wiki:
+
+| Content | Destination |
+|---|---|
+| User communication preference | `pamem` memory store |
+| Runtime-specific tool experience | `pamem` memory store |
+| Role-specific review or implementation rule | `pamem` memory store |
+| Current project recovery context | `pamem` memory store |
+| Professional concept or source summary | external wiki, not `pamem` |
+| Shared research knowledge | external wiki, not `pamem` |
+| Source notes and curated indexes | external wiki, not `pamem` |
+
+### Suggested Store Shape
+
+The exact backend is external to the runtime, but a file-backed store should be able to express:
+
+```text
+pamem-store/
+  .pamem/
+    config.toml
+  MEMORY.md
+  notes/
+    shared/
+      preferences.md
+      workflow.md
+      experience.md
+    roles/
+      developer.md
+      reviewer.md
+      architect.md
+      qa.md
+    runtimes/
+      claude.md
+      codex.md
+      hermes.md
+    current-task.md
+    work-log.md
+    projects/
+      <project-key>.md
+      <project-key>-developer.md
+  requests/
+    inbox/
+    promoted/
+    rejected/
+  archive/
+```
+
+The store can live in a private Git repository or any other private sync backend. If Git is used, it should normally be private and may need encryption or redaction policy before syncing across machines.
+
+The current V0 layout remains valid when no `.pamem/config.toml` is present:
+
+```text
+MEMORY.md
+notes/
+  user-preferences.md
+  agent-workflow.md
+  experience.md
+  current-task.md
+  work-log.md
+```
+
+### Profiles, Roles, And Runtimes
+
+A memory store should support profiles without creating one repository per agent role.
+
+Role is the work stance selected for a task, such as developer, reviewer, architect, or QA. Runtime is the tool executing the work, such as Claude, Codex, or Hermes. A runtime can run different roles, and a role can be used by different runtimes.
+
+Default rule:
+
+```text
+one memory store -> many profiles
+one profile -> shared notes + role notes + optional runtime notes + optional project notes
+```
+
+This keeps developer, reviewer, architect, and QA memory in one repository while preventing every role note from entering startup context at once.
+
+### Repository Count Rule
+
+Memory repository boundaries should follow trust, sync, and lifecycle boundaries, not role or topic boundaries.
+
+Default:
+
+- use one personal or team memory store
+- use one external wiki, such as LoreForge, per shared knowledge base
+- add a separate project memory store only when access, lifecycle, or sync requirements differ
+- do not create separate memory stores for developer, reviewer, architect, and QA
+
+### Memory Store Config
+
+The proposed config path is `.pamem/config.toml`. Initial support should be discovery and validation only, with no behavior change when the file is absent.
+
+Phase 1 recognizes two config kinds. `kind = "memory-repo"` describes the actual memory repository. `kind = "source"` lives in a bootstrap directory and resolves a local or git-backed memory repository. Source config may clone a missing git memory repo into `.pamem/memory`, but startup does not pull existing clones automatically.
+
+Example:
+
+```toml
+schema_version = "0.1"
+kind = "memory-repo"
+name = "agent-memory"
+entry_file = "MEMORY.md"
+notes_dir = "notes"
+
+[requests]
+inbox_dir = "requests/inbox"
+
+[profiles.developer]
+description = "Default coding and implementation profile."
+load = [
+  "MEMORY.md",
+  "notes/shared/preferences.md",
+  "notes/shared/workflow.md",
+  "notes/shared/experience.md",
+  "notes/roles/developer.md",
+  "notes/runtimes/codex.md",
+  "notes/projects/loreforge.md",
+  "notes/projects/loreforge-developer.md",
+]
+stable_targets = [
+  "notes/shared/experience.md",
+  "notes/roles/developer.md",
+  "notes/projects/loreforge.md",
+  "notes/projects/loreforge-developer.md",
+]
+
+[profiles.reviewer]
+description = "Review, risk, and test coverage profile."
+load = [
+  "MEMORY.md",
+  "notes/shared/preferences.md",
+  "notes/shared/workflow.md",
+  "notes/shared/experience.md",
+  "notes/roles/reviewer.md",
+  "notes/projects/loreforge.md",
+]
+stable_targets = [
+  "notes/shared/experience.md",
+  "notes/roles/reviewer.md",
+  "notes/projects/loreforge.md",
+]
+```
+
+Profile selection may come from runtime-specific integration later, such as `PAMEM_PROFILE`, a Codex bootstrap option, a Claude plugin setting, or a helper script flag.
+
+### Memory Request Queue
+
+Stable memory writes should be staged as reviewable requests before promotion.
+
+```text
+requests/
+  inbox/
+  promoted/
+  rejected/
+```
+
+A memory request is a small proposal to update agent memory. It is not a LoreForge ingest package and should not carry source-note or wiki promotion semantics.
+
+Minimum request metadata:
+
+- `type`
+- `status`
+- `target`
+- `category`
+- `scope`
+- `profile`
+- `review_required`
+- `source`
+- `reason`
+
+Promotion should validate the request, check for duplicates or conflicts, apply a concise stable memory update, update `MEMORY.md` only when a pointer is needed, and move the request to `promoted` or `rejected`.
+
+### Recovery Contract
+
+For a project that may be resumed by another runtime, `pamem` should preserve enough context to answer:
+
+- which repository or workspace is active
+- what the current focus is
+- which durable design files should be read first
+- which decisions are settled
+- which questions remain open
+- which external knowledge store should be used
+
+This lets a fresh runtime recover without replaying a full transcript.
+
+## Roadmap
+
+### Parked: Memory Lint Prototype
+
+`pamem` owns the report-only memory lint prototype, but it is parked behind explicit command use while config discovery is the active implementation priority.
+
+Current constraints:
+
+- do not run lint from startup or compact hooks
+- do not block `.pamem/config.toml` discovery
+- do not auto-fix memory files
+- keep V0 layout support until profile-aware loading is active
+- adapt lint to config-defined profile targets only after Phase 1 is complete
+
+### Phase 1: Store Boundary And Config Discovery
+
+- document the runtime/content split clearly
+- define `.pamem/config.toml`
+- add config discovery and schema-version validation
+- report resolved profile load paths
+- describe how a workspace selects a memory store
+- keep generated memory content out of the plugin repository
+- keep existing V0 behavior unchanged when config is absent
+
+### Phase 2: Profile-Aware Startup Loading
+
+- support a shared memory store for Claude, Codex, Hermes, and other runtimes
+- distinguish shared, role, runtime, project, and role-project memory
+- define precedence when runtime-specific notes conflict with common notes
+- define precedence when role-specific notes conflict with project notes
+- make startup bootstrap report which memory store was loaded
+- make startup bootstrap report which profile was loaded
+
+### Phase 3: Memory Request Queue
+
+- add `requests/inbox`, `requests/promoted`, and `requests/rejected` skeletons
+- add request templates
+- lint required request metadata and valid target paths
+- keep stable memory writes staged by default
+
+### Phase 4: Promotion Helper
+
+- add a conservative helper for promoting approved requests
+- validate, patch the target, and move the request
+- do not auto-decide what should be accepted
+- preserve the rule that memory writes happen after review
+
+### Phase 5: Sync Contract
+
+- keep `sync-request` as the standard way to request retention or propagation
+- define request examples for private Git-backed memory stores
+- document conflict and duplicate handling
+- avoid embedding sync executor logic in the plugin runtime
+
+### Phase 6: Privacy And Safety
+
+- document private-by-default expectations
+- add redaction guidance for memory entries
+- define what must never be written to shared memory
+- consider encryption or private-repo recommendations for synced stores
+
+### Phase 7: Recovery Quality
+
+- add project recovery templates
+- lint for oversized or stale startup memory
+- detect missing project recovery pointers
+- improve archive summaries so old sessions remain useful without polluting startup context
+
+### Phase 8: External Knowledge Boundary
+
+- document how `pamem` should point to external knowledge systems such as LoreForge
+- keep professional knowledge out of agent memory
+- use memory for retrieval strategy, not for storing the retrieved knowledge itself
+- keep the future router thin: choose `pamem` memory request or LoreForge staged package, not a large new subsystem
