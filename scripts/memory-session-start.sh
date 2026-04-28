@@ -15,7 +15,21 @@ if [ -z "$ROOT" ]; then
   ROOT="$PWD"
 fi
 
-MEMORY_PATH="$ROOT/MEMORY.md"
+CONFIG_OUTPUT="$("$SCRIPT_DIR/memory-config.sh" --root "$ROOT" --json 2>/dev/null || true)"
+CONFIG_DIAGNOSTIC="$(printf '%s' "$CONFIG_OUTPUT" | jq -r '.diagnostic // empty' 2>/dev/null || true)"
+CONFIG_MEMORY_ROOT="$(printf '%s' "$CONFIG_OUTPUT" | jq -r '.memory_root // empty' 2>/dev/null || true)"
+
+if [ -n "$CONFIG_MEMORY_ROOT" ] && [ -d "$CONFIG_MEMORY_ROOT" ]; then
+  MEMORY_ROOT="$CONFIG_MEMORY_ROOT"
+else
+  MEMORY_ROOT="$ROOT"
+fi
+
+if [ -z "$CONFIG_DIAGNOSTIC" ]; then
+  CONFIG_DIAGNOSTIC="Memory config: diagnostics unavailable, using V0 layout"
+fi
+
+MEMORY_PATH="$MEMORY_ROOT/MEMORY.md"
 CREATED=0
 ADDED_GOVERNANCE=0
 ADDED_SYNC_TRIGGER=0
@@ -44,8 +58,11 @@ MEMORY_TEXT="$(cat "$MEMORY_PATH")"
 LINE_COUNT="$(printf '%s\n' "$MEMORY_TEXT" | wc -l | awk '{print $1}')"
 BYTE_COUNT="$(printf '%s' "$MEMORY_TEXT" | wc -c | awk '{print $1}')"
 
-CONTEXT=""
+CONTEXT="$CONFIG_DIAGNOSTIC"
 if [ "$CREATED" -eq 1 ]; then
+  if [ -n "$CONTEXT" ]; then
+    CONTEXT="${CONTEXT}\n\n"
+  fi
   CONTEXT="${CONTEXT}Persistent memory bootstrap: created a minimal \`MEMORY.md\` because it was missing or empty."
 fi
 
