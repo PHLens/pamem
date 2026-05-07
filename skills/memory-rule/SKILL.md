@@ -59,6 +59,7 @@ agent-memory/
       reviewer.md
       researcher.md
       onboarding.md
+      wiki.md
   L2/
     projects/
       <project-key>.md
@@ -129,7 +130,7 @@ Examples:
 - durable corrections and prohibitions
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
-- role-shared memory such as `L1/roles/coder.md` and `L1/roles/reviewer.md`
+- role-shared memory such as `L1/roles/coder.md`, `L1/roles/reviewer.md`, and `L1/roles/wiki.md`
 
 Role memory belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
 
@@ -164,6 +165,8 @@ Archive stores summaries, not transcripts or raw evidence chains.
 When `.pamem/config.toml` exists, it is the machine-readable source for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
 
 For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
+
+The wiki profile stores curation workflow, knowledge pointers, and sync handoff memory; domain knowledge itself belongs in the external wiki.
 
 Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
 Profile selection happens during onboarding, preferably through `onboard-pamem.sh`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
@@ -283,7 +286,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 |---|---|---|---|
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared workflow rules | `L1/shared/workflow.md` | `notes/agent-workflow.md` | Stable workflow defaults; must not override L0 |
-| Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer habits |
+| Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |

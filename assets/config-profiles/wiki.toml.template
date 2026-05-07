@@ -1,0 +1,59 @@
+# pamem shared config template for the wiki profile
+# Copy this file to .pamem/config.toml when the workspace should default to wiki curation work.
+# Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
+
+version = 1
+default_profile = "wiki"
+
+[memory_repo]
+# Relative paths are resolved from the agent workspace; absolute paths are allowed for a shared repo used by multiple agents.
+path = ".pamem/memory"
+sharing = "shared"
+layout = "L0/L1/L2/L3"
+entry_file = "MEMORY.md"
+
+[memory_repo.sync]
+# local = no remote sync; git = private git repo; webdav = rclone remote:path
+backend = "local"
+remote = ""
+ref = "main"
+sync_bootstrapped = false
+
+[governance]
+config_owner = "human"
+generated_by = "onboarding"
+requires_review_for = [
+  "memory_repo",
+  "memory_repo.sync",
+  ".pamem/config.toml",
+  "L0/**",
+  "L1/shared/**",
+  "L1/roles/**"
+]
+
+[sync]
+queue_root = ".pamem/sync-queue"
+executor = "<configured-sync-executor>"
+policy = "explicit_request_or_workspace_policy"
+
+[profiles.wiki]
+role = "wiki"
+description = "Wiki profile for curation workflow, knowledge pointers, and sync handoffs."
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/wiki.md",
+  "L2/projects/<project-key>.md",
+  "L2/active/current-tasks.md",
+  "L2/active/<task-id>.md"
+]
+write = [
+  "L2/active/current-tasks.md",
+  "L2/active/<task-id>.md",
+  "requests/inbox/"
+]
+guarded_write = [
+  "L1/roles/wiki.md"
+]

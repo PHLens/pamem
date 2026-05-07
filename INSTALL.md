@@ -21,8 +21,8 @@ initial profile config for a workspace:
 $HOME/.claude/plugins/marketplaces/phlens/scripts/onboard-pamem.sh <workspace> --profile coder
 ```
 
-Supported profiles are `onboarding`, `human`, `coder`, `reviewer`, and
-`researcher`. The script chooses the matching config template, writes
+Supported profiles are `onboarding`, `human`, `coder`, `reviewer`,
+`researcher`, and `wiki`. The script chooses the matching config template, writes
 `.pamem/config.toml`, runs the normal install path, and seeds the configured
 memory repo.
 

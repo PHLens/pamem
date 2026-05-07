@@ -279,6 +279,7 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/coder.md.template" "$repo_root/L1/roles/coder.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/reviewer.md.template" "$repo_root/L1/roles/reviewer.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/researcher.md.template" "$repo_root/L1/roles/researcher.md"
+  pamem_copy_if_missing "$assets_dir/shared/L1/roles/wiki.md.template" "$repo_root/L1/roles/wiki.md"
   pamem_copy_if_missing "$assets_dir/notes/current-task.md.template" "$repo_root/L2/active/current-tasks.md"
   pamem_copy_if_missing "$assets_dir/notes/work-log.md.template" "$repo_root/L3/work-log.md"
 }
