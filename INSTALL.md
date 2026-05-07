@@ -109,4 +109,4 @@ It does not replace:
 - `notes/agent-workflow.md`
 - `notes/projects/*`
 - `notes/current-task.md`
-- Adam's local `agent-sync` executor workflow
+- the local sync executor workflow
