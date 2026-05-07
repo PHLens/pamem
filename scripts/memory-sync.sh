@@ -3,12 +3,12 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: memory-sync.sh [--root <workspace>] [--repo <path>] [--backend <local|git|webdav>] [--remote <target>] [--ref <branch>] [--message <text>] [--resync] [--dry-run]
+Usage: memory-sync.sh [--root <agent-home-or-workspace>] [--repo <path>] [--backend <local|git|webdav>] [--remote <target>] [--ref <branch>] [--message <text>] [--resync] [--dry-run]
 
 Sync the configured pamem shared memory repo.
 
 Options:
-  --root <path>       Agent workspace containing .pamem/config.toml. Defaults to $PWD.
+  --root <path>       Agent home or workspace containing pamem config. Defaults to $PWD.
   --repo <path>       Memory repo path override. Relative paths resolve from --root.
   --backend <name>    Sync backend override: local, git, or webdav.
   --remote <target>   Remote override. Git uses origin by default; WebDAV requires rclone remote:path.

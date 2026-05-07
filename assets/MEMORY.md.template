@@ -5,14 +5,14 @@ Before any persistent memory read, write, compress, or archive action, apply the
 
 Use the `memory-rule` plugin skill when:
 - updating `MEMORY.md`
-- editing `.pamem/config.toml` for memory repo location, sharing, or sync policy
+- editing `config.toml` or `.pamem/config.toml` for memory repo location, sharing, or sync policy
 - writing to `L1/`, `L2/`, `L3/`, or fallback `notes/`
 - promoting task facts into durable memory
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
-`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while CLI runtime-local work memory stays in workspace notes or local state and Slock task state stays in Slock. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
-When `.pamem/config.toml` points at a shared memory repo, durable project memory belongs in `L2/projects/`; CLI runtime-local work memory belongs in `notes/current-task.md` and `notes/work-log.md` only.
+`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while CLI runtime-local work memory stays in the local agent home or legacy workspace compatibility notes and Slock task state stays in Slock. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
+When local config points at a shared memory repo, durable project memory belongs in `L2/projects/`; CLI runtime-local work memory belongs in the local agent home, with `notes/current-task.md` and `notes/work-log.md` as compatibility fallbacks.
 Runtime startup hooks are read-only loaders. If the configured memory entry is missing, treat it as an onboarding/repair issue rather than creating shared memory during task execution.
 
 ## Sync Trigger
@@ -20,12 +20,12 @@ If durable local memory or managed workspace config changes need cross-device re
 Do not run sync directly from this agent; the sync executor may call `.pamem/scripts/memory-sync.sh` when policy says to propagate the configured memory repo.
 
 ## Key Knowledge
-- `.pamem/config.toml` — memory repo path, sharing mode, sync backend, and profile policy
+- `config.toml` or `.pamem/config.toml` — memory repo path, sharing mode, sync backend, and profile policy
 - `L1/shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
 - `L1/shared/operating-rules.md` or `notes/operating-rules.md` — stable operating defaults
 - `L1/shared/experience.md` or `notes/experience.md` — findings, corrections, and meta-knowledge
 - `L2/projects/<project-key>.md` or `notes/projects/<project-key>.md` — project-specific stable context
-- `notes/current-task.md` / `notes/work-log.md` — CLI runtime-local recovery and completion summaries
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` / `work-log.md`, with `notes/current-task.md` / `notes/work-log.md` fallback — CLI runtime-local recovery and completion summaries
 
 ## Active Context
 - No active context recorded yet.

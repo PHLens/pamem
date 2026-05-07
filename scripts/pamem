@@ -1,0 +1,354 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: pamem <command> [options]
+
+Commands:
+  init [agent-home]      First-time setup for a local agent home.
+  start                  Start a CLI runtime session for an initialized agent.
+  resume                 Resume a CLI runtime session for an initialized agent.
+  status                 Print resolved agent home, memory repo, and runtime state.
+  hook-json              Print SessionStart hook input JSON for the agent.
+  context                Print startup memory context for runtimes without hooks.
+  lint                   Run read-only memory lint for the configured memory repo.
+  sync                   Run the configured memory sync helper.
+  install [workspace]    Install/repair default pamem bootstrap files.
+  repair [workspace]     Repair pamem bootstrap files.
+  remove [workspace]     Remove managed hook entries.
+
+Examples:
+  pamem init --profile coder --runtime cli --agent-id coder-local
+  pamem start --agent-id coder-local -- codex
+  pamem resume --agent-id coder-local -- codex
+  pamem status --agent-id coder-local
+  pamem context --agent-id coder-local
+  pamem lint --agent-id coder-local --json
+
+Use "pamem <command> --help" for command-specific options.
+EOF
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RUNTIME_ROOT="$PLUGIN_ROOT"
+if [ "$(basename "$PLUGIN_ROOT")" = ".pamem" ]; then
+  if [ -L "$PLUGIN_ROOT/scripts" ]; then
+    RUNTIME_SCRIPTS_DIR="$(cd "$(dirname "$PLUGIN_ROOT/scripts")/$(readlink "$PLUGIN_ROOT/scripts")" && pwd)"
+    RUNTIME_ROOT="$(cd "$RUNTIME_SCRIPTS_DIR/.." && pwd)"
+  fi
+fi
+
+# shellcheck source=memory-store.sh
+source "$SCRIPT_DIR/memory-store.sh"
+
+installed_workspace_root() {
+  local candidate
+
+  if [ "$(basename "$PLUGIN_ROOT")" != ".pamem" ] || [ ! -s "$PLUGIN_ROOT/config.toml" ]; then
+    return 0
+  fi
+
+  candidate="$(dirname "$PLUGIN_ROOT")"
+  if [ -s "$candidate/.pamem/config.toml" ]; then
+    printf '%s' "$candidate"
+  fi
+}
+
+default_agent_home_for_args() {
+  local args=("$@")
+  local agent_id=""
+
+  while [ "${#args[@]}" -gt 0 ]; do
+    case "${args[0]}" in
+      --)
+        break
+        ;;
+      --agent-id)
+        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --agent-id" >&2; exit 2; }
+        agent_id="${args[1]}"
+        args=("${args[@]:2}")
+        ;;
+      --agent-id=*)
+        agent_id="${args[0]#*=}"
+        args=("${args[@]:1}")
+        ;;
+      *)
+        args=("${args[@]:1}")
+        ;;
+    esac
+  done
+
+  if [ -z "$agent_id" ]; then
+    return 1
+  fi
+
+  pamem_agent_home_path "$agent_id"
+}
+
+run_init() {
+  local target_root=""
+  local target_mode="agent-home"
+  local args=()
+
+  if [ "$#" -gt 0 ] && [[ "$1" != -* ]]; then
+    target_root="$1"
+    shift
+  fi
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --workspace)
+        [ "$#" -ge 2 ] || { echo "missing value for --workspace" >&2; exit 2; }
+        target_root="$2"
+        target_mode="workspace"
+        shift 2
+        ;;
+      --workspace=*)
+        target_root="${1#*=}"
+        target_mode="workspace"
+        shift
+        ;;
+      --agent-home)
+        [ "$#" -ge 2 ] || { echo "missing value for --agent-home" >&2; exit 2; }
+        target_root="$2"
+        target_mode="agent-home"
+        shift 2
+        ;;
+      --agent-home=*)
+        target_root="${1#*=}"
+        target_mode="agent-home"
+        shift
+        ;;
+      *)
+        args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [ -z "$target_root" ]; then
+    target_root="$(default_agent_home_for_args "${args[@]}" || true)"
+    target_mode="agent-home"
+  fi
+
+  if [ -z "$target_root" ]; then
+    echo "pamem init requires --agent-id when no agent home is provided" >&2
+    exit 2
+  fi
+
+  if [ "$target_mode" = "agent-home" ]; then
+    "$SCRIPT_DIR/onboard-pamem.sh" "$target_root" --agent-home "${args[@]}"
+  else
+    "$SCRIPT_DIR/onboard-pamem.sh" "$target_root" "${args[@]}"
+  fi
+}
+
+command_workspace_args() {
+  local args=("$@")
+  local saw_workspace=0
+  local saw_separator=0
+  local agent_id=""
+  local rewritten=()
+  local workspace
+
+  while [ "${#args[@]}" -gt 0 ]; do
+    if [ "$saw_separator" -eq 1 ]; then
+      rewritten+=("${args[0]}")
+      args=("${args[@]:1}")
+      continue
+    fi
+
+    case "${args[0]}" in
+      --)
+        saw_separator=1
+        rewritten+=("--")
+        args=("${args[@]:1}")
+        ;;
+      --workspace)
+        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --workspace" >&2; exit 2; }
+        saw_workspace=1
+        rewritten+=("--workspace" "${args[1]}")
+        args=("${args[@]:2}")
+        ;;
+      --workspace=*)
+        saw_workspace=1
+        rewritten+=("--workspace" "${args[0]#*=}")
+        args=("${args[@]:1}")
+        ;;
+      --agent-id)
+        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --agent-id" >&2; exit 2; }
+        agent_id="${args[1]}"
+        rewritten+=("--agent-id" "$agent_id")
+        args=("${args[@]:2}")
+        ;;
+      --agent-id=*)
+        agent_id="${args[0]#*=}"
+        rewritten+=("--agent-id" "$agent_id")
+        args=("${args[@]:1}")
+        ;;
+      *)
+        rewritten+=("${args[0]}")
+        args=("${args[@]:1}")
+        ;;
+    esac
+  done
+
+  if [ "$saw_workspace" -eq 0 ]; then
+    workspace="$(installed_workspace_root)"
+    if [ -z "$workspace" ] && [ -n "$agent_id" ]; then
+      workspace="$(pamem_agent_home_path "$agent_id")"
+    fi
+    if [ -n "$workspace" ]; then
+      rewritten=("--workspace" "$workspace" "${rewritten[@]}")
+    fi
+  fi
+
+  printf '%s\0' "${rewritten[@]}"
+}
+
+run_cli_command() {
+  local command="$1"
+  shift
+  local args=()
+  local arg
+
+  while IFS= read -r -d '' arg; do
+    args+=("$arg")
+  done < <(command_workspace_args "$@")
+
+  exec "$SCRIPT_DIR/pamem-cli.sh" "$command" "${args[@]}"
+}
+
+workspace_default_args() {
+  local args=("$@")
+  local saw_root=0
+  local rewritten=()
+  local workspace
+  local agent_id=""
+
+  while [ "${#args[@]}" -gt 0 ]; do
+    case "${args[0]}" in
+      --root)
+        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --root" >&2; exit 2; }
+        saw_root=1
+        rewritten+=("--root" "${args[1]}")
+        args=("${args[@]:2}")
+        ;;
+      --root=*)
+        saw_root=1
+        rewritten+=("${args[0]}")
+        args=("${args[@]:1}")
+        ;;
+      --workspace)
+        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --workspace" >&2; exit 2; }
+        saw_root=1
+        rewritten+=("--root" "${args[1]}")
+        args=("${args[@]:2}")
+        ;;
+      --workspace=*)
+        saw_root=1
+        rewritten+=("--root" "${args[0]#*=}")
+        args=("${args[@]:1}")
+        ;;
+      --agent-id)
+        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --agent-id" >&2; exit 2; }
+        agent_id="${args[1]}"
+        args=("${args[@]:2}")
+        ;;
+      --agent-id=*)
+        agent_id="${args[0]#*=}"
+        args=("${args[@]:1}")
+        ;;
+      *)
+        rewritten+=("${args[0]}")
+        args=("${args[@]:1}")
+        ;;
+    esac
+  done
+
+  if [ "$saw_root" -eq 0 ]; then
+    workspace="$(installed_workspace_root)"
+    if [ -z "$workspace" ] && [ -n "$agent_id" ]; then
+      workspace="$(pamem_agent_home_path "$agent_id")"
+    fi
+    if [ -n "$workspace" ]; then
+      rewritten=("--root" "$workspace" "${rewritten[@]}")
+    fi
+  fi
+
+  printf '%s\0' "${rewritten[@]}"
+}
+
+run_root_tool() {
+  local script="$1"
+  shift
+  local args=()
+  local arg
+
+  while IFS= read -r -d '' arg; do
+    args+=("$arg")
+  done < <(workspace_default_args "$@")
+
+  exec "$script" "${args[@]}"
+}
+
+run_workspace_script() {
+  local script="$1"
+  shift
+  local workspace="."
+
+  if [ "$#" -gt 0 ]; then
+    workspace="$1"
+    shift
+  else
+    local installed
+    installed="$(installed_workspace_root)"
+    if [ -n "$installed" ]; then
+      workspace="$installed"
+    fi
+  fi
+
+  exec "$script" "$workspace" "$@"
+}
+
+if [ "$#" -lt 1 ]; then
+  usage >&2
+  exit 2
+fi
+
+COMMAND="$1"
+shift
+
+case "$COMMAND" in
+  init|onboard)
+    run_init "$@"
+    ;;
+  start|resume|status|hook-json|context)
+    run_cli_command "$COMMAND" "$@"
+    ;;
+  lint)
+    run_root_tool "$RUNTIME_ROOT/skills/memory-lint/scripts/memory-lint.sh" "$@"
+    ;;
+  sync)
+    run_root_tool "$SCRIPT_DIR/memory-sync.sh" "$@"
+    ;;
+  install)
+    run_workspace_script "$SCRIPT_DIR/install-pamem.sh" "$@"
+    ;;
+  repair)
+    run_workspace_script "$SCRIPT_DIR/repair-pamem.sh" "$@"
+    ;;
+  remove)
+    run_workspace_script "$SCRIPT_DIR/remove-pamem.sh" "$@"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    echo "unknown pamem command: $COMMAND" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

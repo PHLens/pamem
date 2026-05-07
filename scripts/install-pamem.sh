@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: install-pamem.sh <workspace>" >&2
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  echo "Usage: install-pamem.sh <root> [--agent-home]" >&2
   exit 1
 fi
 
@@ -10,6 +10,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ASSETS_DIR="$PLUGIN_ROOT/assets"
 TARGET_INPUT="$1"
+AGENT_HOME_MODE=0
+if [ "$#" -eq 2 ]; then
+  case "$2" in
+    --agent-home)
+      AGENT_HOME_MODE=1
+      ;;
+    *)
+      echo "unknown argument: $2" >&2
+      exit 2
+      ;;
+  esac
+fi
 
 # shellcheck source=memory-store.sh
 source "$SCRIPT_DIR/memory-store.sh"
@@ -26,17 +38,28 @@ fi
 
 mkdir -p "$TARGET_INPUT"
 WORKSPACE="$(cd "$TARGET_INPUT" && pwd)"
-NOTES_DIR="$WORKSPACE/notes"
-CODEX_DIR="$WORKSPACE/.codex"
-FOUNDATION_DIR="$WORKSPACE/.pamem"
-FOUNDATION_SCRIPTS_DIR="$FOUNDATION_DIR/scripts"
-FOUNDATION_ASSETS_DIR="$FOUNDATION_DIR/assets"
-CONFIG_PATH="$FOUNDATION_DIR/config.toml"
-MEMORY_PATH="$WORKSPACE/MEMORY.md"
+if [ "$AGENT_HOME_MODE" -eq 1 ]; then
+  CODEX_DIR="$WORKSPACE/.codex"
+  CONFIG_PATH="$(pamem_agent_home_config_path "$WORKSPACE")"
+  CURRENT_TASK_PATH="$WORKSPACE/current-task.md"
+  WORK_LOG_PATH="$WORKSPACE/work-log.md"
+  SESSION_CMD="$SCRIPT_DIR/memory-session-start.sh"
+  mkdir -p "$CODEX_DIR"
+else
+  NOTES_DIR="$WORKSPACE/notes"
+  CODEX_DIR="$WORKSPACE/.codex"
+  FOUNDATION_DIR="$WORKSPACE/.pamem"
+  FOUNDATION_SCRIPTS_DIR="$FOUNDATION_DIR/scripts"
+  FOUNDATION_ASSETS_DIR="$FOUNDATION_DIR/assets"
+  CONFIG_PATH="$FOUNDATION_DIR/config.toml"
+  MEMORY_PATH="$WORKSPACE/MEMORY.md"
+  CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
+  WORK_LOG_PATH="$NOTES_DIR/work-log.md"
+  SESSION_CMD='.pamem/scripts/memory-session-start.sh'
+  mkdir -p "$NOTES_DIR/projects" "$FOUNDATION_DIR"
+fi
 
-SESSION_CMD='.pamem/scripts/memory-session-start.sh'
-
-mkdir -p "$NOTES_DIR/projects" "$CODEX_DIR" "$FOUNDATION_DIR"
+mkdir -p "$CODEX_DIR"
 
 relative_link_target() {
   local src="$1"
@@ -60,8 +83,10 @@ ensure_runtime_link() {
   ln -s "$rel_src" "$dst"
 }
 
-ensure_runtime_link "$PLUGIN_ROOT/scripts" "$FOUNDATION_SCRIPTS_DIR"
-ensure_runtime_link "$ASSETS_DIR" "$FOUNDATION_ASSETS_DIR"
+if [ "$AGENT_HOME_MODE" -ne 1 ]; then
+  ensure_runtime_link "$PLUGIN_ROOT/scripts" "$FOUNDATION_SCRIPTS_DIR"
+  ensure_runtime_link "$ASSETS_DIR" "$FOUNDATION_ASSETS_DIR"
+fi
 
 copy_if_missing() {
   local src="$1"
@@ -93,20 +118,24 @@ copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
 
 RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
 
-copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
-copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
-copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
+if [ "$AGENT_HOME_MODE" -ne 1 ]; then
+  copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
+  copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
+  copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
+fi
 
 if [ "$RUNTIME_MODE" = "cli" ]; then
-  copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$NOTES_DIR/current-task.md"
-  copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$NOTES_DIR/work-log.md"
+  copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$CURRENT_TASK_PATH"
+  copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$WORK_LOG_PATH"
 fi
 
 MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
 pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
 
-if [ ! -s "$MEMORY_PATH" ]; then
-  cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"
+if [ "$AGENT_HOME_MODE" -ne 1 ]; then
+  if [ ! -s "$MEMORY_PATH" ]; then
+    cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"
+  fi
 fi
 
 ensure_insert_after_title() {
@@ -135,8 +164,10 @@ ensure_append_block() {
   printf '\n%s\n' "$(cat "$block_file")" >> "$file"
 }
 
-ensure_insert_after_title "$MEMORY_PATH" '## Memory Governance' "$ASSETS_DIR/memory-governance.md.fragment"
-ensure_append_block "$MEMORY_PATH" '## Sync Trigger' "$ASSETS_DIR/sync-trigger.md.fragment"
+if [ "$AGENT_HOME_MODE" -ne 1 ]; then
+  ensure_insert_after_title "$MEMORY_PATH" '## Memory Governance' "$ASSETS_DIR/memory-governance.md.fragment"
+  ensure_append_block "$MEMORY_PATH" '## Sync Trigger' "$ASSETS_DIR/sync-trigger.md.fragment"
+fi
 
 ensure_json_file() {
   local file="$1"

@@ -22,12 +22,13 @@ This plugin skill governs how persistent agent memory is structured, loaded, upd
 
 ```text
 MEMORY.md          = human-readable startup index and pointers
-.pamem/config.toml = machine-readable profile, runtime, memory repo location, load, write, and sync policy when present
+config.toml or .pamem/config.toml = machine-readable profile, runtime, memory repo location, load, write, and sync policy when present
 L0/ or this skill   = constitution and governance
 L1/ or notes/       = stable shared, role, preference, and experience memory
 L2/ or notes/       = project memory
 L3/ or notes/       = archive summaries not loaded by default, usually CLI-local
 requests/           = reviewable memory-promotion requests
+XDG data agent home = CLI runtime-local config and task recovery by agent id
 .pamem/scripts/memory-sync.sh = repo-level sync helper for the configured memory repo backend
 sync-request        = separate request-generation skill for cross-device retention
 ```
@@ -36,16 +37,27 @@ Keep persistent memory files in English unless there is an explicit local except
 
 ## Supported Layouts
 
-Pamem supports both the current per-agent notes scaffold and a shared memory repo layout. Prefer the shared layout when multiple agents should reuse stable memory.
+Pamem supports both the current per-agent notes scaffold and a shared memory repo layout. Prefer the shared layout when multiple agents should reuse stable memory. The default shared repo is machine-local at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`; default CLI agent homes live under `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/` and hold config plus runtime-local state. Legacy or Slock workspaces may keep `.pamem/config.toml` and workspace-local hooks.
 
 ### Shared Memory Repo
 
 ```text
-<agent-workspace>/
-  .pamem/
+${XDG_DATA_HOME:-~/.local/share}/pamem/
+  agents/<agent-id>/
     config.toml        # points at memory_repo.path
+    current-task.md
+    work-log.md
+  memory/
+    MEMORY.md
+    L0/
+    L1/
+    L2/
 
-agent-memory/
+<legacy-or-slock-workspace>/
+  .pamem/
+    config.toml        # compatibility/source-of-truth for that workspace
+
+memory/
   MEMORY.md
   L0/
     constitution.md
@@ -82,13 +94,15 @@ agent-memory/
     work-log.md
     projects/
       <project-key>.md
+
 ```
 
 Map fallback files to the same layers:
 
 - `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` are L1.
 - `notes/projects/<project-key>.md` is L2.
-- `notes/current-task.md` and `notes/work-log.md` are CLI-local runtime files, not durable shared memory layers.
+- XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
+- `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
 
 ## Memory Layers
 
@@ -153,25 +167,28 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 ## Profile Configuration
 
-When `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
+When local `config.toml` or `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
 
-For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
+For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
 The wiki profile stores curation workflow, knowledge pointers, and sync handoff memory; domain knowledge itself belongs in the external wiki.
 
 Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
-Profile selection happens during onboarding, preferably through `onboard-pamem.sh`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
+Profile selection happens during onboarding, preferably through `pamem init`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
 
 The shared repo is resolved through:
 
 ```toml
 [memory_repo]
-path = ".pamem/memory"
+path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"
 sharing = "shared"
 entry_file = "MEMORY.md"
 
 [runtime]
 mode = "cli"
+
+[runtime.resume]
+command = []
 
 [memory_repo.sync]
 backend = "local"
@@ -206,6 +223,7 @@ Rules:
 
 - Profiles describe what to load; they do not create new precedence.
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
+- `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise `pamem resume` may reuse the last launcher recorded by `pamem start -- <launcher>`.
 - Role-specific memory is a profile overlay loaded from L1.
 - Project memory is loaded from L2 and wins over role memory on conflict.
 - Ordinary task agents should write project memory and promotion requests, not mutable task state in the shared repo.
@@ -218,25 +236,25 @@ Rules:
 On wake-up:
 
 1. Read `MEMORY.md`.
-2. If present, read `.pamem/config.toml`, resolve `memory_repo.path`, and select the requested or default profile.
+2. If present, read local `config.toml` or `.pamem/config.toml`, resolve `memory_repo.path`, and select the requested or default profile.
 3. Load the repo entry file from `memory_repo.entry_file`; default is `MEMORY.md`.
 4. Load L0 constitution sources for that profile.
 5. Load L1 shared memory.
 6. Load the L1 role overlay for the profile.
 7. Load L2 project memory for the active project.
-8. If runtime mode is `cli`, load `notes/current-task.md` and `notes/work-log.md` when they exist as local recovery context.
+8. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
 9. Do not load L3 archive or `requests/` by default.
 10. If runtime mode is `slock`, treat Slock task state and workspace files as the source of truth for active work.
 
-Fallback load order when `.pamem/config.toml` is absent:
+Fallback load order when local config is absent:
 
 1. `MEMORY.md`
 2. `notes/user-preferences.md`
 3. `notes/operating-rules.md`
 4. `notes/experience.md`
 5. `notes/projects/<project-key>.md`, if the current project has one
-6. `notes/current-task.md`, only in CLI runtime mode and only if a task is still open
-7. `notes/work-log.md`, only in CLI runtime mode when a summary is useful
+6. XDG data or `notes/current-task.md`, only in CLI runtime mode and only if a task is still open
+7. XDG data or `notes/work-log.md`, only in CLI runtime mode when a summary is useful
 
 ## Precedence Rules
 
@@ -283,8 +301,8 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
 | Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict |
-| CLI current-task recovery | n/a | `notes/current-task.md` | Runtime-local, startup-safe summary only |
-| CLI work-log summary | n/a | `notes/work-log.md` | Runtime-local summary only |
+| CLI current-task recovery | n/a | XDG data `pamem/agents/<agent-id>/current-task.md`, fallback `notes/current-task.md` | Runtime-local, startup-safe summary only |
+| CLI work-log summary | n/a | XDG data `pamem/agents/<agent-id>/work-log.md`, fallback `notes/work-log.md` | Runtime-local summary only |
 | Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
 | Closed task summary | `L3/archive/` | `notes/work-log.md` in CLI runtime mode | Newest first; summaries only |
 
@@ -369,11 +387,11 @@ runtimes.
   memory.
 - An automatic `PreCompact` hook is not part of the runtime contract. The
   `memory-pre-compact.sh` script may be used only as an explicit CLI-local
-  helper for `notes/current-task.md`; it must not write the shared memory repo.
+  helper for current-task state; it must not write the shared memory repo.
 - `memory-sync.sh` is executor-only unless the user explicitly assigns sync
   executor responsibility. Treat `git` push, WebDAV `bisync`, and WebDAV
   `--resync` as propagation operations.
-- `.pamem/config.toml` changes are governance changes when they alter memory
+- `config.toml` or `.pamem/config.toml` changes are governance changes when they alter memory
   repo location, sharing mode, runtime mode, profile, write targets, sync
   backend, remote, ref, or executor.
 - Install, onboard, and repair scripts may create or restore skeleton files;
@@ -389,7 +407,7 @@ When multiple agent instances run concurrently, shared memory files become write
 - L0 and L1 shared files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
 - `MEMORY.md` is a shared index, not an isolation boundary.
 - The shared memory repo must not contain mutable active rosters or per-task runtime state.
-- CLI runtime state belongs in workspace-local recovery notes or task-local planning files.
+- CLI runtime state belongs in the XDG data agent home, workspace-local compatibility notes, or task-local planning files.
 - Slock runtime state belongs in the Slock task board, task threads, and workspace files.
 - Stable memory writes happen at task completion or through promotion review, and only for durable future value.
 
@@ -405,7 +423,8 @@ When more than 3 instances are active, do not try to list every instance in `MEM
 - one line pointing to the relevant durable project note, if any
 
 The full task roster belongs to the runtime: Slock stores it in the task board
-and threads; CLI workspaces may keep a local `notes/current-task.md` summary.
+and threads; CLI agents may keep a local XDG data current-task summary, with
+`notes/current-task.md` as a compatibility fallback.
 Compressing `MEMORY.md` removes startup noise only; it must not delete runtime
 task state.
 
@@ -427,7 +446,7 @@ If last-write-wins occurs on a shared durable memory file:
 
 Use runtime-local current-task memory only when the runtime owns no stronger task-state surface.
 
-- CLI mode: `notes/current-task.md` is the local startup-safe task summary.
+- CLI mode: XDG data `pamem/agents/<agent-id>/current-task.md` is the preferred local startup-safe task summary when `pamem start` or `resume` is used; `notes/current-task.md` is the compatibility fallback.
 - Slock mode: the Slock task board, task thread, and workspace files are the task-state source of truth.
 
 Keep it short: task, status, current phase, blocker, next step, and pointers.
@@ -442,7 +461,7 @@ Use detailed planning files only for complex task execution tracking, not for pe
 When planning files are active:
 
 - `task_plan.md` remains the detailed execution source of truth.
-- CLI `notes/current-task.md` may become the startup-safe exported summary.
+- CLI XDG data current-task state, or fallback `notes/current-task.md`, may become the startup-safe exported summary.
 - Slock task state should point to the relevant task thread or workspace planning file when useful.
 - Do not merge startup-safe task memory and detailed task planning into one file.
 
@@ -496,7 +515,7 @@ CLI-local work logs and optional L3 archives must be maintained in reverse-chron
 | Session transcripts | Historical, not actionable | Do not save |
 | Raw command outputs | Transient data | Do not save |
 | Long explanations | Index should be pointers | L1/L2/L3 files |
-| Profile load lists | Duplicates config | `.pamem/config.toml` |
+| Profile load lists | Duplicates config | `config.toml` or `.pamem/config.toml` |
 
 ## Entry Discipline
 

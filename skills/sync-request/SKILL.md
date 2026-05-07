@@ -1,6 +1,6 @@
 ---
 name: sync-request
-description: Generate sync requests when durable local memory, reusable notes, or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
+description: Generate sync requests when durable local memory, reusable notes, or managed local config changes need cross-device retention and the user explicitly asks or workspace policy requires retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
 ---
 
 # Sync Request

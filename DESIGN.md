@@ -66,8 +66,9 @@ Project-specific memory belongs in L2, not L1. It should be more specific than r
 `projects/` is a namespace inside L2, not another layer.
 
 Runtime-local task state is not part of the shared memory repo. CLI mode may
-keep local recovery notes such as `notes/current-task.md`; Slock mode uses the
-Slock workspace, task board, and threads as the task-state source of truth.
+keep local recovery notes in the XDG data agent home or compatibility files such as
+`notes/current-task.md`; Slock mode uses the Slock workspace, task board, and
+threads as the task-state source of truth.
 
 ### Layer 3: Archive
 
@@ -115,13 +116,13 @@ flowchart TD
 - Claude `SessionStart` hook
 - Codex bootstrap scripts
 - default memory skeleton and read-only startup behavior
-- optional profile/load policy through `.pamem/config.toml`
+- optional profile/load policy through `config.toml` or `.pamem/config.toml`
 - shared memory repo bootstrap and sync helper entry points
 
 ### Created But Not Owned By Pamem
 
 `pamem` creates the base durable memory structure in the shared memory repo and,
-for CLI runtime mode, small workspace-local recovery notes:
+for CLI runtime mode, small local recovery notes:
 
 - `MEMORY.md`
 - `L1/shared/*`
@@ -133,6 +134,9 @@ for CLI runtime mode, small workspace-local recovery notes:
 - `notes/projects/*`
 - `notes/current-task.md` in CLI runtime mode
 - `notes/work-log.md` in CLI runtime mode
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/config.toml` for default CLI agent-home config
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` when `pamem start` or `resume` is used
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem start` or `resume` is used
 
 But it does not decide the actual contents of those files for a specific agent.
 
@@ -140,7 +144,12 @@ But it does not decide the actual contents of those files for a specific agent.
 
 ### Stable Governance, Shared Runtime
 
-The runtime should be shared. The memory content may live in a shared repo or a workspace fallback, but the repo location, sharing mode, and sync policy are configuration, not hardcoded behavior.
+The runtime should default to shared durable memory. A local CLI agent home is
+the runtime/config anchor; the default memory repo is machine-level shared state
+at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`. The repo location,
+sharing mode, and sync policy remain configurable for teams that need a separate
+repo or remote backend. Legacy or Slock workspaces may still use
+`.pamem/config.toml`.
 
 ### Local Convenience, Shared Infrastructure
 
@@ -149,6 +158,20 @@ CLI-native memory is a convenience feature for one tool, one machine, or one ses
 layers, profile selection, write gates, promotion, and sync boundaries so Claude, Codex,
 and Slock can share the same governed memory without turning runtime-local task state into
 shared history.
+
+Direct CLI sessions may start from different shell directories. `pamem`
+provides the stable runtime anchor: with `--agent-id`, it resolves the agent
+home at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`, reads
+that home’s `config.toml`, and keeps CLI task recovery there rather than inside
+the shared memory repo. The runtime source can be a plugin, source checkout, or
+future standalone install; the agent home does not copy scripts or assets.
+`start -- <launcher>` records the launcher command in the local agent home so
+`resume` can reuse it. Runtime-native resume can be expressed with
+`[runtime.resume].command`; if neither exists, `resume` fails rather than
+silently starting a new session.
+Runtimes that cannot load pamem as a plugin or hook can still use
+`pamem context --agent-id <agent-id>` as a source-agnostic adapter and inject the
+printed startup context through their own prompt/context mechanism.
 
 ### Thin Index, Not Transcript
 
@@ -172,21 +195,32 @@ This keeps role memory useful as shared experience while allowing project-specif
 Runtime task state is an execution hint. It must not redefine durable project,
 role, shared, or constitution memory.
 
-In practice, a workspace should activate one `default_profile` at a time. The
-templates in `assets/config-profiles/` are standalone starters for alternate
-defaults, not simultaneous runtime roles.
+In practice, an agent home or workspace should activate one `default_profile` at
+a time. The templates in `assets/config-profiles/` are standalone starters for
+alternate defaults, not simultaneous runtime roles.
 
-Profile selection belongs to onboarding. `onboard-pamem.sh` writes the selected
-`.pamem/config.toml` before runtime hooks start reading it; startup hooks must
-treat the selected profile as read-only policy.
+Profile selection belongs to onboarding. `pamem init` writes the selected
+`config.toml` before runtime hooks start reading it; startup hooks must treat the
+selected profile as read-only policy. Explicit workspace onboarding still writes
+`.pamem/config.toml` for compatibility.
 
 ### Config Ownership
 
-When a workspace uses `.pamem/config.toml`, that file is the workspace-local source of truth for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. It belongs to the agent workspace or machine-local bootstrap area, not inside the shared memory repo itself. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.
+When an agent home uses `config.toml`, or a workspace uses `.pamem/config.toml`,
+that file is the local source of truth for profiles, memory repo location,
+sharing mode, load targets, write targets, and sync policy. It belongs to the
+agent home or workspace, not inside the shared memory repo itself. Onboarding can
+seed it from `assets/config.toml.template`, but ordinary task agents should
+treat it as read-only and route changes through the config owner or onboarding
+review.
 
 ### Memory Lint
 
-`memory-lint` is an explicit, report-only check. It reads the workspace-local `.pamem/config.toml`, resolves the configured memory repo, and reports issues such as missing profile load targets, broken `MEMORY.md` pointers, invalid runtime mode, oversized entry files, or an accidental `.pamem/config.toml` committed inside the memory repo.
+`memory-lint` is an explicit, report-only check. It reads agent-local
+`config.toml` or workspace-local `.pamem/config.toml`, resolves the configured
+memory repo, and reports issues such as missing profile load targets, broken
+`MEMORY.md` pointers, invalid runtime mode, oversized entry files, or an
+accidental `.pamem/config.toml` committed inside the memory repo.
 
 It must not run automatically from startup or compact hooks, and it must not repair, promote, sync, or rewrite memory files.
 
@@ -199,20 +233,21 @@ repair, rewrite, promote, or sync shared memory.
 An automatic `PreCompact` hook is not part of the runtime contract. Compact-time
 automatic writes are too easy to confuse with durable memory promotion. The
 `memory-pre-compact.sh` script remains only as an explicit CLI-local helper for
-`notes/current-task.md`; it must not write the shared memory repo.
+current-task state; it must not write the shared memory repo.
 
 ### Instance Isolation
 
 Multiple agent instances may share the same memory repo, but they must not share
 mutable task state through that repo. The shared repo is for durable L0/L1/L2
 project memory and promotion requests. Runtime state is owned by the runtime:
-CLI mode keeps local recovery notes, while Slock mode uses Slock task state,
-workspace files, and task threads.
+CLI mode keeps local recovery notes in the XDG data agent home or compatibility
+workspace notes, while Slock mode uses Slock task state, workspace files, and
+task threads.
 
 When many instances are active, the shared repo `MEMORY.md` should stay a thin
 index to durable memory. It may point to project notes, but it should not try to
-list every active task. Any CLI current-task summary is workspace-local; Slock
-task state remains in Slock.
+list every active task. Any CLI current-task summary is local to the agent home
+or compatibility workspace; Slock task state remains in Slock.
 
 ### Startup-Safe By Default
 
@@ -243,7 +278,7 @@ The highest-risk operation is actual propagation of the shared memory repo:
 `webdav`. It is executor-only unless a user explicitly assigns sync-executor
 responsibility.
 
-`.pamem/config.toml` changes are also high risk because they can redirect the
+`config.toml` or `.pamem/config.toml` changes are also high risk because they can redirect the
 memory repo, backend, remote, profile, write targets, or executor. Treat config
 changes as onboarding/config-owner work.
 
