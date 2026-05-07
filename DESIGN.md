@@ -150,6 +150,8 @@ When a workspace uses `.pamem/config.toml`, that file is the source of truth for
 
 Multiple agent instances may share the same `MEMORY.md` index, but they must not share mutable active state. Instance-specific state lives in per-task active files or worktree-local planning files; the index stays pointer-only, and shared L0/L1 memory remains read-only during ordinary execution.
 
+When many instances are active, `MEMORY.md` should summarize the lead blocker, primary workstream, and a pointer to the full active roster. The complete instance list belongs in `notes/current-task.md` or per-task L2 files, not in the startup index.
+
 ### Startup-Safe By Default
 
 A new or resumed session should recover the right structure without manual repair.
