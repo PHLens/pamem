@@ -57,6 +57,17 @@ shared memory repo. The shared memory repo is `[memory_repo].path`, which defaul
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory` and can be changed with
 `--memory-repo`.
 
+For Slock runtime mode, use the Slock-generated agent workspace as the explicit
+workspace anchor:
+
+```bash
+pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --runtime slock
+```
+
+This writes `.pamem/config.toml` and hook/runtime links into the Slock workspace,
+but `[memory_repo].path` still defaults to the machine-level shared memory repo.
+The Slock workspace owns task state; it is not the shared memory repo.
+
 Use `--runtime cli` when the agent should keep CLI-local recovery state for
 current-task and work-log summaries. `pamem start` stores that state in the XDG
 data agent home; workspace `notes/current-task.md` and `notes/work-log.md`

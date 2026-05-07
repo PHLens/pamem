@@ -151,6 +151,11 @@ sharing mode, and sync policy remain configurable for teams that need a separate
 repo or remote backend. Legacy or Slock workspaces may still use
 `.pamem/config.toml`.
 
+In Slock runtime mode, the Slock-generated agent workspace is the config and
+hook anchor, not the memory repo. Its `.pamem/config.toml` should normally point
+to the same machine-level shared memory repo so multiple Slock and CLI agents can
+reuse durable memory while Slock continues to own task state.
+
 ### Local Convenience, Shared Infrastructure
 
 CLI-native memory is a convenience feature for one tool, one machine, or one session flow.

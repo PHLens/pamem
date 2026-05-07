@@ -37,7 +37,7 @@ Keep persistent memory files in English unless there is an explicit local except
 
 ## Supported Layouts
 
-Pamem supports both the current per-agent notes scaffold and a shared memory repo layout. Prefer the shared layout when multiple agents should reuse stable memory. The default shared repo is machine-local at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`; default CLI agent homes live under `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/` and hold config plus runtime-local state. Legacy or Slock workspaces may keep `.pamem/config.toml` and workspace-local hooks.
+Pamem supports both the current per-agent notes scaffold and a shared memory repo layout. Prefer the shared layout when multiple agents should reuse stable memory. The default shared repo is machine-local at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`; default CLI agent homes live under `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/` and hold config plus runtime-local state. Legacy or Slock workspaces may keep `.pamem/config.toml` and workspace-local hooks; in Slock mode, the Slock-generated agent workspace is the config/hook anchor, not the shared memory repo.
 
 ### Shared Memory Repo
 
@@ -340,6 +340,11 @@ Keep in L2 when the content is:
 Keep runtime task state out of the shared memory repo. In CLI mode, use local
 recovery notes or task-local planning files. In Slock mode, use Slock task
 state, workspace files, and task threads.
+
+In Slock runtime mode, the Slock-generated agent workspace may contain
+`.pamem/config.toml` and hook/runtime links, but `[memory_repo].path` should
+normally remain the machine-level shared memory repo so Slock and CLI agents can
+share durable memory.
 
 Archive to CLI-local work log or optional L3 archive when:
 
