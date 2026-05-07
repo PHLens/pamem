@@ -38,6 +38,25 @@ It does not include:
 
 That part is intentionally left external.
 
+## Risk Surface
+
+Strict write control matters because several operations can affect shared
+memory, but they have different risk levels.
+
+| Surface | Risk | Control |
+|---|---|---|
+| `sync-request` pending files | Medium | Creates intent only; use only by explicit user request or workspace policy. |
+| `scripts/memory-sync.sh` | High | Executor-only. It can commit/push `git` repos or run `rclone bisync` for WebDAV. |
+| `memory-sync.sh --resync` | High | WebDAV recovery path where local state wins; require explicit executor decision. |
+| `.pamem/config.toml` | High | Changes memory repo, backend, remote, profile, write targets, or executor; route through onboarding/config-owner review. |
+| install/onboard/repair scripts | Medium | Bootstrap/repair may create skeleton files; use during setup or deliberate repair, not ordinary task execution. |
+| `SessionStart` | Low | Read-only loader; it warns about missing memory but does not repair or write shared memory. |
+| `memory-pre-compact.sh` | Low | Explicit CLI-local helper only; not installed as an automatic hook and must not write the shared memory repo. |
+| `requests/inbox/` | Medium | Reviewable promotion queue for durable memory, not a sync or task queue. |
+
+Ordinary task agents should not run propagation or repair paths unless that
+executor/config-owner responsibility was explicitly assigned.
+
 ## Relationship
 
 ```mermaid

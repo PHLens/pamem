@@ -26,8 +26,8 @@ Supported profiles are `onboarding`, `human`, `coder`, `reviewer`,
 `.pamem/config.toml`, runs the normal install path, and seeds the configured
 memory repo.
 
-Profile selection is an onboarding-time decision. Runtime startup hooks read
-the selected `.pamem/config.toml`; they do not switch `default_profile`. If
+Profile selection is an onboarding-time decision. The runtime startup hook reads
+the selected `.pamem/config.toml`; it does not switch `default_profile`. If
 `.pamem/config.toml` already exists, the onboarding script refuses to replace it
 unless `--force` is passed for deliberate re-onboarding.
 
@@ -50,6 +50,18 @@ that mode pamem keeps only durable memory surfaces.
 `skills/memory-lint/scripts/memory-lint.sh` is a separate read-only check. It
 reads the workspace-local `.pamem/config.toml`, resolves the configured memory
 repo, and reports boundary/pointer/runtime issues without mutating files.
+
+## Runtime Hooks
+
+The installed runtime hook is `SessionStart` only.
+
+`SessionStart` is a read-only loader. It resolves `.pamem/config.toml`, reports
+the configured memory source, and loads the configured memory entry file when it
+exists. It must not create, repair, rewrite, promote, or sync shared memory.
+
+`memory-pre-compact.sh` remains an explicit CLI-local helper for creating a
+missing `notes/current-task.md` placeholder in CLI mode. It is not installed as
+an automatic hook and must not write the shared memory repo.
 
 ## Install
 
@@ -125,6 +137,7 @@ After installation, check:
 - `.pamem/` exists
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
+- `.codex/hooks.json` does not contain a `PreCompact` hook
 - startup loads the memory index
 - `.pamem/config.toml` exists and points to the shared memory repo root
 - `.pamem/config.toml` sets `[runtime].mode` to `cli` or `slock`

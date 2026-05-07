@@ -13,6 +13,7 @@ Use the `memory-rule` plugin skill when:
 
 `MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while CLI runtime-local work memory stays in workspace notes or local state and Slock task state stays in Slock. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
 When `.pamem/config.toml` points at a shared memory repo, durable project memory belongs in `L2/projects/`; CLI runtime-local work memory belongs in `notes/current-task.md` and `notes/work-log.md` only.
+Runtime startup hooks are read-only loaders. If the configured memory entry is missing, treat it as an onboarding/repair issue rather than creating shared memory during task execution.
 
 ## Sync Trigger
 If durable local memory or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention, use the `sync-request` plugin skill to create a sync request in the configured pending queue for the active sync executor.

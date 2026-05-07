@@ -359,6 +359,27 @@ Do not use the sync queue as the memory promotion queue. Use `requests/inbox/` o
 
 `memory-sync.sh` is separate from `sync-request`: it is the repo-level helper a sync executor may call after policy decides the configured memory repo should be propagated. Ordinary task agents should not run it unless explicitly assigned executor responsibility.
 
+## Hook And Sync Risk Boundary
+
+Strict write control matters because pamem is shared across agents and
+runtimes.
+
+- `SessionStart` is a read-only loader. It may report missing or oversized
+  memory, but it must not create, repair, rewrite, promote, or sync shared
+  memory.
+- An automatic `PreCompact` hook is not part of the runtime contract. The
+  `memory-pre-compact.sh` script may be used only as an explicit CLI-local
+  helper for `notes/current-task.md`; it must not write the shared memory repo.
+- `memory-sync.sh` is executor-only unless the user explicitly assigns sync
+  executor responsibility. Treat `git` push, WebDAV `bisync`, and WebDAV
+  `--resync` as propagation operations.
+- `.pamem/config.toml` changes are governance changes when they alter memory
+  repo location, sharing mode, runtime mode, profile, write targets, sync
+  backend, remote, ref, or executor.
+- Install, onboard, and repair scripts may create or restore skeleton files;
+  use them for setup/repair, not ordinary task execution.
+- `requests/inbox/` is the memory promotion review queue, not a sync queue.
+
 ## Multi-Instance Concurrency
 
 When multiple agent instances run concurrently, shared memory files become write-contended. The following rules prevent data loss and merge conflicts.
@@ -600,4 +621,4 @@ When new memory conflicts with existing memory:
 | Load archive by default | Load archive only when task-relevant |
 
 ## Last Updated
-2026-05-06
+2026-05-07

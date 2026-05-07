@@ -112,9 +112,9 @@ flowchart TD
 
 - `memory-rule`
 - `sync-request`
-- Claude hooks
+- Claude `SessionStart` hook
 - Codex bootstrap scripts
-- default memory skeleton and startup behavior
+- default memory skeleton and read-only startup behavior
 - optional profile/load policy through `.pamem/config.toml`
 - shared memory repo bootstrap and sync helper entry points
 
@@ -177,8 +177,8 @@ templates in `assets/config-profiles/` are standalone starters for alternate
 defaults, not simultaneous runtime roles.
 
 Profile selection belongs to onboarding. `onboard-pamem.sh` writes the selected
-`.pamem/config.toml` before runtime hooks start reading it; startup and compact
-hooks must treat the selected profile as read-only policy.
+`.pamem/config.toml` before runtime hooks start reading it; startup hooks must
+treat the selected profile as read-only policy.
 
 ### Config Ownership
 
@@ -189,6 +189,17 @@ When a workspace uses `.pamem/config.toml`, that file is the workspace-local sou
 `memory-lint` is an explicit, report-only check. It reads the workspace-local `.pamem/config.toml`, resolves the configured memory repo, and reports issues such as missing profile load targets, broken `MEMORY.md` pointers, invalid runtime mode, oversized entry files, or an accidental `.pamem/config.toml` committed inside the memory repo.
 
 It must not run automatically from startup or compact hooks, and it must not repair, promote, sync, or rewrite memory files.
+
+### Hook Boundaries
+
+`SessionStart` is retained because it is the runtime's read-only memory loader.
+It may report a missing or oversized memory entry file, but it must not create,
+repair, rewrite, promote, or sync shared memory.
+
+An automatic `PreCompact` hook is not part of the runtime contract. Compact-time
+automatic writes are too easy to confuse with durable memory promotion. The
+`memory-pre-compact.sh` script remains only as an explicit CLI-local helper for
+`notes/current-task.md`; it must not write the shared memory repo.
 
 ### Instance Isolation
 
@@ -205,7 +216,9 @@ task state remains in Slock.
 
 ### Startup-Safe By Default
 
-A new or resumed session should recover the right structure without manual repair.
+A new or resumed session should load the configured memory structure when it is
+present and surface clear repair instructions when it is missing. Bootstrap and
+repair scripts create structure; startup hooks only read it.
 
 ### Portable By Default
 
@@ -222,3 +235,18 @@ Agent memory is the schema layer, not the wiki. Its growth direction is not "kno
 ### Sync Request Separation
 
 `sync-request` remains a separate skill. `memory-rule` decides whether a memory or managed-config change is durable and eligible for retention; `sync-request` only creates a structured request when explicitly asked or when workspace policy requires one. It is not a mechanism for project work, branches, PRs, or source-code delivery.
+
+### Sync Risk Surface
+
+The highest-risk operation is actual propagation of the shared memory repo:
+`memory-sync.sh` can commit and push for `git`, or run `rclone bisync` for
+`webdav`. It is executor-only unless a user explicitly assigns sync-executor
+responsibility.
+
+`.pamem/config.toml` changes are also high risk because they can redirect the
+memory repo, backend, remote, profile, write targets, or executor. Treat config
+changes as onboarding/config-owner work.
+
+`sync-request` is lower risk than direct sync because it only writes a pending
+request, but it can trigger an external executor. Use it only when the user
+explicitly asks or workspace policy requires retention.

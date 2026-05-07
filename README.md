@@ -13,7 +13,7 @@ Persistent agent memory becomes unstable when every workspace assembles its own 
 `pamem` provides the shared runtime for:
 
 - memory governance
-- startup hooks
+- read-only startup hook
 - memory skeleton files
 - runtime-mode boundaries for CLI and Slock task state
 - shared memory repo bootstrap and config templates
@@ -51,6 +51,7 @@ the shared memory repo only for durable memory and promotion requests.
 - `assets/config-profiles/*.toml.template`: alternate role-specific starter configs
 - `scripts/onboard-pamem.sh`: human-facing onboarding helper for selecting the initial profile config
 - `scripts/memory-sync.sh`: sync helper for the configured memory repo backend
+- `scripts/memory-pre-compact.sh`: explicit CLI-local helper; not installed as an automatic hook
 - `skills/memory-lint/SKILL.md`: report-only lint boundary and usage notes
 - `skills/memory-lint/scripts/memory-lint.sh`: read-only lint for the workspace-local memory config and shared memory repo
 
