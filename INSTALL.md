@@ -41,6 +41,10 @@ Useful options:
 --sync-executor <name>
 ```
 
+`skills/memory-lint/scripts/memory-lint.sh` is a separate read-only check. It
+reads the workspace-local `.pamem/config.toml`, resolves the configured memory
+repo, and reports boundary/pointer/active-roster issues without mutating files.
+
 ## Install
 
 Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
@@ -118,6 +122,7 @@ After installation, check:
 - `.pamem/config.toml` exists and points to the shared memory repo root
 - `default_profile` was selected during onboarding and is not changed by startup hooks
 - `.pamem/scripts/memory-sync.sh --dry-run` prints the configured sync backend action
+- `skills/memory-lint/scripts/memory-lint.sh --root <workspace> --json` reports the workspace-local config and shared repo state
 
 ## Update
 

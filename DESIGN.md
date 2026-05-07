@@ -160,7 +160,13 @@ hooks must treat the selected profile as read-only policy.
 
 ### Config Ownership
 
-When a workspace uses `.pamem/config.toml`, that file is the source of truth for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.
+When a workspace uses `.pamem/config.toml`, that file is the workspace-local source of truth for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. It belongs to the agent workspace or machine-local bootstrap area, not inside the shared memory repo itself. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.
+
+### Memory Lint
+
+`memory-lint` is an explicit, report-only check. It reads the workspace-local `.pamem/config.toml`, resolves the configured memory repo, and reports issues such as missing profile load targets, broken `MEMORY.md` pointers, stale active task files, oversized entry files, or an accidental `.pamem/config.toml` committed inside the memory repo.
+
+It must not run automatically from startup or compact hooks, and it must not repair, promote, sync, or rewrite memory files.
 
 ### Instance Isolation
 

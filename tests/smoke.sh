@@ -75,6 +75,13 @@ do
   test -s "$file"
 done
 
+MEMORY_LINT="$ROOT/skills/memory-lint/scripts/memory-lint.sh"
+
+if [ ! -x "$MEMORY_LINT" ]; then
+  echo "memory-lint.sh must be executable" >&2
+  exit 1
+fi
+
 if [ ! -x "$ROOT/scripts/onboard-pamem.sh" ]; then
   echo "onboard-pamem.sh must be executable" >&2
   exit 1
@@ -112,6 +119,45 @@ for file in \
 do
   test -s "$file"
 done
+
+MEMORY_LINT_OUTPUT="$(bash "$MEMORY_LINT" --root "$WORKSPACE" --json)"
+printf '%s' "$MEMORY_LINT_OUTPUT" | jq -e '
+  .status == "ok" and
+  .config_scope == "workspace-local" and
+  .summary.error_count == 0 and
+  .config.default_profile == "onboarding"
+' >/dev/null
+
+cat > "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md" <<'EOF'
+# Active Roster
+
+## Active Tasks
+- task-smoke: validate memory-lint active roster checks
+
+## Status
+- in_progress
+EOF
+
+cat > "$WORKSPACE/.pamem/memory/L2/active/task-smoke.md" <<'EOF'
+# task-smoke
+
+- status: in_progress
+EOF
+
+bash "$MEMORY_LINT" --root "$WORKSPACE" --json | jq -e '.status == "ok"' >/dev/null
+rm "$WORKSPACE/.pamem/memory/L2/active/task-smoke.md"
+if bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
+  echo "memory-lint must fail when the active roster points to a missing task file" >&2
+  exit 1
+fi
+
+mkdir -p "$WORKSPACE/.pamem/memory/.pamem"
+cp "$WORKSPACE/.pamem/config.toml" "$WORKSPACE/.pamem/memory/.pamem/config.toml"
+if bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
+  echo "memory-lint must fail when the memory repo contains .pamem/config.toml" >&2
+  exit 1
+fi
+rm -rf "$WORKSPACE/.pamem/memory/.pamem"
 
 SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SESSION_OUTPUT" | jq -e '

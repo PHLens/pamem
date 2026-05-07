@@ -46,6 +46,8 @@ the workspace environment.
 - `assets/config-profiles/*.toml.template`: alternate role-specific starter configs
 - `scripts/onboard-pamem.sh`: human-facing onboarding helper for selecting the initial profile config
 - `scripts/memory-sync.sh`: sync helper for the configured memory repo backend
+- `skills/memory-lint/SKILL.md`: report-only lint boundary and usage notes
+- `skills/memory-lint/scripts/memory-lint.sh`: read-only lint for the workspace-local memory config and shared memory repo
 
 ## Check
 
@@ -56,3 +58,5 @@ bash tests/smoke.sh
 ```
 
 The smoke script requires `jq`.
+
+`skills/memory-lint/scripts/memory-lint.sh` reads the workspace-local `.pamem/config.toml` and lints the configured memory repo. It does not require a `.pamem/config.toml` inside the memory repo itself.
