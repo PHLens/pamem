@@ -1,12 +1,13 @@
 ---
 name: sync-request
-description: Generate sync requests for Adam when durable local memory, reusable notes, or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
+description: Generate sync requests when durable local memory, reusable notes, or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
 ---
 
 # Sync Request
 
-Use this skill to generate sync requests for Adam. This skill is shared across agents and only creates request files.
+Use this skill to generate sync requests. This skill is shared across agents and only creates request files.
 It stays separate from `memory-rule`: that skill decides what is durable; this one only packages the retention request.
+The queue path and executor are defined by the active sync configuration.
 
 It is for **memory/config retention only**. It is **not** a mechanism for syncing project work, source code, Git branches, or PR status.
 
@@ -20,23 +21,23 @@ It is for **memory/config retention only**. It is **not** a mechanism for syncin
 
 ## Queue Layout
 
-Use the home-directory queue:
+Use the queue defined by the active sync configuration:
 
 ```text
-~/sync-queue/
+<sync-queue-root>/
   pending/
   processing/
   done/
   rejected/
 ```
 
-This skill only writes to `~/sync-queue/pending/`.
+This skill only writes to `<sync-queue-root>/pending/`.
 
 If the queue directories do not exist, create them before writing the request.
 
 ## When to Create a Sync Request
 
-Create a request when durable local changes should be retained across devices or handed off to Adam for centralized sync, but only when the user explicitly asks or workspace policy requires retention.
+Create a request when durable local changes should be retained across devices or handed off to the configured sync executor for centralized sync, but only when the user explicitly asks or workspace policy requires retention.
 
 Common cases:
 
@@ -143,7 +144,7 @@ Rules:
 Use:
 
 ```text
-~/sync-queue/pending/<request_id>.json
+<sync-queue-root>/pending/<request_id>.json
 ```
 
 Recommended `request_id` format:
@@ -166,7 +167,7 @@ Use a filesystem-safe UTC timestamp such as:
 4. Write a short `summary`
 5. Write a short `why_sync`
 6. Ensure the queue directories exist
-7. Check `~/sync-queue/pending/` for an obvious duplicate request from the same agent
+7. Check the configured pending queue for an obvious duplicate request from the same agent
 8. If an equivalent pending request already exists, update it instead of creating a duplicate
 9. Otherwise create a new JSON request in `pending/`
 10. Report the request path back to the user
@@ -192,11 +193,11 @@ In that case:
 
 - Ordinary agents may create or refresh their own pending requests
 - Ordinary agents must not process the queue
-- Adam is the sync executor and reads requests from the queue separately
-- Adam may also use this skill when Adam needs to create a request for Adam-owned work
+- The configured sync executor reads requests from the queue separately
+- The configured sync executor may also use this skill when it needs to create a request for changes it owns
 
 ## Notes
 
 - This skill is for request generation only
-- Execution stays in Adam's local sync workflow
+- Execution stays in the configured sync workflow
 - Keep request files concise and structured

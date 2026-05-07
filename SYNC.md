@@ -41,7 +41,7 @@ That part is intentionally left external.
 flowchart LR
     A["Agent workspace<br/>pamem runtime"] --> B["Durable local change"]
     B --> C["sync-request"]
-    C --> D["~/sync-queue/pending/*.json"]
+    C --> D["<sync-queue-root>/pending/*.json"]
     D --> E["External executor"]
     E --> F["done / rejected / propagated state"]
 ```
@@ -69,10 +69,10 @@ Do not create a request for:
 
 ## Queue Model
 
-The queue is:
+The queue is defined by the active sync configuration. A typical shape is:
 
 ```text
-~/sync-queue/
+<sync-queue-root>/
   pending/
   processing/
   done/
