@@ -345,7 +345,7 @@ When multiple agent instances run concurrently, shared memory files become write
 When multiple instances may be active, pointer files use a list format so entries from different instances coexist:
 
 - `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> -> <pointer to L2/active or notes/current-task>`.
-- `notes/current-task.md`: list of active worktrees or task files, format `<worktree-path or task-id> -> <one-line task description>`.
+- `notes/current-task.md`: the active roster for the workspace, listing active worktrees or task files in the format `<worktree-path or task-id> -> <one-line task description>`.
 
 When more than 3 instances are active, do not try to list every instance in `MEMORY.md`. Keep `MEMORY.md` as a startup dashboard:
 
@@ -367,7 +367,7 @@ If last-write-wins occurs on a pointer file:
 
 1. Task start: create or update the L2 task file and add a pointer line if needed.
 2. Task execution: write task state only to L2 active files or task-local planning files.
-3. Task completion: remove the active pointer, update L2 project memory if needed, create promotion requests for L1 candidates, and archive a concise summary to L3.
+3. Task completion: remove the completed task from `MEMORY.md` and `notes/current-task.md`, update L2 project memory if needed, create promotion requests for L1 candidates, and archive a concise summary to L3.
 
 ## Current Task Vs Planning Files
 
