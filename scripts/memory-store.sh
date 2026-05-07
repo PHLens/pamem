@@ -245,6 +245,23 @@ pamem_copy_if_missing() {
   fi
 }
 
+pamem_copy_legacy_or_template_if_missing() {
+  local legacy="$1"
+  local src="$2"
+  local dst="$3"
+
+  if [ -s "$dst" ]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  if [ -s "$legacy" ]; then
+    cp "$legacy" "$dst"
+  else
+    cp "$src" "$dst"
+  fi
+}
+
 pamem_write_if_missing() {
   local dst="$1"
   local content="$2"
@@ -273,12 +290,13 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/MEMORY.md.template" "$repo_root/MEMORY.md"
   pamem_copy_if_missing "$assets_dir/shared/L0/constitution.md.template" "$repo_root/L0/constitution.md"
   pamem_copy_if_missing "$assets_dir/notes/user-preferences.md.template" "$repo_root/L1/shared/preferences.md"
-  pamem_copy_if_missing "$assets_dir/notes/agent-workflow.md.template" "$repo_root/L1/shared/workflow.md"
+  pamem_copy_legacy_or_template_if_missing "$repo_root/L1/shared/workflow.md" "$assets_dir/notes/operating-rules.md.template" "$repo_root/L1/shared/operating-rules.md"
   pamem_copy_if_missing "$assets_dir/notes/experience.md.template" "$repo_root/L1/shared/experience.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/onboarding.md.template" "$repo_root/L1/roles/onboarding.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/coder.md.template" "$repo_root/L1/roles/coder.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/reviewer.md.template" "$repo_root/L1/roles/reviewer.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/researcher.md.template" "$repo_root/L1/roles/researcher.md"
+  pamem_copy_if_missing "$assets_dir/shared/L1/roles/wiki.md.template" "$repo_root/L1/roles/wiki.md"
   pamem_copy_if_missing "$assets_dir/notes/current-task.md.template" "$repo_root/L2/active/current-tasks.md"
   pamem_copy_if_missing "$assets_dir/notes/work-log.md.template" "$repo_root/L3/work-log.md"
 }

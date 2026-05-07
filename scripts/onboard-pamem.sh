@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: onboard-pamem.sh <workspace> [--profile <onboarding|human|coder|reviewer|researcher>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
+Usage: onboard-pamem.sh <workspace> [--profile <onboarding|human|coder|reviewer|researcher|wiki>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
 
 Create the workspace pamem config during onboarding, then install the runtime.
 
@@ -100,7 +100,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$PROFILE" in
-  onboarding|human|coder|reviewer|researcher)
+  onboarding|human|coder|reviewer|researcher|wiki)
     ;;
   *)
     echo "unsupported profile: $PROFILE" >&2

@@ -52,13 +52,14 @@ agent-memory/
   L1/
     shared/
       preferences.md
-      workflow.md
+      operating-rules.md
       experience.md
     roles/
       coder.md
       reviewer.md
       researcher.md
       onboarding.md
+      wiki.md
   L2/
     projects/
       <project-key>.md
@@ -81,7 +82,7 @@ agent-memory/
   MEMORY.md
   notes/
     user-preferences.md
-    agent-workflow.md
+    operating-rules.md
     experience.md
     current-task.md
     work-log.md
@@ -91,7 +92,7 @@ agent-memory/
 
 Map fallback files to the same layers:
 
-- `notes/user-preferences.md`, `notes/agent-workflow.md`, and `notes/experience.md` are L1.
+- `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` are L1.
 - `notes/projects/<project-key>.md` and `notes/current-task.md` are L2.
 - `notes/work-log.md` is L3.
 
@@ -129,7 +130,7 @@ Examples:
 - durable corrections and prohibitions
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
-- role-shared memory such as `L1/roles/coder.md` and `L1/roles/reviewer.md`
+- role-shared memory such as `L1/roles/coder.md`, `L1/roles/reviewer.md`, and `L1/roles/wiki.md`
 
 Role memory belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
 
@@ -165,6 +166,8 @@ When `.pamem/config.toml` exists, it is the machine-readable source for profiles
 
 For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
+The wiki profile stores curation workflow, knowledge pointers, and sync handoff memory; domain knowledge itself belongs in the external wiki.
+
 Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
 Profile selection happens during onboarding, preferably through `onboard-pamem.sh`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
 
@@ -191,7 +194,7 @@ role = "coder"
 load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
-  "L1/shared/workflow.md",
+  "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
   "L1/roles/coder.md",
   "L2/projects/pamem.md",
@@ -238,7 +241,7 @@ Fallback load order when `.pamem/config.toml` is absent:
 
 1. `MEMORY.md`
 2. `notes/user-preferences.md`
-3. `notes/agent-workflow.md`
+3. `notes/operating-rules.md`
 4. `notes/experience.md`
 5. `notes/projects/<project-key>.md`, if the current project has one
 6. `notes/current-task.md`, only if a task is still open
@@ -282,8 +285,8 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Type | Shared layout | Fallback layout | Notes |
 |---|---|---|---|
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
-| Shared workflow rules | `L1/shared/workflow.md` | `notes/agent-workflow.md` | Stable workflow defaults; must not override L0 |
-| Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer habits |
+| Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
+| Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |

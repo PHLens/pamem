@@ -1,9 +1,9 @@
-# pamem shared config template for the human review profile
-# Copy this file to .pamem/config.toml when the workspace should default to human review.
+# pamem shared config template for the wiki profile
+# Copy this file to .pamem/config.toml when the workspace should default to wiki curation work.
 # Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
 
 version = 1
-default_profile = "human"
+default_profile = "wiki"
 
 [memory_repo]
 # Relative paths are resolved from the agent workspace; absolute paths are allowed for a shared repo used by multiple agents.
@@ -36,25 +36,24 @@ queue_root = ".pamem/sync-queue"
 executor = "<configured-sync-executor>"
 policy = "explicit_request_or_workspace_policy"
 
-[profiles.human]
-role = "human"
-description = "Human review profile for approving governance and config changes."
+[profiles.wiki]
+role = "wiki"
+description = "Wiki profile for curation workflow, knowledge pointers, and sync handoffs."
 load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
-  "L1/shared/experience.md"
+  "L1/shared/experience.md",
+  "L1/roles/wiki.md",
+  "L2/projects/<project-key>.md",
+  "L2/active/current-tasks.md",
+  "L2/active/<task-id>.md"
 ]
 write = [
-  ".pamem/config.toml",
-  "requests/inbox/",
-  "L1/shared/experience.md",
-  "L1/roles/onboarding.md"
+  "L2/active/current-tasks.md",
+  "L2/active/<task-id>.md",
+  "requests/inbox/"
 ]
 guarded_write = [
-  "L0/constitution.md",
-  "L1/shared/preferences.md",
-  "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
-  "L1/roles/onboarding.md"
+  "L1/roles/wiki.md"
 ]
