@@ -150,6 +150,10 @@ L0 constitution > L1 shared > L2 project > L1 role > L2 task > L3 archive
 
 This keeps role memory useful as shared experience while allowing project-specific constraints to win.
 
+In practice, a workspace should activate one `default_profile` at a time. The
+templates in `assets/config-profiles/` are standalone starters for alternate
+defaults, not simultaneous runtime roles.
+
 ### Config Ownership
 
 When a workspace uses `.pamem/config.toml`, that file is the source of truth for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.

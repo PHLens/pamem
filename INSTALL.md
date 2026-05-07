@@ -22,6 +22,9 @@ The bootstrap now creates `.pamem/config.toml` from `assets/config.toml.template
 if it is missing, then seeds the configured memory repo root and shared
 `L0/L1/L2/L3` skeleton. Update the generated config when you want to move the
 memory repo, change the sharing mode, or point sync at a different backend.
+A workspace should only activate one `default_profile` at a time; if you want a
+different default role, replace `.pamem/config.toml` with the matching file
+from `assets/config-profiles/`.
 
 Install into a workspace:
 

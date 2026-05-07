@@ -43,6 +43,7 @@ the workspace environment.
 - [SYNC.md](SYNC.md): how `pamem` works with `sync-request`, the memory sync helper, and external sync executors
 - [INSTALL.md](INSTALL.md): Codex install, repair, update, and removal
 - `assets/config.toml.template`: starter config for onboarding a shared memory repo
+- `assets/config-profiles/*.toml.template`: alternate role-specific starter configs
 - `scripts/memory-sync.sh`: sync helper for the configured memory repo backend
 
 ## Check

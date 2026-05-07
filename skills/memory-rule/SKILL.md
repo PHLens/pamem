@@ -163,7 +163,9 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 When `.pamem/config.toml` exists, it is the machine-readable source for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
 
-For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners.
+For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
+
+Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
 
 The shared repo is resolved through:
 
