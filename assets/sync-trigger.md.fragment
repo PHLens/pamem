@@ -1,3 +1,4 @@
 ## Sync Trigger
 If durable local memory or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention, use the `sync-request` plugin skill to create a sync request in the configured pending queue for the active sync executor.
 Do not run sync directly from this agent; the sync executor may call `.pamem/scripts/memory-sync.sh` when policy says to propagate the configured memory repo.
+Treat `.pamem/config.toml`, `memory-sync.sh`, and WebDAV `--resync` as high-risk sync surfaces that require config-owner or sync-executor responsibility.

@@ -35,7 +35,6 @@ CONFIG_PATH="$FOUNDATION_DIR/config.toml"
 MEMORY_PATH="$WORKSPACE/MEMORY.md"
 
 SESSION_CMD='.pamem/scripts/memory-session-start.sh'
-PRECOMPACT_CMD='.pamem/scripts/memory-pre-compact.sh'
 
 mkdir -p "$NOTES_DIR/projects" "$CODEX_DIR" "$FOUNDATION_DIR"
 

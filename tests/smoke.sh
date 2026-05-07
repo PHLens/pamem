@@ -14,6 +14,12 @@ fi
 
 CONFIG="$ROOT/assets/config.toml.template"
 
+jq empty "$ROOT/hooks/hooks.json" >/dev/null
+if jq -e '.hooks | has("PreCompact")' "$ROOT/hooks/hooks.json" >/dev/null; then
+  echo "runtime hooks must not install automatic PreCompact writes" >&2
+  exit 1
+fi
+
 for pattern in \
   '^[[:space:]]*version[[:space:]]*=' \
   '^[[:space:]]*default_profile[[:space:]]*=' \
@@ -79,6 +85,7 @@ for file in \
   "$ROOT/assets/config-profiles/reviewer.toml.template" \
   "$ROOT/assets/config-profiles/researcher.toml.template" \
   "$ROOT/assets/config-profiles/wiki.toml.template" \
+  "$ROOT/hooks/hooks.json" \
   "$ROOT/scripts/onboard-pamem.sh" \
   "$ROOT/scripts/memory-sync.sh"
 do
@@ -148,6 +155,11 @@ do
   test -s "$file"
 done
 
+if jq -e '.hooks | has("PreCompact")' "$WORKSPACE/.codex/hooks.json" >/dev/null; then
+  echo "Codex bootstrap must not install a PreCompact hook" >&2
+  exit 1
+fi
+
 test -d "$WORKSPACE/.pamem/memory/L2/projects"
 test ! -e "$WORKSPACE/.pamem/memory/L2/active"
 test ! -e "$WORKSPACE/.pamem/memory/L3/work-log.md"
@@ -185,6 +197,15 @@ SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | bash "$ROOT/scripts/mem
 printf '%s' "$SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
   (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("runtime=cli") and contains(".pamem/memory"))
+' >/dev/null
+
+rm -f "$WORKSPACE/.pamem/memory/MEMORY.md"
+MISSING_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
+test ! -e "$WORKSPACE/.pamem/memory/MEMORY.md"
+printf '%s' "$MISSING_SESSION_OUTPUT" | jq -e '
+  .hookSpecificOutput.hookEventName == "SessionStart" and
+  (.hookSpecificOutput.additionalContext | contains("Warning: configured memory entry file is missing or empty")) and
+  (.hookSpecificOutput.additionalContext | contains("Load and follow this persistent memory index") | not)
 ' >/dev/null
 
 rm -f "$WORKSPACE/notes/current-task.md"
