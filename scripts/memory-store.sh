@@ -46,6 +46,58 @@ pamem_toml_get_value() {
   ' "$file"
 }
 
+pamem_toml_array_values() {
+  local file="$1"
+  local section="$2"
+  local key="$3"
+
+  awk -v section="[$section]" -v key="$key" '
+    function trim(value) {
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      return value
+    }
+    function emit_strings(value,    rest, match_value) {
+      rest = value
+      while (match(rest, /"([^"\\]|\\.)*"/)) {
+        match_value = substr(rest, RSTART + 1, RLENGTH - 2)
+        print match_value
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+    }
+    BEGIN { in_section = (section == "[]"); in_array = 0 }
+    {
+      line = $0
+      sub(/[[:space:]]*#.*/, "", line)
+      line = trim(line)
+      if (line ~ /^\[[^]]+\]$/) {
+        in_section = (line == section)
+        in_array = 0
+        next
+      }
+      if (!in_section) {
+        next
+      }
+      if (in_array) {
+        emit_strings(line)
+        if (line ~ /\]/) {
+          in_array = 0
+        }
+        next
+      }
+      pattern = "^[[:space:]]*" key "[[:space:]]*="
+      if (line ~ pattern) {
+        sub(pattern, "", line)
+        line = trim(line)
+        emit_strings(line)
+        if (line ~ /\[/ && line !~ /\]/) {
+          in_array = 1
+        }
+      }
+    }
+  ' "$file"
+}
+
 pamem_workspace_config_path() {
   local workspace="$1"
   printf '%s/.pamem/config.toml' "$workspace"
