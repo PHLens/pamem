@@ -1,141 +1,236 @@
 ---
 name: memory-rule
-description: Governs agent memory loading, writing, promotion, compression, conflict repair, and archiving. Use when maintaining MEMORY.md, notes/, or any persistent memory so agent behavior stays stable across sessions without turning memory into an unstructured log.
+description: Governs profile-based agent memory loading, L0/L1/L2/L3 writes, promotion, compression, sync-request handoff, conflict repair, and archiving. Use when maintaining MEMORY.md, notes/, shared memory repos, or any persistent memory so agents keep stable behavior without turning memory into an unstructured log.
 ---
 
 # Memory Rule
 
-This plugin skill governs how persistent memory is structured, loaded, updated, promoted, and archived.
+This plugin skill governs how persistent agent memory is structured, loaded, updated, promoted, archived, and handed off for optional sync.
 
 ## Hard Boundary
 
 - This skill is the memory constitution, not a fact store.
 - Do not put dynamic task facts inside this skill.
-- Do not use `MEMORY.md` as a transcript, diary, or evidence chain.
+- Do not use `MEMORY.md` as a transcript, diary, evidence chain, or detailed work log.
+- Do not merge `sync-request` into this skill; `sync-request` stays separate.
 - Stable rules may constrain memory updates; mutable memory must not redefine stable rules.
+- Memory does not replace project repositories, issue trackers, PRs, delivery artifacts, or external knowledge bases.
 
 ## Core Principle
 
-**`MEMORY.md` is an index, not a transcript.**
+**`MEMORY.md` is a thin startup index, not a transcript.**
 
+```text
+MEMORY.md          = human-readable startup index and pointers
+.pamem/config.toml = machine-readable profile, load, and write policy when present
+L0/ or this skill   = constitution and governance
+L1/ or notes/       = stable shared, role, preference, and experience memory
+L2/ or notes/       = project and active task memory
+L3/ or notes/       = archive summaries not loaded by default
+requests/           = reviewable memory-promotion requests
+sync-request        = separate request-generation skill for cross-device retention
 ```
-MEMORY.md = Startup index (pointers only, keep short)
-notes/    = Structured content storage
+
+Keep persistent memory files in English unless there is an explicit local exception.
+
+## Supported Layouts
+
+Pamem supports both the current per-agent notes scaffold and a shared memory repo layout. Prefer the shared layout when multiple agents should reuse stable memory.
+
+### Shared Memory Repo
+
+```text
+agent-memory/
+  .pamem/
+    config.toml
+  MEMORY.md
+  L0/
+    constitution.md
+  L1/
+    shared/
+      preferences.md
+      workflow.md
+      experience.md
+    roles/
+      coder.md
+      reviewer.md
+      researcher.md
+      onboarding.md
+  L2/
+    projects/
+      <project-key>.md
+    active/
+      <task-id>.md
+  L3/
+    work-log.md
+    archive/
+  requests/
+    inbox/
+    promoted/
+    rejected/
 ```
 
-- Keep persistent memory files in English unless there is an explicit local exception.
+### Per-Agent Notes Fallback
 
-## Multi-Instance Concurrency
+```text
+<agent-workspace>/
+  MEMORY.md
+  notes/
+    user-preferences.md
+    agent-workflow.md
+    experience.md
+    current-task.md
+    work-log.md
+    projects/
+      <project-key>.md
+```
 
-When multiple agent instances run concurrently on different tasks, shared memory files become write-contended. The following rules prevent data loss and merge conflicts.
+Map fallback files to the same layers:
 
-### Principles
-
-- Shared memory (`MEMORY.md`, `notes/current-task.md`, `notes/work-log.md`, `notes/projects/`) is **read-only during task execution**.
-- All task state lives in the task worktree (`task_plan.md`, `findings.md`, `progress.md`).
-- Shared memory writes are deferred to **task completion** only.
-
-### Pointer Format
-
-When multiple instances may be active, pointer files use a list format so entries from different instances coexist:
-
-- `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> → <pointer to notes/projects/ file>`.
-- `notes/current-task.md`: list of active worktrees with one-line descriptions, format `<worktree-path> → <one-line task description>`.
-
-On task start, add an entry. On task end, remove it and summarize into `notes/projects/<project-key>.md`.
-
-### Conflict Tolerance
-
-If last-write-wins occurs on a pointer file:
-
-- The loss is limited to a pointer line, not task content.
-- Full state is recoverable from the worktree's `progress.md`.
-- Do not attempt file-locking or atomic-append protocols; the pointer format makes them unnecessary.
-
-### Write Sequencing
-
-1. **Task start:** Add pointer line to `notes/current-task.md` (and `MEMORY.md` Active Context if needed).
-2. **Task execution:** Write only to worktree-local files. Read shared memory freely.
-3. **Task completion:** Remove pointer from `notes/current-task.md`, update `notes/projects/<project-key>.md`, optionally append to `notes/work-log.md`.
+- `notes/user-preferences.md`, `notes/agent-workflow.md`, and `notes/experience.md` are L1.
+- `notes/projects/<project-key>.md` and `notes/current-task.md` are L2.
+- `notes/work-log.md` is L3.
 
 ## Memory Layers
 
 ### Layer 0: Constitution
 
-- This skill and any non-editable startup rules
-- Defines structure, precedence, write gates, and lifecycle
-- Must not be auto-mutated by the agent
+Layer 0 defines the memory operating model:
 
-### Shared Communication Baseline
+- structure and layer semantics
+- startup load rules
+- profile selection
+- precedence and conflict rules
+- write gates
+- promotion and archival lifecycle
+- sync-request handoff boundary
 
-The following communication rules are treated as Layer 0 shared rules:
+Layer 0 includes this skill, non-editable startup rules, and `L0/constitution.md` when a shared memory repo provides one. It must not be auto-mutated by ordinary task agents.
 
-- Private or DM-scoped content is private by default; do not forward or restate it outside the intended audience unless explicitly asked
-- Reply in the same conversation or thread by default; do not reroute the discussion unless explicitly requested
-- Treat `@someone` as the intended actor by default; do not take over instructions aimed at another person unless explicitly delegated
-- Visible replies should add new information; avoid empty acknowledgments or status noise
+The following communication rules are also treated as Layer 0 shared rules:
 
-### Layer 1: Stable Memory
+- Private or DM-scoped content is private by default; do not forward or restate it outside the intended audience unless explicitly asked.
+- Reply in the same conversation or thread by default; do not reroute the discussion unless explicitly requested.
+- Treat `@someone` as the intended actor by default; do not take over instructions aimed at another person unless explicitly delegated.
+- Visible replies should add new information; avoid empty acknowledgments or status noise.
 
-- Long-term user preferences
-- Agent-local workflow rules
-- Project or repo workflow rules
-- Durable corrections and prohibitions
-- Reusable technical findings with future decision value
-- Methodological experience gained during interaction (meta-knowledge)
+### Layer 1: Stable Shared Memory
 
-### Layer 2: Working Memory
+Layer 1 contains durable memory that should survive across tasks and be reusable by multiple sessions or agents.
 
-- Current task state
-- Current blocker
-- Next step
-- Current branch, PR, or resumable execution state
+Examples:
+
+- global collaboration preferences
+- shared workflow rules
+- durable corrections and prohibitions
+- reusable technical findings with future decision value
+- methodological experience and meta-knowledge
+- role-shared memory such as `L1/roles/coder.md` and `L1/roles/reviewer.md`
+
+Role memory belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
+
+### Layer 2: Project And Working Memory
+
+Layer 2 contains specific project context and active resumable task state.
+
+Examples:
+
+- `L2/projects/<project-key>.md`
+- `L2/active/<task-id>.md`
+- `notes/projects/<project-key>.md`
+- `notes/current-task.md`
+
+Project-specific memory belongs in L2, not L1. Project context usually changes faster than role experience and should not pollute global stable memory.
 
 ### Layer 3: Archive
 
-- Closed-task summaries
-- Historical snapshots
-- Old findings or logs that are no longer startup-relevant
+Layer 3 preserves closed-task summaries and historical context that should not be loaded by default.
 
-## Plugin Skill Identity
+Examples:
 
-- `memory-rule` is a plugin-provided skill entry point, not a note file.
-- `sync-request` is a plugin-provided skill entry point, not a note file.
-- Memory files may reference these skills as procedures to apply, but they should not imply that a file like `notes/memory-rules.md` is the source of truth.
+- `L3/work-log.md`
+- `L3/archive/<date-or-task>.md`
+- `notes/work-log.md`
 
-## Startup Load Order
+Archive stores summaries, not transcripts or raw evidence chains.
 
-On wake-up, load in this order:
+## Profile Configuration
+
+When `.pamem/config.toml` exists, it is the machine-readable source for profiles, load targets, and write targets. `MEMORY.md` should point to it instead of duplicating its details.
+
+Example shape:
+
+```toml
+[profiles.coder]
+role = "coder"
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/coder.md",
+  "L2/projects/pamem.md",
+  "L2/active/task-123.md"
+]
+write = [
+  "L2/active/task-123.md",
+  "requests/inbox/"
+]
+guarded_write = [
+  "L1/roles/coder.md"
+]
+```
+
+Rules:
+
+- Profiles describe what to load; they do not create new precedence.
+- Role-specific memory is a profile overlay loaded from L1.
+- Project memory is loaded from L2 and wins over role memory on conflict.
+- Ordinary task agents should write active task state and promotion requests, not stable shared files.
+- `guarded_write` means the agent may update the target only when the change is high-confidence, reusable across tasks, and allowed by local policy; otherwise create a promotion request.
+- If no config exists, use the per-agent notes fallback load order.
+
+## Startup Load Workflow
+
+On wake-up:
+
+1. Read `MEMORY.md`.
+2. If present, read `.pamem/config.toml` and select the requested or default profile.
+3. Load L0 constitution sources for that profile.
+4. Load L1 shared memory.
+5. Load the L1 role overlay for the profile.
+6. Load L2 project memory for the active project.
+7. Load L2 active task memory only when a task is open.
+8. Do not load L3 archive or `requests/` by default.
+
+Fallback load order when `.pamem/config.toml` is absent:
 
 1. `MEMORY.md`
 2. `notes/user-preferences.md`
 3. `notes/agent-workflow.md`
 4. `notes/experience.md`
-5. Active project rules, if present
+5. `notes/projects/<project-key>.md`, if the current project has one
 6. `notes/current-task.md`, only if a task is still open
-
-Do not auto-load archive files unless the current task explicitly depends on them.
 
 ## Precedence Rules
 
-When rules conflict, higher precedence wins:
+Current system, developer, and explicit user instructions outrank memory. Within memory, higher precedence wins:
 
-1. Constitution
-2. Shared global rules
-3. Role-specific rules
-4. Agent-local workflow rules
-5. Project rules
-6. User preferences
-7. Working memory
-8. Archive
+1. L0 constitution
+2. L1 shared memory
+3. L2 project memory
+4. L1 role memory loaded through the active profile
+5. L2 active task memory
+6. L3 archive
 
-Lower-precedence memory may extend but must not override higher-precedence rules.
+Lower-precedence memory may extend but must not override higher-precedence memory.
 
-## Agent Workflow Boundary
+Important consequences:
 
-- `notes/agent-workflow.md` is for agent-local, durable workflow or communication rules.
-- The shared development flow belongs to the `shared-devflow` skill, not to `notes/agent-workflow.md`.
-- `notes/agent-workflow.md` may supplement that shared flow, but it must not redefine or override it.
+- Project-specific memory wins over role memory.
+- Role memory can provide defaults, habits, and reusable role experience, but project constraints override it.
+- Active task memory can record current state and next steps, but it cannot redefine stable rules.
+- Archive is historical context and never an active rule source unless explicitly re-promoted.
 
 ## Write Gate
 
@@ -143,95 +238,199 @@ Before writing any memory, classify it:
 
 - Is it stable across sessions?
 - Will it affect future decisions or behavior?
-- Is it a rule, preference, correction, reusable finding, or active task state?
+- Is it a rule, preference, correction, reusable finding, project fact, or active task state?
 - Is it a summary rather than raw evidence?
+- Which layer owns it?
 - Does an existing entry already cover it?
+- Is direct write allowed by the active profile or local policy?
 
 If the answer is no to long-term value, do not write it to stable memory.
 
-## Where to Write
+## Where To Write
 
-| Type | Where | Notes |
-|------|-------|-------|
-| Collaboration preferences | `notes/user-preferences.md` | Durable communication and collaboration preferences |
-| Agent-local workflow rules | `notes/agent-workflow.md` | Agent-local workflow and communication rules that remain stable across projects; they supplement but do not replace the shared `shared-devflow` skill |
-| Project-specific rules | `notes/projects/<project-key>.md` | Project-specific workflow, environment, or repository policy |
-| Error corrections and prohibitions | `notes/experience.md` | Corrected assumptions with `type: correction` |
-| Reusable technical findings | `notes/experience.md` | Reusable outcomes with `type: finding`; never raw evidence chains |
-| Methodological meta-knowledge | `notes/experience.md` | Learnings about how to work better with `type: meta`; e.g. tool tips, workflow improvements |
-| Active task state | `notes/current-task.md` | Only the current task summary and next-step state |
-| Closed task summaries | `notes/work-log.md` | Summary only, never full transcripts; keep newest entries first |
+| Type | Shared layout | Fallback layout | Notes |
+|---|---|---|---|
+| Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
+| Shared workflow rules | `L1/shared/workflow.md` | `notes/agent-workflow.md` | Stable workflow defaults; must not override L0 |
+| Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer habits |
+| Error corrections and prohibitions | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
+| Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
+| Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
+| Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict |
+| Active task state | `L2/active/<task-id>.md` | `notes/current-task.md` | Startup-safe summary and pointers only |
+| Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
+| Closed task summary | `L3/work-log.md` or `L3/archive/` | `notes/work-log.md` | Newest first; summaries only |
 
-## Current Task vs Planning Files
+## Promotion Policy
 
-Use `notes/current-task.md` as the default working-memory summary file.
+Stable shared memory should change by promotion, not by casual append.
 
-- `notes/current-task.md` is the startup-safe summary for the current task
-- Keep it short: task, status, current phase, blocker, next step, and pointers
-- Load it by default only when a task is still open
+Promote to L1 only when:
 
-Use `planning-with-files` only for complex task execution tracking, not for persistent memory storage.
+- explicitly requested by the user,
+- clearly durable across tasks,
+- repeated often enough to be reliable,
+- likely to affect future behavior, or
+- approved by a human or an onboarding profile responsible for memory curation.
 
-- `task_plan.md` is the detailed execution source when `planning-with-files` is active
-- `findings.md` stores task-scoped discoveries for that task (not to be confused with `notes/experience.md` which stores durable meta-knowledge)
-- `progress.md` stores task-scoped session progress for that task
-- These planning files are local execution scratchpads, not long-term memory
+Use `requests/inbox/` for proposed promotions when direct write is not authorized. A promotion request should include:
 
-When `planning-with-files` is active:
+- target layer and file
+- proposed change
+- source context or task pointer
+- reason it is durable
+- conflict or supersession notes
 
-- `task_plan.md` remains the detailed execution source of truth
-- `notes/current-task.md` becomes the startup-safe exported summary
-- `notes/current-task.md` should point back to `task_plan.md` for full details
+Promotion decisions:
 
-Do not merge `notes/current-task.md` and `task_plan.md` into one file.
+- accepted changes move into the target memory file and the request moves to `requests/promoted/`.
+- rejected changes move to `requests/rejected/` with a short reason.
+- ordinary task agents must not silently promote contentious or cross-scope rules.
 
-- `notes/current-task.md` is for wake-up, resume, and compact recovery
-- `task_plan.md` is for phased execution and detailed task management
+Keep in L2 when the content is:
 
-Recommended `notes/current-task.md` template:
+- relevant only to the current task,
+- useful for resume and recovery,
+- project-specific and still changing, or
+- likely to expire at task completion.
 
-When multiple instances may be active, use the pointer-list template:
+Archive to L3 when:
 
-```markdown
-# Current Task
+- the task is closed,
+- a concise summary is enough for future recall, or
+- detailed process history is no longer needed in startup context.
 
-## Active Worktrees
-- `<worktree-path>` → <one-line task description>
-```
+## Sync-Request Boundary
 
-When only a single instance is active, the full template (Task, Project, Status, Current Phase, Blocker, Next Step, Source of Truth) may still be used.
+Do not merge `sync-request` into `memory-rule`.
+
+`memory-rule` owns the decision gate for whether a memory or managed-config change is durable. `sync-request` owns the separate act of creating a structured request for cross-device retention.
+
+Use `sync-request` only when:
+
+- the user explicitly asks for sync or retention, or
+- workspace policy explicitly requires a sync request for this durable memory/config change.
+
+Do not create unsolicited sync requests from ordinary memory maintenance.
+
+Never use `sync-request` for:
+
+- source-code delivery,
+- feature branches,
+- PR creation or review status,
+- project work transport,
+- raw command output,
+- task-local planning files, or
+- unstable in-progress chatter.
+
+Do not use the sync queue as the memory promotion queue. Use `requests/inbox/` or a task thread for promotion review.
+
+## Multi-Instance Concurrency
+
+When multiple agent instances run concurrently, shared memory files become write-contended. The following rules prevent data loss and merge conflicts.
+
+### Principles
+
+- L0 and L1 shared files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
+- L2 active task state must live in per-task files such as `L2/active/<task-id>.md` or in the task worktree.
+- Shared pointer files contain only short lines pointing to the authoritative task state.
+- Stable memory writes happen at task completion or through promotion review.
+
+### Pointer Format
+
+When multiple instances may be active, pointer files use a list format so entries from different instances coexist:
+
+- `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> -> <pointer to L2/active or notes/current-task>`.
+- `notes/current-task.md`: list of active worktrees or task files, format `<worktree-path or task-id> -> <one-line task description>`.
+
+### Conflict Tolerance
+
+If last-write-wins occurs on a pointer file:
+
+- The loss is limited to a pointer line, not task content.
+- Full state is recoverable from the task file or worktree progress file.
+- Do not attempt file-locking or atomic-append protocols by default; the pointer format keeps recovery simple.
+
+### Write Sequencing
+
+1. Task start: create or update the L2 task file and add a pointer line if needed.
+2. Task execution: write task state only to L2 active files or task-local planning files.
+3. Task completion: remove the active pointer, update L2 project memory if needed, create promotion requests for L1 candidates, and archive a concise summary to L3.
+
+## Current Task Vs Planning Files
+
+Use L2 active task memory as the default startup-safe task summary.
+
+- Shared layout: `L2/active/<task-id>.md`
+- Fallback layout: `notes/current-task.md`
+
+Keep it short: task, status, current phase, blocker, next step, and pointers.
+
+Use detailed planning files only for complex task execution tracking, not for persistent memory storage.
+
+- `task_plan.md` is the detailed execution source when planning with files is active.
+- `findings.md` stores task-scoped discoveries for that task.
+- `progress.md` stores task-scoped session progress for that task.
+- These planning files are local execution scratchpads, not long-term memory.
+
+When planning files are active:
+
+- `task_plan.md` remains the detailed execution source of truth.
+- L2 active task memory becomes the startup-safe exported summary.
+- L2 active task memory should point back to `task_plan.md` for full details.
+- Do not merge startup-safe task memory and detailed task planning into one file.
 
 ## Planning Upgrade Rules
 
 Default to light mode first.
 
-- Start with `notes/current-task.md` only
-- Do not create planning files for simple or short-lived tasks by default
-- Do not invoke `planning-with-files` for memory-only or workflow-only maintenance tasks
+- Start with L2 active task memory only.
+- Do not create planning files for simple or short-lived tasks by default.
+- Do not invoke detailed planning for memory-only or workflow-only maintenance tasks.
 
-Upgrade to `planning-with-files` when any of these become true:
+Upgrade to detailed planning when any of these become true:
 
-- The task is likely to exceed 5 tool calls
-- The task has 2 or more real phases or deliverables
-- The task requires research, comparison, or branching approaches
-- The task includes implementation plus validation or testing
-- The task is likely to span multiple turns or be interrupted
-- The task has already produced a blocker, retry loop, or plan mutation
+- The task is likely to exceed 5 tool calls.
+- The task has 2 or more real phases or deliverables.
+- The task requires research, comparison, or branching approaches.
+- The task includes implementation plus validation or testing.
+- The task is likely to span multiple turns or be interrupted.
+- The task has already produced a blocker, retry loop, or plan mutation.
 
-If complexity was underestimated, upgrade in place.
+If complexity was underestimated, upgrade in place:
 
-- Keep `notes/current-task.md`
-- Create `task_plan.md`, `findings.md`, and `progress.md`
-- Export only the compact current snapshot back into `notes/current-task.md`
+- keep the L2 active summary,
+- create `task_plan.md`, `findings.md`, and `progress.md`,
+- export only the compact current snapshot back into L2 active memory.
 
-## Planning Integration Rules
+## Active Context Rules
 
-Planning files feed memory by summary and promotion, not by direct persistence.
+`Active Context` in `MEMORY.md` holds only:
 
-- `task_plan.md`, `findings.md`, and `progress.md` remain task-local execution records
-- `notes/current-task.md` is the exported recovery summary for startup and compact recovery
-- `notes/work-log.md` stores the closed-task summary
-- Only reusable findings, corrections, meta-knowledge, or durable rules may be promoted into stable memory
+- work that is still open,
+- items that would block or materially affect next wake-up,
+- pointers to authoritative detailed files.
+
+Compress immediately if `Active Context` grows beyond 3 items, mixes closed work, or repeats detail that already lives in L1, L2, or L3.
+
+## Work Log Order
+
+L3 work logs must be maintained in reverse-chronological order.
+
+- Newest date sections go at the top.
+- Newest entries inside a date section go above older entries when practical.
+- Keep milestone summaries, not execution transcripts.
+
+## What Not To Write In `MEMORY.md`
+
+| Do not write | Why | Where instead |
+|---|---|---|
+| Closed task details | Clutters index | L3 work log |
+| Evidence chains | Linear narrative, not reusable | L1 experience outcomes only |
+| Session transcripts | Historical, not actionable | Do not save |
+| Raw command outputs | Transient data | Do not save |
+| Long explanations | Index should be pointers | L1/L2/L3 files |
+| Profile load lists | Duplicates config | `.pamem/config.toml` |
 
 ## Entry Discipline
 
@@ -248,143 +447,49 @@ Each durable entry should implicitly or explicitly support:
 - `last_confirmed`
 - `supersedes`, when applicable
 
-## Promotion and Demotion
+When learning new preferences, rules, corrections, or meta-knowledge:
 
-Promote to stable memory only when:
+1. Check whether an authoritative entry already exists.
+2. Update by replacement or supersession, not duplication.
+3. Create a new entry only when it is a new rule or fact.
+4. Keep `MEMORY.md` aligned with the current source of truth by pointer, not detail.
 
-- Explicitly requested by the user
-- Clearly durable across tasks
-- Repeated often enough to be a reliable rule or preference
-- Likely to affect future behavior
+## Memory As Meta-Knowledge
 
-Keep in working memory when:
+Agent memory is the schema layer for the agent's broader knowledge system. Its purpose is not to store all knowledge, but to store the meta-knowledge that enables efficient retrieval and application of external knowledge.
 
-- Relevant only to the current task
-- Useful for resume and recovery
-- Likely to expire at task completion
+### Meta Vs Domain Boundary
 
-Archive when:
-
-- The task is closed
-- A concise summary is enough for future recall
-- Detailed process history is no longer needed in startup context
-
-When a task closes:
-
-- Remove it from `notes/current-task.md`
-- Keep only a concise summary in `notes/work-log.md`
-- Do not preserve `task_plan.md`, `findings.md`, or `progress.md` as long-term memory by default
-
-## Work Log Order
-
-`notes/work-log.md` must be maintained in reverse-chronological order.
-
-- Newest date sections go at the top
-- Newest entries inside a date section go above older entries when practical
-- Keep milestone summaries, not execution transcripts
-
-## Active Context Rules
-
-`Active Context` in `MEMORY.md` holds only:
-
-- Work that is still open
-- Items that would block or materially affect next wake-up
-- Pointers to the authoritative detailed files
-
-**Compression trigger:** Compress immediately if `Active Context` grows beyond 3 items, mixes closed work, or repeats detail that already lives in `notes/`.
-
-## What NOT to Write in MEMORY.md
-
-| Don't Write | Why | Where Instead |
-|-------------|-----|---------------|
-| Closed task details | Clutters index | `notes/work-log.md` |
-| Evidence chains | Linear narrative, not reusable | `notes/experience.md` (outcomes only) |
-| Session transcripts | Historical, not actionable | Not saved |
-| Raw command outputs | Transient data | Not saved or summarized in experience |
-| Long explanations | Index should be pointers | `notes/` files |
-
-## Update Discipline
-
-### When updating `MEMORY.md`
-
-1. Ask whether the item is index-worthy or belongs in `notes/`
-2. Keep only a pointer in `MEMORY.md`
-3. Write details in the authoritative notes file
-4. Remove stale or duplicate startup-visible entries
-
-### When learning new preferences, rules, corrections, or meta-knowledge
-
-1. Check whether an authoritative entry already exists
-2. Update by replacement or supersession, not duplication
-3. Create a new entry only when it is a new rule or fact
-4. Keep the pointer list in `MEMORY.md` aligned with the current source of truth
-
-### When task completes
-
-1. Do not expand `Active Context` with completion details
-2. Move the final summary to `notes/work-log.md`
-3. Remove the task from `Active Context`
-4. Clear `notes/current-task.md` or replace it with the next open task
-
-## File Structure
-
-```
-<agent-workspace>/
-├── MEMORY.md              # Startup index only
-└── notes/
-    ├── user-preferences.md
-    ├── agent-workflow.md
-    ├── experience.md
-    ├── current-task.md
-    ├── work-log.md
-    └── projects/
-        └── <project-key>.md
-```
-
-## Compression Rules
-
-- `MEMORY.md` stays short and pointer-based
-- `Active Context` contains only open and blocking items
-- Closed work leaves startup-visible memory immediately
-- Archive stores summaries, not step-by-step logs
-- If a file becomes repetitive, consolidate and supersede instead of appending
-
-## Memory as Meta-Knowledge
-
-Agent memory is the **schema layer** for the agent's entire knowledge system. Its purpose is not to store all knowledge, but to store the meta-knowledge that enables efficient retrieval and application of external knowledge.
-
-### Meta vs Domain Boundary
-
-- **Meta-knowledge** (write to `notes/`): methodology, principles, tool tips, workflow rules, corrected assumptions, "knowing where to look"
-- **Domain knowledge** (write to external wiki/vault): concepts, facts, analyses, source material
+- Meta-knowledge belongs in L1 experience memory: methodology, principles, tool tips, workflow rules, corrected assumptions, and knowing where to look.
+- Domain knowledge belongs in an external wiki, vault, project repo, or other source of truth: concepts, facts, analyses, source material, and long-form research.
 
 When an interaction produces a durable insight, classify it:
 
 | Classification | Destination | Examples |
 |---|---|---|
-| Meta: how to work better | `notes/experience.md` with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
-| Meta: corrected assumption | `notes/experience.md` with `type: correction` | "WeChat mobile UA does not bypass captcha" |
-| Meta: reusable decision | `notes/experience.md` with `type: finding` | "For Chinese sites, browser path > requests" |
-| Domain: concept or fact | External wiki/vault | Technical concepts, source summaries, MOCs |
+| Meta: how to work better | L1 experience with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
+| Meta: corrected assumption | L1 experience with `type: correction` | "WeChat mobile UA does not bypass captcha" |
+| Meta: reusable decision | L1 experience with `type: finding` | "For Chinese sites, browser path > requests" |
+| Domain: concept or fact | External wiki/vault/project source | Technical concepts, source summaries, MOCs |
 
 ### Finding Writeback
 
-During interaction, when a meta-knowledge insight is discovered, promote it immediately rather than waiting for task completion.
+During interaction, when a meta-knowledge insight is discovered, promote it immediately only if direct write is allowed by policy. Otherwise create a promotion request.
 
-Writeback triggers (any of):
+Writeback triggers:
 
-- A tool usage revealed a non-obvious behavior or pitfall
-- A workflow assumption was proven wrong
-- A technique was discovered that would improve future interactions
-- A correction was made to a previous approach
+- A tool usage revealed a non-obvious behavior or pitfall.
+- A workflow assumption was proven wrong.
+- A technique was discovered that would improve future interactions.
+- A correction was made to a previous approach.
 
 Writeback rules:
 
-- **Auto-write**: factual meta discoveries (tool tips, environment quirks, corrected assumptions) — write directly to `notes/experience.md`
-- **Confirm first**: rule changes, workflow modifications, or entries that supersede existing experience — propose to user before writing
-- **Never write back**: domain knowledge, one-off troubleshooting, simple factual lookups, task-local observations
+- Direct write: factual meta discoveries when allowed by the active profile and local policy.
+- Promotion request: rule changes, workflow modifications, cross-role knowledge, or entries that supersede existing experience.
+- Never write back: domain knowledge, one-off troubleshooting, simple factual lookups, task-local observations, or raw evidence.
 
-Writeback format — each entry in `notes/experience.md`:
+Writeback format:
 
 ```markdown
 ## <Title>
@@ -395,23 +500,9 @@ Writeback format — each entry in `notes/experience.md`:
 - **supersedes**: <prior entry title>, when applicable
 ```
 
-### MEMORY.md Summaries
+## Memory Lint
 
-Each entry in `MEMORY.md` Key Knowledge should include a one-line summary after the dash, so the agent can decide whether to load a file without reading it first.
-
-Format:
-
-```markdown
-## Key Knowledge
-- `notes/experience.md` — 4 entries: MCP config, Inkscape render, topic-research browser, topic-research arch
-- `notes/user-preferences.md` — note ops, autonomy, comms style, vault path
-```
-
-This enables **selective loading**: on startup, read `MEMORY.md` first, then load only the notes files relevant to the current context instead of all files unconditionally.
-
-### Memory Lint
-
-On startup or when explicitly requested, perform a quick health check on `notes/`:
+On startup or when explicitly requested, perform a quick health check on memory files:
 
 | Check | Condition | Action |
 |---|---|---|
@@ -419,55 +510,49 @@ On startup or when explicitly requested, perform a quick health check on `notes/
 | Superseded entry | Entry has `supersedes` pointing to another entry still present | Remove or collapse the superseded entry |
 | Empty note | File has only heading or template placeholder | Remove from startup load order until populated |
 | Conflicting entries | Two entries in same scope contradict each other | Flag for conflict repair |
-| Orphan pointer | MEMORY.md references a note that does not exist | Remove the pointer |
+| Orphan pointer | `MEMORY.md` or config references a note that does not exist | Remove or repair the pointer |
+| Layer mismatch | Project content appears in L1, or role content appears only in L2 task state | Move or request promotion to the correct layer |
+| Direct stable write | Ordinary task work changed L0/L1 without policy support | Convert to promotion request or ask for review |
 
-Memory lint is informational only — it reports issues but does not auto-fix. Conflicts and stale entries should be resolved by supersession, not deletion.
+Memory lint is informational by default. Conflicts and stale entries should be resolved by supersession, not silent deletion.
 
 ## Conflict Repair
 
 When new memory conflicts with existing memory:
 
-1. Identify the authoritative scope and precedence
-2. Mark the old rule or fact as superseded
-3. Write the new authoritative entry
-4. Remove or hide stale startup-visible duplicates
-5. Keep only one active source of truth per rule
+1. Identify the authoritative scope and precedence.
+2. Mark the old rule or fact as superseded.
+3. Write or request the new authoritative entry.
+4. Remove or hide stale startup-visible duplicates.
+5. Keep only one active source of truth per rule.
 
 ## Quality Checks
 
 | Check | Action |
-|------|--------|
+|---|---|
 | `MEMORY.md` repeats note details | Replace detail with pointers |
-| `Active Context` > 3 items | Compress or prioritize open blockers only |
+| `Active Context` has more than 3 items | Compress or prioritize open blockers only |
 | Duplicate information exists | Consolidate into one authoritative entry |
 | Contradictory rules exist | Repair conflict by supersession |
 | Archive is loaded by default | Remove it from startup path |
 | Placeholder text remains | Fill it in or remove it |
-
-## Role-Specific Extensions
-
-Role-specific memory rules extend (not replace) these base rules:
-- Shared role workflow skills define role-default execution flow
-- Agent-local workflow files and project rule files may supplement that flow without overriding it
-
-## Integration with Common Notes
-
-If agent has access to shared notes repo:
-- Common rules apply to all agents (communication, memory structure)
-- Role-specific rules apply only to matching roles
-- Private agent notes store agent-specific experience or task-local state
+| Project-specific content appears in L1 role/shared memory | Move it to L2 project memory |
+| Role-shared experience is scattered across task files | Promote or request promotion into L1 role memory |
+| Sync request is used for project delivery | Cancel and use normal project workflow |
 
 ## Anti-Patterns
 
-| Don't | Do Instead |
-|-------|------------|
-| Stuff everything in MEMORY.md | Organize in notes/ directory |
-| Keep closed work in Active Context | Move to work-log.md |
-| Repeat corrections in multiple places | Single authoritative entry in `notes/experience.md` with `type: correction` |
-| Write evidence chains | Record outcome/lesson only |
-| Create new notes file for one-time info | Add to an existing appropriate file |
-| Append contradictory rules | Supersede old entries explicitly |
+| Do not | Do instead |
+|---|---|
+| Stuff everything in `MEMORY.md` | Organize in L1/L2/L3 and keep pointers in `MEMORY.md` |
+| Keep closed work in Active Context | Move a concise summary to L3 |
+| Put project-specific rules in L1 role memory | Put them in L2 project memory |
+| Treat role overlay as higher priority than project rules | Let project memory override role memory |
+| Repeat corrections in multiple places | Keep one authoritative entry with `type: correction` and supersession |
+| Write evidence chains | Record outcome or lesson only |
+| Use `sync-request` as a promotion queue | Use `requests/inbox/` or review in the task thread |
+| Create unsolicited sync requests | Create them only by explicit user request or workspace policy |
 | Load archive by default | Load archive only when task-relevant |
 
 ## Last Updated
-2026-04-26
+2026-05-06

@@ -8,7 +8,7 @@ It intentionally describes the **protocol and boundaries**, not a concrete sync 
 
 `pamem` provides the shared memory runtime for a workspace.
 
-`sync-request` provides the shared way to ask for cross-device retention when durable local memory or managed workspace config changes should be propagated elsewhere.
+`sync-request` provides the shared way to ask for cross-device retention when durable local memory or managed workspace config changes should be propagated elsewhere and the user explicitly asks or workspace policy requires retention.
 
 It is intentionally **not** a channel for project work, source code, branches, or PR workflow.
 
@@ -48,7 +48,7 @@ flowchart LR
 
 ## When To Use `sync-request`
 
-Create a sync request when local changes are durable enough that they should be retained or propagated beyond the current workspace.
+Create a sync request when local changes are durable enough that they should be retained or propagated beyond the current workspace, and the user explicitly asks or workspace policy requires retention.
 
 Typical cases:
 
@@ -138,17 +138,18 @@ The external executor may:
 
 `sync-request` mostly interacts with:
 
-- **Layer 1: Stable Memory**
+- **Layer 1: Stable Shared Memory**
   - user preferences
   - workflow rules
   - experience (includes corrections and meta-knowledge)
-  - project notes
+- **Layer 2: Project Memory**
+  - project notes when they should be retained externally
 - **Layer 3: Archive**
   - closed-task summaries when they should be retained externally
 
 It may also be used for managed workspace config changes that support the memory runtime itself.
 
-It should not be used as a substitute for normal Layer 2 working-memory handling.
+It should not be used as a substitute for normal Layer 2 active-task handling.
 
 ## Design Principle
 

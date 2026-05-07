@@ -1,11 +1,12 @@
 ---
 name: sync-request
-description: Generate sync requests for Adam when durable local memory, reusable notes, or managed workspace config changes need cross-device retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
+description: Generate sync requests for Adam when durable local memory, reusable notes, or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention. This skill is for memory/config retention only, not project work, source-code delivery, branch sync, or PR workflow.
 ---
 
 # Sync Request
 
 Use this skill to generate sync requests for Adam. This skill is shared across agents and only creates request files.
+It stays separate from `memory-rule`: that skill decides what is durable; this one only packages the retention request.
 
 It is for **memory/config retention only**. It is **not** a mechanism for syncing project work, source code, Git branches, or PR status.
 
@@ -35,7 +36,7 @@ If the queue directories do not exist, create them before writing the request.
 
 ## When to Create a Sync Request
 
-Create a request when durable local changes should be retained across devices or handed off to Adam for centralized sync.
+Create a request when durable local changes should be retained across devices or handed off to Adam for centralized sync, but only when the user explicitly asks or workspace policy requires retention.
 
 Common cases:
 
