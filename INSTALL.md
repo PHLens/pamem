@@ -6,6 +6,12 @@ For the plugin overview, memory-layer model, and Claude install command, see [RE
 
 Codex bootstrap is workspace-local. It does not install or enable the Claude plugin and it does not modify `.claude/settings.json`.
 
+## Prerequisites
+
+- `bash`
+- `python3`
+- GNU coreutils `realpath`
+
 ## Install
 
 Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
