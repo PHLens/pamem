@@ -9,7 +9,7 @@ Codex bootstrap is workspace-local. It does not install or enable the Claude plu
 ## Prerequisites
 
 - `bash`
-- `python3`
+- `jq`
 - GNU coreutils `realpath`
 
 ## Install

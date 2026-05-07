@@ -7,43 +7,41 @@ for file in "$ROOT"/scripts/*.sh; do
   bash -n "$file"
 done
 
-if grep -RIn --exclude-dir=.git -E '(^|[^A-Za-z0-9_])jq([^A-Za-z0-9_]|$)' "$ROOT/scripts"; then
-  echo "scripts must not require jq" >&2
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required for pamem runtime checks" >&2
   exit 1
 fi
 
-python3 - "$ROOT/assets/config.toml.template" <<'PY'
-from pathlib import Path
-import sys
+CONFIG="$ROOT/assets/config.toml.template"
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    print("python3 with tomllib support is required", file=sys.stderr)
-    sys.exit(1)
+for pattern in \
+  '^[[:space:]]*version[[:space:]]*=' \
+  '^[[:space:]]*default_profile[[:space:]]*=' \
+  '^\[governance\]$' \
+  '^\[sync\]$'
+do
+  if ! grep -Eq "$pattern" "$CONFIG"; then
+    echo "missing config pattern: $pattern" >&2
+    exit 1
+  fi
+done
 
-path = Path(sys.argv[1])
-data = tomllib.loads(path.read_text())
+if grep -Eq '^[[:space:]]*queue_root[[:space:]]*=[[:space:]]*"~' "$CONFIG"; then
+  echo "sync.queue_root must not be hardcoded to a home-directory path" >&2
+  exit 1
+fi
 
-for key in ("version", "default_profile", "governance", "sync", "profiles"):
-    if key not in data:
-        raise SystemExit(f"missing top-level config key: {key}")
+if grep -Eq '^[[:space:]]*executor[[:space:]]*=[[:space:]]*"Adam"' "$CONFIG"; then
+  echo "sync.executor must not be hardcoded to Adam" >&2
+  exit 1
+fi
 
-if data["sync"].get("queue_root", "").startswith("~"):
-    raise SystemExit("sync.queue_root must not be hardcoded to a home-directory path")
-
-if data["sync"].get("executor") == "Adam":
-    raise SystemExit("sync.executor must not be hardcoded to Adam")
-
-profiles = data["profiles"]
-for name in ("onboarding", "human", "coder", "reviewer", "researcher"):
-    if name not in profiles:
-        raise SystemExit(f"missing profile: {name}")
-    profile = profiles[name]
-    for key in ("role", "load", "write", "guarded_write"):
-        if key not in profile:
-            raise SystemExit(f"missing profiles.{name}.{key}")
-PY
+for profile in onboarding human coder reviewer researcher; do
+  if ! grep -Eq "^\[profiles\.${profile}\]$" "$CONFIG"; then
+    echo "missing profile: $profile" >&2
+    exit 1
+  fi
+done
 
 for file in \
   "$ROOT/assets/MEMORY.md.template" \

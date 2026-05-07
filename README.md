@@ -32,6 +32,9 @@ Codex bootstrap reuses that same marketplace install by symlinking the
 workspace `.pamem/scripts` and `.pamem/assets` paths back to the installed
 plugin runtime.
 
+The bootstrap scripts assume `bash`, `jq`, and GNU `realpath` are available in
+the workspace environment.
+
 ### More
 
 - [DESIGN.md](DESIGN.md): memory layers, design philosophy, and plugin responsibilities
@@ -46,3 +49,5 @@ Run the lightweight repository smoke checks:
 ```bash
 bash tests/smoke.sh
 ```
+
+The smoke script requires `jq`.

@@ -5,40 +5,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ASSETS_DIR="$PLUGIN_ROOT/assets"
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "pamem requires jq; install jq and rerun." >&2
+  exit 1
+fi
+
 MEMORY_SKELETON="$(cat "$ASSETS_DIR/MEMORY.md.template")"
 MEMORY_GOVERNANCE_BLOCK="$(cat "$ASSETS_DIR/memory-governance.md.fragment")"
 SYNC_TRIGGER_BLOCK="$(cat "$ASSETS_DIR/sync-trigger.md.fragment")"
 CURRENT_TASK_TEMPLATE="$(cat "$ASSETS_DIR/notes/current-task.md.template")"
 
 HOOK_INPUT="$(cat || true)"
-
-json_field() {
-  local field="$1"
-  HOOK_INPUT="$HOOK_INPUT" python3 - "$field" <<'PY'
-import json
-import os
-import sys
-
-field = sys.argv[1]
-raw = os.environ.get("HOOK_INPUT", "")
-if raw.strip():
-    try:
-        data = json.loads(raw)
-    except Exception:
-        data = {}
-else:
-    data = {}
-
-value = data.get(field, "")
-if value is None:
-    value = ""
-
-sys.stdout.write(str(value))
-PY
-}
-
-ROOT="$(json_field cwd || true)"
-TRIGGER="$(json_field trigger || true)"
+ROOT="$(printf '%s' "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
+TRIGGER="$(printf '%s' "$HOOK_INPUT" | jq -r '.trigger // empty' 2>/dev/null || true)"
 
 if [ -z "$ROOT" ]; then
   ROOT="$PWD"
