@@ -1,17 +1,24 @@
 # pamem shared config template for the wiki profile
-# Copy this file to .pamem/config.toml when the workspace should default to wiki curation work.
+# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml when a legacy workspace should default to wiki curation work.
 # Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
 
 version = 1
 default_profile = "wiki"
 
 [runtime]
-# cli = local workspace recovery memory; slock = workspace task board owns task state and pamem only keeps durable memory.
+# cli = local agent recovery memory; slock = Slock task board owns task state and pamem only keeps durable memory.
 mode = "cli"
+# Optional stable id for the local agent home. Empty means derive from the configured root path.
+agent_id = ""
+
+[runtime.resume]
+# Optional runtime-native resume launcher, e.g. ["codex", "resume"].
+# Empty means pamem resume falls back to the launcher recorded by pamem start.
+command = []
 
 [memory_repo]
-# Relative paths are resolved from the agent workspace; absolute paths are allowed for a shared repo used by multiple agents.
-path = ".pamem/memory"
+# Default is a machine-level shared memory repo. Relative paths are resolved from the agent home or legacy workspace when an override is needed.
+path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"
 sharing = "shared"
 entry_file = "MEMORY.md"
 
@@ -28,6 +35,7 @@ generated_by = "onboarding"
 requires_review_for = [
   "memory_repo",
   "memory_repo.sync",
+  "config.toml",
   ".pamem/config.toml",
   "L0/**",
   "L1/shared/**",

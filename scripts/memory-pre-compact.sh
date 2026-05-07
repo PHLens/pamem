@@ -23,17 +23,26 @@ CURRENT_TASK_TEMPLATE="$(cat "$ASSETS_DIR/notes/current-task.md.template")"
 HOOK_INPUT="$(cat || true)"
 ROOT="$(printf '%s' "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 TRIGGER="$(printf '%s' "$HOOK_INPUT" | jq -r '.trigger // empty' 2>/dev/null || true)"
+HOOK_CURRENT_TASK="$(printf '%s' "$HOOK_INPUT" | jq -r '.pamem.current_task // empty' 2>/dev/null || true)"
 
 if [ -z "$ROOT" ]; then
-  ROOT="$PWD"
+  ROOT="${PAMEM_WORKSPACE:-$PWD}"
 fi
 
-NOTES_DIR="$ROOT/notes"
 RUNTIME_MODE="$(pamem_runtime_mode "$ROOT")"
-CURRENT_TASK_LABEL="notes/current-task.md"
+CURRENT_TASK_LABEL="current-task.md"
 
 if [ "$RUNTIME_MODE" = "cli" ]; then
-  CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
+  if [ -n "$HOOK_CURRENT_TASK" ]; then
+    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
+    CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+  elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
+    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
+    CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+  else
+    CURRENT_TASK_PATH="$(pamem_agent_current_task_path "$ROOT")"
+    CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+  fi
 else
   CURRENT_TASK_PATH=""
 fi

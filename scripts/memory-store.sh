@@ -103,9 +103,35 @@ pamem_workspace_config_path() {
   printf '%s/.pamem/config.toml' "$workspace"
 }
 
+pamem_agent_home_config_path() {
+  local agent_home="$1"
+  printf '%s/config.toml' "$agent_home"
+}
+
+pamem_config_path() {
+  local root="$1"
+
+  if [ -s "$(pamem_agent_home_config_path "$root")" ]; then
+    pamem_agent_home_config_path "$root"
+    return 0
+  fi
+
+  pamem_workspace_config_path "$root"
+}
+
+pamem_has_config() {
+  local root="$1"
+  [ -s "$(pamem_config_path "$root")" ]
+}
+
+pamem_is_agent_home() {
+  local root="$1"
+  [ -s "$(pamem_agent_home_config_path "$root")" ]
+}
+
 pamem_workspace_has_config() {
   local workspace="$1"
-  [ -s "$(pamem_workspace_config_path "$workspace")" ]
+  pamem_has_config "$workspace"
 }
 
 pamem_workspace_memory_root() {
@@ -136,8 +162,20 @@ pamem_config_value_or_default() {
 pamem_expand_path() {
   local base="$1"
   local raw="$2"
+  local xdg_data_default='${XDG_DATA_HOME:-$HOME/.local/share}'
+  local xdg_data_plain='$XDG_DATA_HOME'
+  local xdg_data_braced='${XDG_DATA_HOME}'
 
   case "$raw" in
+    "$xdg_data_default"|"$xdg_data_default"/*)
+      printf '%s%s' "$(pamem_data_home)" "${raw#"$xdg_data_default"}"
+      ;;
+    "$xdg_data_plain"|"$xdg_data_plain"/*)
+      printf '%s%s' "$(pamem_data_home)" "${raw#"$xdg_data_plain"}"
+      ;;
+    "$xdg_data_braced"|"$xdg_data_braced"/*)
+      printf '%s%s' "$(pamem_data_home)" "${raw#"$xdg_data_braced"}"
+      ;;
     "~")
       printf '%s' "$HOME"
       ;;
@@ -153,20 +191,38 @@ pamem_expand_path() {
   esac
 }
 
+pamem_data_home() {
+  if [ -n "${XDG_DATA_HOME:-}" ]; then
+    printf '%s' "$XDG_DATA_HOME"
+  else
+    printf '%s/.local/share' "$HOME"
+  fi
+}
+
+pamem_agent_home_path() {
+  local agent_id="$1"
+  pamem_expand_path "$PWD" "$(pamem_data_home)/pamem/agents/$agent_id"
+}
+
+pamem_default_memory_repo_root() {
+  local workspace="$1"
+  pamem_expand_path "$workspace" '${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory'
+}
+
 pamem_memory_repo_root() {
   local workspace="$1"
   local config_path
   local raw_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   if [ ! -s "$config_path" ]; then
-    pamem_workspace_memory_root "$workspace"
+    pamem_default_memory_repo_root "$workspace"
     return 0
   fi
 
   raw_path="$(pamem_toml_get_value "$config_path" 'memory_repo' 'path' || true)"
   if [ -z "$raw_path" ]; then
-    pamem_workspace_memory_root "$workspace"
+    pamem_default_memory_repo_root "$workspace"
     return 0
   fi
 
@@ -177,7 +233,7 @@ pamem_memory_repo_sharing() {
   local workspace="$1"
   local config_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'memory_repo' 'sharing' 'local'
 }
 
@@ -185,7 +241,7 @@ pamem_memory_repo_entry_file() {
   local workspace="$1"
   local config_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'memory_repo' 'entry_file' 'MEMORY.md'
 }
 
@@ -193,7 +249,7 @@ pamem_memory_repo_sync_backend() {
   local workspace="$1"
   local config_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'backend' 'local'
 }
 
@@ -201,7 +257,7 @@ pamem_memory_repo_sync_remote() {
   local workspace="$1"
   local config_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'remote' ''
 }
 
@@ -210,7 +266,7 @@ pamem_memory_repo_sync_bootstrapped() {
   local config_path
   local value
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   if [ ! -s "$config_path" ]; then
     printf 'false'
     return 0
@@ -231,7 +287,7 @@ pamem_memory_repo_ref() {
   local workspace="$1"
   local config_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'ref' 'main'
 }
 
@@ -239,8 +295,48 @@ pamem_runtime_mode() {
   local workspace="$1"
   local config_path
 
-  config_path="$(pamem_workspace_config_path "$workspace")"
+  config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'runtime' 'mode' 'cli'
+}
+
+pamem_agent_id() {
+  local workspace="$1"
+  local config_path
+  local raw
+
+  config_path="$(pamem_config_path "$workspace")"
+  raw="$(pamem_config_value_or_default "$config_path" 'runtime' 'agent_id' '')"
+  if [ -n "$raw" ]; then
+    printf '%s' "$raw"
+    return 0
+  fi
+
+  printf '%s' "$workspace" | sha256sum | awk '{print "workspace-" substr($1, 1, 16)}'
+}
+
+pamem_agent_local_dir() {
+  local workspace="$1"
+  local agent_id="${2:-}"
+
+  if pamem_is_agent_home "$workspace"; then
+    printf '%s' "$workspace"
+    return 0
+  fi
+
+  if [ -z "$agent_id" ]; then
+    agent_id="$(pamem_agent_id "$workspace")"
+  fi
+  pamem_agent_home_path "$agent_id"
+}
+
+pamem_agent_current_task_path() {
+  local workspace="$1"
+  printf '%s/current-task.md' "$(pamem_agent_local_dir "$workspace")"
+}
+
+pamem_agent_work_log_path() {
+  local workspace="$1"
+  printf '%s/work-log.md' "$(pamem_agent_local_dir "$workspace")"
 }
 
 pamem_copy_if_missing() {

@@ -19,8 +19,10 @@ fi
 HOOK_INPUT="$(cat || true)"
 
 ROOT="$(printf '%s' "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
+HOOK_CURRENT_TASK="$(printf '%s' "$HOOK_INPUT" | jq -r '.pamem.current_task // empty' 2>/dev/null || true)"
+HOOK_WORK_LOG="$(printf '%s' "$HOOK_INPUT" | jq -r '.pamem.work_log // empty' 2>/dev/null || true)"
 if [ -z "$ROOT" ]; then
-  ROOT="$PWD"
+  ROOT="${PAMEM_WORKSPACE:-$PWD}"
 fi
 
 MEMORY_ROOT="$(pamem_memory_repo_root "$ROOT")"
@@ -33,6 +35,10 @@ MEMORY_TEXT=""
 LINE_COUNT=0
 BYTE_COUNT=0
 MEMORY_AVAILABLE=0
+CURRENT_TASK_PATH=""
+WORK_LOG_PATH=""
+CURRENT_TASK_TEXT=""
+WORK_LOG_TEXT=""
 
 if [ -s "$MEMORY_PATH" ]; then
   MEMORY_TEXT="$(cat "$MEMORY_PATH")"
@@ -41,8 +47,47 @@ if [ -s "$MEMORY_PATH" ]; then
   MEMORY_AVAILABLE=1
 fi
 
+if [ "$RUNTIME_MODE" = "cli" ]; then
+  if [ -n "$HOOK_CURRENT_TASK" ]; then
+    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
+  elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
+    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
+  else
+    CURRENT_TASK_PATH="$(pamem_agent_current_task_path "$ROOT")"
+  fi
+
+  if [ -n "$HOOK_WORK_LOG" ]; then
+    WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$HOOK_WORK_LOG")"
+  elif [ -n "${PAMEM_WORK_LOG:-}" ]; then
+    WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_WORK_LOG")"
+  else
+    WORK_LOG_PATH="$(pamem_agent_work_log_path "$ROOT")"
+  fi
+
+  if [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/current-task.md" ]; then
+    CURRENT_TASK_PATH="$ROOT/current-task.md"
+  elif [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/notes/current-task.md" ]; then
+    CURRENT_TASK_PATH="$ROOT/notes/current-task.md"
+  fi
+
+  if [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/work-log.md" ]; then
+    WORK_LOG_PATH="$ROOT/work-log.md"
+  elif [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/notes/work-log.md" ]; then
+    WORK_LOG_PATH="$ROOT/notes/work-log.md"
+  fi
+
+  if [ -s "$CURRENT_TASK_PATH" ]; then
+    CURRENT_TASK_TEXT="$(cat "$CURRENT_TASK_PATH")"
+  fi
+
+  if [ -s "$WORK_LOG_PATH" ]; then
+    WORK_LOG_TEXT="$(cat "$WORK_LOG_PATH")"
+  fi
+fi
+
 if pamem_workspace_has_config "$ROOT"; then
   CONTEXT="Persistent memory source: \`${MEMORY_ROOT}\` (runtime=${RUNTIME_MODE}, sharing=${MEMORY_SHARING}, sync=${MEMORY_SYNC_BACKEND})."
+  CONTEXT="${CONTEXT}"$'\n'"Runtime anchor: \`${ROOT}\`."
 else
   CONTEXT="Persistent memory source: workspace fallback \`${ROOT}\` (runtime=${RUNTIME_MODE})."
 fi
@@ -57,6 +102,14 @@ fi
 
 if [ "$MEMORY_AVAILABLE" -eq 1 ]; then
   CONTEXT="${CONTEXT}"$'\n\n'"Load and follow this persistent memory index before proceeding:"$'\n\n'"${MEMORY_TEXT}"
+fi
+
+if [ -n "$CURRENT_TASK_TEXT" ]; then
+  CONTEXT="${CONTEXT}"$'\n\n'"CLI runtime current task source: \`${CURRENT_TASK_PATH}\`."$'\n\n'"${CURRENT_TASK_TEXT}"
+fi
+
+if [ -n "$WORK_LOG_TEXT" ]; then
+  CONTEXT="${CONTEXT}"$'\n\n'"CLI runtime work log source: \`${WORK_LOG_PATH}\`."$'\n\n'"${WORK_LOG_TEXT}"
 fi
 
 jq -n --arg ctx "$CONTEXT" '{

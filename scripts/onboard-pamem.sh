@@ -3,23 +3,25 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: onboard-pamem.sh <workspace> [--profile <onboarding|human|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
+Usage: onboard-pamem.sh <root> [--agent-home] [--profile <onboarding|human|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--agent-id <id>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
 
-Create the workspace pamem config during onboarding, then install the runtime.
+Create the pamem config during onboarding, then seed local files.
 
 Profile selection is an onboarding-time decision. This script refuses to replace
-an existing .pamem/config.toml unless --force is passed for deliberate
+an existing config unless --force is passed for deliberate
 re-onboarding.
 
 Options:
+  --agent-home           Treat <root> as an XDG-style agent home with config.toml.
   --profile <name>       Default active profile. Defaults to onboarding.
   --runtime <mode>       Runtime mode. Defaults to cli.
+  --agent-id <id>        Stable CLI runtime id. Defaults to a workspace-derived id.
   --memory-repo <path>   Override memory_repo.path.
   --sync-backend <name>  Override memory_repo.sync.backend.
   --sync-remote <target> Override memory_repo.sync.remote.
   --sync-ref <ref>       Override memory_repo.sync.ref.
   --sync-executor <name> Override sync.executor.
-  --force                Replace an existing .pamem/config.toml.
+  --force                Replace an existing config.
   -h, --help             Show this help.
 EOF
 }
@@ -46,15 +48,21 @@ shift
 
 PROFILE="onboarding"
 RUNTIME_MODE="cli"
+AGENT_ID=""
 MEMORY_REPO=""
 SYNC_BACKEND=""
 SYNC_REMOTE=""
 SYNC_REF=""
 SYNC_EXECUTOR=""
 FORCE=0
+AGENT_HOME_MODE=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --agent-home)
+      AGENT_HOME_MODE=1
+      shift
+      ;;
     --profile)
       [ "$#" -ge 2 ] || { echo "missing value for --profile" >&2; exit 2; }
       PROFILE="$2"
@@ -63,6 +71,11 @@ while [ "$#" -gt 0 ]; do
     --runtime)
       [ "$#" -ge 2 ] || { echo "missing value for --runtime" >&2; exit 2; }
       RUNTIME_MODE="$2"
+      shift 2
+      ;;
+    --agent-id)
+      [ "$#" -ge 2 ] || { echo "missing value for --agent-id" >&2; exit 2; }
+      AGENT_ID="$2"
       shift 2
       ;;
     --memory-repo)
@@ -201,7 +214,11 @@ set_toml_value() {
 
 mkdir -p "$TARGET_INPUT"
 WORKSPACE="$(cd "$TARGET_INPUT" && pwd)"
-CONFIG_PATH="$(pamem_workspace_config_path "$WORKSPACE")"
+if [ "$AGENT_HOME_MODE" -eq 1 ]; then
+  CONFIG_PATH="$(pamem_agent_home_config_path "$WORKSPACE")"
+else
+  CONFIG_PATH="$(pamem_workspace_config_path "$WORKSPACE")"
+fi
 TEMPLATE_PATH="$(profile_template "$PROFILE")"
 
 if [ ! -s "$TEMPLATE_PATH" ]; then
@@ -228,6 +245,10 @@ fi
 
 set_toml_value "$CONFIG_PATH" "runtime" "mode" "$(toml_string "$RUNTIME_MODE")"
 
+if [ -n "$AGENT_ID" ]; then
+  set_toml_value "$CONFIG_PATH" "runtime" "agent_id" "$(toml_string "$AGENT_ID")"
+fi
+
 if [ -n "$SYNC_BACKEND" ]; then
   set_toml_value "$CONFIG_PATH" "memory_repo.sync" "backend" "$(toml_string "$SYNC_BACKEND")"
 fi
@@ -244,10 +265,19 @@ if [ -n "$SYNC_EXECUTOR" ]; then
   set_toml_value "$CONFIG_PATH" "sync" "executor" "$(toml_string "$SYNC_EXECUTOR")"
 fi
 
-"$SCRIPT_DIR/install-pamem.sh" "$WORKSPACE"
+if [ "$AGENT_HOME_MODE" -eq 1 ]; then
+  "$SCRIPT_DIR/install-pamem.sh" "$WORKSPACE" --agent-home
+else
+  "$SCRIPT_DIR/install-pamem.sh" "$WORKSPACE"
+fi
 
 MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
 
-printf 'Onboarded pamem workspace %s with profile=%s\n' "$WORKSPACE" "$PROFILE"
+if [ "$AGENT_HOME_MODE" -eq 1 ]; then
+  printf 'Onboarded pamem agent home %s with profile=%s\n' "$WORKSPACE" "$PROFILE"
+else
+  printf 'Onboarded pamem workspace %s with profile=%s\n' "$WORKSPACE" "$PROFILE"
+fi
 printf 'Config: %s\n' "$CONFIG_PATH"
 printf 'Memory repo: %s\n' "$MEMORY_REPO_ROOT"
+printf 'Agent: %s\n' "$(pamem_agent_id "$WORKSPACE")"

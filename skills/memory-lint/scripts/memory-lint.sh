@@ -3,13 +3,13 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: skills/memory-lint/scripts/memory-lint.sh [--root <workspace>] [--json] [--strict]
+Usage: skills/memory-lint/scripts/memory-lint.sh [--root <agent-home-or-workspace>] [--json] [--strict]
 
-Run a read-only lint check for the memory repo configured by a workspace-local
-.pamem/config.toml.
+Run a read-only lint check for the memory repo configured by an agent-local
+config.toml or a legacy workspace-local .pamem/config.toml.
 
 Options:
-  --root <path>  Agent workspace containing .pamem/config.toml. Defaults to $PWD.
+  --root <path>  Agent home or workspace containing pamem config. Defaults to $PWD.
   --json         Emit a structured JSON report.
   --strict       Return exit code 1 when warnings are present.
   -h, --help     Show this help.
@@ -79,18 +79,13 @@ fail_input() {
 }
 
 WORKSPACE="$(pamem_expand_path "$PWD" "$ROOT")"
-CONFIG_PATH="$(pamem_workspace_config_path "$WORKSPACE")"
+CONFIG_PATH="$(pamem_config_path "$WORKSPACE")"
 
 if [ ! -s "$CONFIG_PATH" ]; then
-  fail_input "missing workspace-local config: $CONFIG_PATH"
+  fail_input "missing pamem config: $CONFIG_PATH"
 fi
 
-MEMORY_REPO_RAW="$(pamem_toml_get_value "$CONFIG_PATH" 'memory_repo' 'path' || true)"
-if [ -z "$MEMORY_REPO_RAW" ]; then
-  fail_input "missing memory_repo.path in workspace-local config: $CONFIG_PATH"
-fi
-
-MEMORY_ROOT="$(pamem_expand_path "$WORKSPACE" "$MEMORY_REPO_RAW")"
+MEMORY_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
 if [ ! -d "$MEMORY_ROOT" ]; then
   fail_input "configured memory repo does not exist: $MEMORY_ROOT"
 fi
@@ -142,7 +137,11 @@ repo_display_path() {
       printf '%s' "${path#"$MEMORY_ROOT"/}"
       ;;
     "$CONFIG_PATH")
-      printf '.pamem/config.toml'
+      if pamem_is_agent_home "$WORKSPACE"; then
+        printf 'config.toml'
+      else
+        printf '.pamem/config.toml'
+      fi
       ;;
     *)
       printf '%s' "$path"
@@ -184,7 +183,7 @@ is_template_path() {
 
 is_workspace_local_path() {
   case "$1" in
-    .pamem/*)
+    config.toml|.pamem/*)
       return 0
       ;;
     *)
@@ -205,7 +204,7 @@ check_repo_target() {
   fi
 
   if ! resolved="$(resolve_repo_path "$raw")"; then
-    add_finding "error" "ML001" ".pamem/config.toml" "" \
+    add_finding "error" "ML001" "$(repo_display_path "$CONFIG_PATH")" "" \
       "Configured memory path escapes the memory repo" \
       "Memory profile paths must be relative to the configured memory repo." \
       "$source -> $raw" \
@@ -245,7 +244,7 @@ PROFILE_NAMES="$(awk '
 ' "$CONFIG_PATH")"
 
 if [ -z "$PROFILE_NAMES" ]; then
-  add_finding "error" "ML002" ".pamem/config.toml" "" \
+    add_finding "error" "ML002" "$(repo_display_path "$CONFIG_PATH")" "" \
     "No memory profiles are configured" \
     "Workspace-local config must define at least one [profiles.<name>] table." \
     "profiles table missing" \
@@ -253,13 +252,13 @@ if [ -z "$PROFILE_NAMES" ]; then
 fi
 
 if [ -z "$DEFAULT_PROFILE" ]; then
-  add_finding "error" "ML002" ".pamem/config.toml" "" \
+  add_finding "error" "ML002" "$(repo_display_path "$CONFIG_PATH")" "" \
     "No default profile is configured" \
     "Workspace-local config should select one default_profile during onboarding." \
     "default_profile missing" \
     "fix-config"
-elif ! printf '%s\n' "$PROFILE_NAMES" | grep -Fxq "$DEFAULT_PROFILE"; then
-  add_finding "error" "ML002" ".pamem/config.toml" "" \
+elif ! awk -v profile="$DEFAULT_PROFILE" 'BEGIN { found = 1 } $0 == profile { found = 0; exit } END { exit found }' <<< "$PROFILE_NAMES"; then
+  add_finding "error" "ML002" "$(repo_display_path "$CONFIG_PATH")" "" \
     "Default profile is not configured" \
     "default_profile must match one [profiles.<name>] table." \
     "$DEFAULT_PROFILE" \
@@ -267,26 +266,30 @@ elif ! printf '%s\n' "$PROFILE_NAMES" | grep -Fxq "$DEFAULT_PROFILE"; then
 fi
 
 RUNTIME_MODE="$(pamem_config_value_or_default "$CONFIG_PATH" 'runtime' 'mode' 'cli')"
-if ! printf '%s\n' 'cli' 'slock' | grep -Fxq "$RUNTIME_MODE"; then
-  add_finding "error" "ML002" ".pamem/config.toml" "" \
+case "$RUNTIME_MODE" in
+  cli|slock)
+    ;;
+  *)
+  add_finding "error" "ML002" "$(repo_display_path "$CONFIG_PATH")" "" \
     "Runtime mode is not configured" \
     "runtime.mode, when present, must be either cli or slock." \
     "$RUNTIME_MODE" \
     "fix-config"
-fi
+    ;;
+esac
 
 NESTED_CONFIG="$MEMORY_ROOT/.pamem/config.toml"
 if [ -s "$NESTED_CONFIG" ]; then
   add_finding "error" "ML003" "$(repo_display_path "$NESTED_CONFIG")" "" \
     "Memory repo contains its own pamem config" \
-    "The active config is workspace-local; do not add .pamem/config.toml to the shared memory repo." \
+    "The active config is local to the agent home or workspace; do not add .pamem/config.toml to the shared memory repo." \
     "$NESTED_CONFIG" \
     "remove-repo-config"
 fi
 
 ENTRY_PATH=""
 if ! ENTRY_PATH="$(resolve_repo_path "$ENTRY_FILE_RAW")"; then
-  add_finding "error" "ML001" ".pamem/config.toml" "" \
+  add_finding "error" "ML001" "$(repo_display_path "$CONFIG_PATH")" "" \
     "Entry file path escapes the memory repo" \
     "memory_repo.entry_file must be relative to the configured memory repo." \
     "$ENTRY_FILE_RAW" \
@@ -384,7 +387,7 @@ if [ "$JSON" -eq 1 ]; then
       status: $status,
       workspace_root: $workspace_root,
       config_path: $config_path,
-      config_scope: "workspace-local",
+      config_scope: (if ($config_path | endswith("/.pamem/config.toml")) then "workspace-local" else "agent-local" end),
       memory_root: $memory_root,
       config: {
         entry_file: $entry_file,

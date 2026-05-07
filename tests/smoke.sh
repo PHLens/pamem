@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 for file in "$ROOT"/scripts/*.sh; do
   bash -n "$file"
 done
+bash -n "$ROOT/scripts/pamem"
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required for pamem runtime checks" >&2
@@ -24,10 +25,13 @@ for pattern in \
   '^[[:space:]]*version[[:space:]]*=' \
   '^[[:space:]]*default_profile[[:space:]]*=' \
   '^\[memory_repo\]$' \
-  '^[[:space:]]*path[[:space:]]*=[[:space:]]*".pamem/memory"' \
+  '^[[:space:]]*path[[:space:]]*=[[:space:]]*"\$\{XDG_DATA_HOME:-\$HOME/\.local/share\}/pamem/memory"' \
   '^[[:space:]]*sharing[[:space:]]*=[[:space:]]*"shared"' \
   '^\[runtime\]$' \
   '^[[:space:]]*mode[[:space:]]*=[[:space:]]*"cli"' \
+  '^[[:space:]]*agent_id[[:space:]]*=[[:space:]]*""' \
+  '^\[runtime\.resume\]$' \
+  '^[[:space:]]*command[[:space:]]*=[[:space:]]*\[\]' \
   '^\[memory_repo\.sync\]$' \
   '^[[:space:]]*backend[[:space:]]*=[[:space:]]*"local"' \
   '^[[:space:]]*sync_bootstrapped[[:space:]]*=[[:space:]]*false' \
@@ -60,6 +64,10 @@ for profile in human coder reviewer researcher wiki; do
   test -s "$profile_template"
   grep -Eq "^[[:space:]]*default_profile[[:space:]]*=[[:space:]]*\"${profile}\"" "$profile_template"
   grep -Eq '^[[:space:]]*mode[[:space:]]*=[[:space:]]*"cli"' "$profile_template"
+  grep -Eq '^[[:space:]]*agent_id[[:space:]]*=[[:space:]]*""' "$profile_template"
+  grep -Eq '^\[runtime\.resume\]$' "$profile_template"
+  grep -Eq '^[[:space:]]*command[[:space:]]*=[[:space:]]*\[\]' "$profile_template"
+  grep -Eq '^[[:space:]]*path[[:space:]]*=[[:space:]]*"\$\{XDG_DATA_HOME:-\$HOME/\.local/share\}/pamem/memory"' "$profile_template"
   grep -Eq "^\[profiles\.${profile}\]$" "$profile_template"
   if grep -Eq 'L2/active|L3/work-log|current-tasks' "$profile_template"; then
     echo "profile template must not use shared active/work-log paths: $profile_template" >&2
@@ -86,7 +94,9 @@ for file in \
   "$ROOT/assets/config-profiles/researcher.toml.template" \
   "$ROOT/assets/config-profiles/wiki.toml.template" \
   "$ROOT/hooks/hooks.json" \
+  "$ROOT/scripts/pamem" \
   "$ROOT/scripts/onboard-pamem.sh" \
+  "$ROOT/scripts/pamem-cli.sh" \
   "$ROOT/scripts/memory-sync.sh"
 do
   test -s "$file"
@@ -101,6 +111,16 @@ fi
 
 if [ ! -x "$ROOT/scripts/onboard-pamem.sh" ]; then
   echo "onboard-pamem.sh must be executable" >&2
+  exit 1
+fi
+
+if [ ! -x "$ROOT/scripts/pamem" ]; then
+  echo "pamem CLI must be executable" >&2
+  exit 1
+fi
+
+if [ ! -x "$ROOT/scripts/pamem-cli.sh" ]; then
+  echo "pamem-cli.sh must be executable" >&2
   exit 1
 fi
 
@@ -120,33 +140,38 @@ if grep -RIn --exclude-dir=.git --exclude-dir=tests -E 'L2/active|L3/work-log|cu
 fi
 
 WORKSPACE="$(mktemp -d)"
+SHARED_XDG_DATA_ROOT="$(mktemp -d)"
 ONBOARD_WORKSPACE="$(mktemp -d)"
+ONBOARD_XDG_DATA_ROOT="$(mktemp -d)"
 WIKI_WORKSPACE="$(mktemp -d)"
 LEGACY_WORKSPACE="$(mktemp -d)"
 SLOCK_WORKSPACE="$(mktemp -d)"
 INVALID_RUNTIME_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE" "$ONBOARD_WORKSPACE" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$INVALID_RUNTIME_WORKSPACE"
+  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$INVALID_RUNTIME_WORKSPACE"
 }
 trap cleanup EXIT
 
-bash "$ROOT/scripts/install-pamem.sh" "$WORKSPACE" >/dev/null
+XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/install-pamem.sh" "$WORKSPACE" >/dev/null
+DEFAULT_MEMORY_REPO="$SHARED_XDG_DATA_ROOT/pamem/memory"
 
 mkdir -p "$LEGACY_WORKSPACE/notes" "$LEGACY_WORKSPACE/.pamem/memory/L1/shared"
 printf '# Legacy Agent Workflow\n\n- legacy workspace operating rule\n' > "$LEGACY_WORKSPACE/notes/agent-workflow.md"
 printf '# Legacy Shared Workflow\n\n- legacy shared operating rule\n' > "$LEGACY_WORKSPACE/.pamem/memory/L1/shared/workflow.md"
+mkdir -p "$LEGACY_WORKSPACE/.pamem"
+sed 's#path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"#path = ".pamem/memory"#' "$ROOT/assets/config.toml.template" > "$LEGACY_WORKSPACE/.pamem/config.toml"
 bash "$ROOT/scripts/install-pamem.sh" "$LEGACY_WORKSPACE" >/dev/null
 grep -Fq 'legacy workspace operating rule' "$LEGACY_WORKSPACE/notes/operating-rules.md"
 grep -Fq 'legacy shared operating rule' "$LEGACY_WORKSPACE/.pamem/memory/L1/shared/operating-rules.md"
 
 for file in \
   "$WORKSPACE/.pamem/config.toml" \
-  "$WORKSPACE/.pamem/memory/MEMORY.md" \
-  "$WORKSPACE/.pamem/memory/L0/constitution.md" \
-  "$WORKSPACE/.pamem/memory/L1/shared/preferences.md" \
-  "$WORKSPACE/.pamem/memory/L1/shared/operating-rules.md" \
-  "$WORKSPACE/.pamem/memory/L1/roles/onboarding.md" \
-  "$WORKSPACE/.pamem/memory/L1/roles/wiki.md" \
+  "$DEFAULT_MEMORY_REPO/MEMORY.md" \
+  "$DEFAULT_MEMORY_REPO/L0/constitution.md" \
+  "$DEFAULT_MEMORY_REPO/L1/shared/preferences.md" \
+  "$DEFAULT_MEMORY_REPO/L1/shared/operating-rules.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/onboarding.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/wiki.md" \
   "$WORKSPACE/MEMORY.md" \
   "$WORKSPACE/notes/operating-rules.md" \
   "$WORKSPACE/notes/current-task.md" \
@@ -160,48 +185,49 @@ if jq -e '.hooks | has("PreCompact")' "$WORKSPACE/.codex/hooks.json" >/dev/null;
   exit 1
 fi
 
-test -d "$WORKSPACE/.pamem/memory/L2/projects"
-test ! -e "$WORKSPACE/.pamem/memory/L2/active"
-test ! -e "$WORKSPACE/.pamem/memory/L3/work-log.md"
+test -d "$DEFAULT_MEMORY_REPO/L2/projects"
+test ! -e "$DEFAULT_MEMORY_REPO/L2/active"
+test ! -e "$DEFAULT_MEMORY_REPO/L3/work-log.md"
 
-if [ -e "$WORKSPACE/.pamem/memory/L1/shared/workflow.md" ] || [ -e "$WORKSPACE/notes/agent-workflow.md" ]; then
+if [ -e "$DEFAULT_MEMORY_REPO/L1/shared/workflow.md" ] || [ -e "$WORKSPACE/notes/agent-workflow.md" ]; then
   echo "legacy shared workflow file names should not be generated" >&2
   exit 1
 fi
 
-MEMORY_LINT_OUTPUT="$(bash "$MEMORY_LINT" --root "$WORKSPACE" --json)"
+MEMORY_LINT_OUTPUT="$(XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$MEMORY_LINT" --root "$WORKSPACE" --json)"
 printf '%s' "$MEMORY_LINT_OUTPUT" | jq -e '
   .status == "ok" and
   .config_scope == "workspace-local" and
   .summary.error_count == 0 and
   .config.default_profile == "onboarding" and
-  .config.runtime_mode == "cli"
+  .config.runtime_mode == "cli" and
+  (.memory_root | endswith("/pamem/memory"))
 ' >/dev/null
 
 cp -a "$WORKSPACE/." "$INVALID_RUNTIME_WORKSPACE/"
 sed -i 's/mode = "cli"/mode = "invalid"/' "$INVALID_RUNTIME_WORKSPACE/.pamem/config.toml"
-if bash "$MEMORY_LINT" --root "$INVALID_RUNTIME_WORKSPACE" --json >/dev/null 2>&1; then
+if XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$MEMORY_LINT" --root "$INVALID_RUNTIME_WORKSPACE" --json >/dev/null 2>&1; then
   echo "memory-lint must fail when runtime.mode is invalid" >&2
   exit 1
 fi
 
-mkdir -p "$WORKSPACE/.pamem/memory/.pamem"
-cp "$WORKSPACE/.pamem/config.toml" "$WORKSPACE/.pamem/memory/.pamem/config.toml"
-if bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
+mkdir -p "$DEFAULT_MEMORY_REPO/.pamem"
+cp "$WORKSPACE/.pamem/config.toml" "$DEFAULT_MEMORY_REPO/.pamem/config.toml"
+if XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
   echo "memory-lint must fail when the memory repo contains .pamem/config.toml" >&2
   exit 1
 fi
-rm -rf "$WORKSPACE/.pamem/memory/.pamem"
+rm -rf "$DEFAULT_MEMORY_REPO/.pamem"
 
-SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
+SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
-  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("runtime=cli") and contains(".pamem/memory"))
+  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("Runtime anchor:") and contains("runtime=cli") and contains("/pamem/memory"))
 ' >/dev/null
 
-rm -f "$WORKSPACE/.pamem/memory/MEMORY.md"
-MISSING_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
-test ! -e "$WORKSPACE/.pamem/memory/MEMORY.md"
+rm -f "$DEFAULT_MEMORY_REPO/MEMORY.md"
+MISSING_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
+test ! -e "$DEFAULT_MEMORY_REPO/MEMORY.md"
 printf '%s' "$MISSING_SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
   (.hookSpecificOutput.additionalContext | contains("Warning: configured memory entry file is missing or empty")) and
@@ -209,27 +235,63 @@ printf '%s' "$MISSING_SESSION_OUTPUT" | jq -e '
 ' >/dev/null
 
 rm -f "$WORKSPACE/notes/current-task.md"
-printf '{"cwd":"%s","trigger":"manual"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
-test -s "$WORKSPACE/notes/current-task.md"
+XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" start --workspace "$WORKSPACE" --agent-id smoke-agent --print-env > "$WORKSPACE/pamem-cli-start.out"
+grep -Fq "agent_id=smoke-agent" "$WORKSPACE/pamem-cli-start.out"
+grep -Fq "PAMEM_CURRENT_TASK=" "$WORKSPACE/pamem-cli-start.out"
+test -s "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/current-task.md"
+test -s "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/work-log.md"
+test ! -e "$WORKSPACE/notes/current-task.md"
 
-LOCAL_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --dry-run)"
+CLI_HOOK_INPUT="$(XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" hook-json --workspace "$WORKSPACE" --agent-id smoke-agent)"
+printf '%s' "$CLI_HOOK_INPUT" | jq -e \
+  --arg workspace "$WORKSPACE" \
+  --arg current_task "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/current-task.md" \
+  '.cwd == $workspace and .pamem.agent_id == "smoke-agent" and .pamem.current_task == $current_task' >/dev/null
+
+CLI_STATE_SESSION_OUTPUT="$(printf '%s\n' "$CLI_HOOK_INPUT" | XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
+printf '%s' "$CLI_STATE_SESSION_OUTPUT" | jq -e '
+  .hookSpecificOutput.hookEventName == "SessionStart" and
+  (.hookSpecificOutput.additionalContext | contains("CLI runtime current task source:") and contains("smoke-agent/current-task.md"))
+' >/dev/null
+
+CLI_CONTEXT_OUTPUT="$(XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" context --workspace "$WORKSPACE" --agent-id smoke-agent)"
+grep -Fq "Persistent memory source:" <<< "$CLI_CONTEXT_OUTPUT"
+grep -Fq "CLI runtime current task source:" <<< "$CLI_CONTEXT_OUTPUT"
+
+printf '%s\n' "$CLI_HOOK_INPUT" | XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
+test -s "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/current-task.md"
+test ! -e "$WORKSPACE/notes/current-task.md"
+
+if XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" resume --workspace "$WORKSPACE" --agent-id no-session-agent >/dev/null 2>&1; then
+  echo "pamem resume must fail before a launcher is recorded or configured" >&2
+  exit 1
+fi
+
+RESUME_TEST_COMMAND='test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi'
+XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" start --workspace "$WORKSPACE" --agent-id smoke-agent -- sh -c "$RESUME_TEST_COMMAND"
+test -s "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/session.json"
+test -s "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/start-marker"
+XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" resume --workspace "$WORKSPACE" --agent-id smoke-agent
+test -s "$SHARED_XDG_DATA_ROOT/pamem/agents/smoke-agent/resume-marker"
+
+LOCAL_SYNC_OUTPUT="$(XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --dry-run)"
 if [[ "$LOCAL_SYNC_OUTPUT" != local-only:* ]]; then
   echo "local sync output did not start with the expected status" >&2
   exit 1
 fi
 
-GIT_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend git --remote origin --dry-run)"
+GIT_SYNC_OUTPUT="$(XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend git --remote origin --dry-run)"
 if [[ "$GIT_SYNC_OUTPUT" != git\ -C\ * ]]; then
   echo "git sync dry-run output did not start with the expected command" >&2
   exit 1
 fi
 
-if bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --dry-run >/dev/null 2>&1; then
+if XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --dry-run >/dev/null 2>&1; then
   echo "webdav dry-run must require --resync until sync_bootstrapped=true" >&2
   exit 1
 fi
 
-WEBDAV_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --resync --dry-run)"
+WEBDAV_SYNC_OUTPUT="$(XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --resync --dry-run)"
 if [[ "$WEBDAV_SYNC_OUTPUT" != rclone\ bisync\ * ]]; then
   echo "webdav sync dry-run output did not start with the expected command" >&2
   exit 1
@@ -237,6 +299,7 @@ fi
 
 bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" \
   --profile reviewer \
+  --agent-id reviewer-agent \
   --memory-repo ".pamem/reviewer-memory" \
   --sync-backend webdav \
   --sync-remote "example:Memory" \
@@ -244,12 +307,56 @@ bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" \
   --sync-executor "sync-executor" >/dev/null
 
 grep -Fq 'default_profile = "reviewer"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
+grep -Fq 'agent_id = "reviewer-agent"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'path = ".pamem/reviewer-memory"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'backend = "webdav"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'remote = "example:Memory"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'executor = "sync-executor"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/MEMORY.md"
 test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/L1/roles/reviewer.md"
+
+XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE/shared-a" \
+  --profile coder >/dev/null
+XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE/shared-b" \
+  --profile reviewer >/dev/null
+XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" init \
+  --profile wiki \
+  --agent-id wiki-agent >/dev/null
+WIKI_AGENT_HOME="$ONBOARD_XDG_DATA_ROOT/pamem/agents/wiki-agent"
+
+grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$ONBOARD_WORKSPACE/shared-a/.pamem/config.toml"
+grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$ONBOARD_WORKSPACE/shared-b/.pamem/config.toml"
+grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$WIKI_AGENT_HOME/config.toml"
+grep -Fq 'agent_id = "wiki-agent"' "$WIKI_AGENT_HOME/config.toml"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/MEMORY.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/coder.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/reviewer.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/wiki.md"
+test -s "$WIKI_AGENT_HOME/current-task.md"
+test -s "$WIKI_AGENT_HOME/work-log.md"
+test ! -e "$WIKI_AGENT_HOME/.pamem"
+test ! -e "$WIKI_AGENT_HOME/scripts"
+test ! -e "$WIKI_AGENT_HOME/assets"
+
+SHARED_A_STATUS="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ONBOARD_WORKSPACE/shared-a/.pamem/scripts/pamem-cli.sh" status)"
+printf '%s' "$SHARED_A_STATUS" | grep -Fq "root=$ONBOARD_WORKSPACE/shared-a"
+printf '%s' "$SHARED_A_STATUS" | grep -Fq "memory_repo=$ONBOARD_XDG_DATA_ROOT/pamem/memory"
+GLOBAL_C_START="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" start --agent-id wiki-agent --print-env)"
+printf '%s' "$GLOBAL_C_START" | grep -Fq "root=$WIKI_AGENT_HOME"
+printf '%s' "$GLOBAL_C_START" | grep -Fq "agent_id=wiki-agent"
+printf '%s' "$GLOBAL_C_START" | grep -Fq "memory_repo=$ONBOARD_XDG_DATA_ROOT/pamem/memory"
+printf '%s' "$GLOBAL_C_START" | grep -Fq "current_task=$WIKI_AGENT_HOME/current-task.md"
+printf '%s' "$GLOBAL_C_START" | grep -Fq "PAMEM_CURRENT_TASK="
+GLOBAL_C_CONTEXT="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" context --agent-id wiki-agent)"
+grep -Fq "Persistent memory source:" <<< "$GLOBAL_C_CONTEXT"
+grep -Fq "CLI runtime current task source: \`$WIKI_AGENT_HOME/current-task.md\`" <<< "$GLOBAL_C_CONTEXT"
+SHARED_C_LINT="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" lint --agent-id wiki-agent --json)"
+printf '%s' "$SHARED_C_LINT" | jq -e '.status == "ok" and .config.default_profile == "wiki" and .config_scope == "agent-local"' >/dev/null
+SHARED_C_SYNC="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id wiki-agent --dry-run)"
+if [[ "$SHARED_C_SYNC" != local-only:* ]]; then
+  echo "pamem sync dry-run did not use the inferred agent home" >&2
+  exit 1
+fi
 
 bash "$ROOT/scripts/onboard-pamem.sh" "$WIKI_WORKSPACE" \
   --profile wiki \
@@ -274,11 +381,32 @@ test ! -e "$SLOCK_WORKSPACE/notes/work-log.md"
 SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SLOCK_SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
-  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("runtime=slock") and contains(".pamem/slock-memory"))
+  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("Runtime anchor:") and contains("runtime=slock") and contains(".pamem/slock-memory"))
 ' >/dev/null
 
 printf '{"cwd":"%s","trigger":"manual"}\n' "$SLOCK_WORKSPACE" | bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
 test ! -e "$SLOCK_WORKSPACE/notes/current-task.md"
+
+SLOCK_CLI_STATUS="$(bash "$ROOT/scripts/pamem-cli.sh" status --workspace "$SLOCK_WORKSPACE")"
+grep -Fq 'runtime=slock' <<<"$SLOCK_CLI_STATUS"
+grep -Fq 'task_state=slock' <<<"$SLOCK_CLI_STATUS"
+if grep -Fq 'current_task=' <<<"$SLOCK_CLI_STATUS"; then
+  echo "pamem-cli status must not expose CLI current_task for slock runtime" >&2
+  exit 1
+fi
+
+SLOCK_CLI_HOOK_JSON="$(bash "$ROOT/scripts/pamem-cli.sh" hook-json --workspace "$SLOCK_WORKSPACE")"
+printf '%s' "$SLOCK_CLI_HOOK_JSON" | jq -e '
+  .pamem.runtime == "slock" and
+  .pamem.task_state == "slock" and
+  (.pamem | has("current_task") | not) and
+  (.pamem | has("work_log") | not)
+' >/dev/null
+
+if bash "$ROOT/scripts/pamem-cli.sh" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
+  echo "pamem-cli start must reject slock runtime" >&2
+  exit 1
+fi
 
 if bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" --profile coder >/dev/null 2>&1; then
   echo "onboarding must not overwrite an existing config without --force" >&2
