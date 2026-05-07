@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: memory-lint.sh [--root <workspace>] [--json] [--strict]
+Usage: skills/memory-lint/memory-lint.sh [--root <workspace>] [--json] [--strict]
 
 Run a read-only lint check for the memory repo configured by a workspace-local
 .pamem/config.toml.
@@ -17,9 +17,10 @@ EOF
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PAMEM_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# shellcheck source=memory-store.sh
-source "$SCRIPT_DIR/memory-store.sh"
+# shellcheck source=../../scripts/memory-store.sh
+source "$PAMEM_ROOT/scripts/memory-store.sh"
 
 ROOT="$PWD"
 JSON=0

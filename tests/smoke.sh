@@ -70,13 +70,14 @@ for file in \
   "$ROOT/assets/config-profiles/reviewer.toml.template" \
   "$ROOT/assets/config-profiles/researcher.toml.template" \
   "$ROOT/scripts/onboard-pamem.sh" \
-  "$ROOT/scripts/memory-lint.sh" \
   "$ROOT/scripts/memory-sync.sh"
 do
   test -s "$file"
 done
 
-if [ ! -x "$ROOT/scripts/memory-lint.sh" ]; then
+MEMORY_LINT="$ROOT/skills/memory-lint/memory-lint.sh"
+
+if [ ! -x "$MEMORY_LINT" ]; then
   echo "memory-lint.sh must be executable" >&2
   exit 1
 fi
@@ -119,7 +120,7 @@ do
   test -s "$file"
 done
 
-MEMORY_LINT_OUTPUT="$(bash "$ROOT/scripts/memory-lint.sh" --root "$WORKSPACE" --json)"
+MEMORY_LINT_OUTPUT="$(bash "$MEMORY_LINT" --root "$WORKSPACE" --json)"
 printf '%s' "$MEMORY_LINT_OUTPUT" | jq -e '
   .status == "ok" and
   .config_scope == "workspace-local" and
@@ -143,16 +144,16 @@ cat > "$WORKSPACE/.pamem/memory/L2/active/task-smoke.md" <<'EOF'
 - status: in_progress
 EOF
 
-bash "$ROOT/scripts/memory-lint.sh" --root "$WORKSPACE" --json | jq -e '.status == "ok"' >/dev/null
+bash "$MEMORY_LINT" --root "$WORKSPACE" --json | jq -e '.status == "ok"' >/dev/null
 rm "$WORKSPACE/.pamem/memory/L2/active/task-smoke.md"
-if bash "$ROOT/scripts/memory-lint.sh" --root "$WORKSPACE" --json >/dev/null 2>&1; then
+if bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
   echo "memory-lint must fail when the active roster points to a missing task file" >&2
   exit 1
 fi
 
 mkdir -p "$WORKSPACE/.pamem/memory/.pamem"
 cp "$WORKSPACE/.pamem/config.toml" "$WORKSPACE/.pamem/memory/.pamem/config.toml"
-if bash "$ROOT/scripts/memory-lint.sh" --root "$WORKSPACE" --json >/dev/null 2>&1; then
+if bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
   echo "memory-lint must fail when the memory repo contains .pamem/config.toml" >&2
   exit 1
 fi
