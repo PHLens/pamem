@@ -235,6 +235,14 @@ pamem_memory_repo_ref() {
   pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'ref' 'main'
 }
 
+pamem_runtime_mode() {
+  local workspace="$1"
+  local config_path
+
+  config_path="$(pamem_workspace_config_path "$workspace")"
+  pamem_config_value_or_default "$config_path" 'runtime' 'mode' 'cli'
+}
+
 pamem_copy_if_missing() {
   local src="$1"
   local dst="$2"
@@ -280,9 +288,7 @@ pamem_ensure_memory_repo_skeleton() {
     "$repo_root/L0" \
     "$repo_root/L1/shared" \
     "$repo_root/L1/roles" \
-    "$repo_root/L2/active" \
     "$repo_root/L2/projects" \
-    "$repo_root/L3" \
     "$repo_root/requests/inbox" \
     "$repo_root/requests/promoted" \
     "$repo_root/requests/rejected"
@@ -297,6 +303,4 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/reviewer.md.template" "$repo_root/L1/roles/reviewer.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/researcher.md.template" "$repo_root/L1/roles/researcher.md"
   pamem_copy_if_missing "$assets_dir/shared/L1/roles/wiki.md.template" "$repo_root/L1/roles/wiki.md"
-  pamem_copy_if_missing "$assets_dir/notes/current-task.md.template" "$repo_root/L2/active/current-tasks.md"
-  pamem_copy_if_missing "$assets_dir/notes/work-log.md.template" "$repo_root/L3/work-log.md"
 }

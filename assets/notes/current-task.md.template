@@ -1,6 +1,6 @@
-# Active Roster
+# Current Task
 
-## Active Tasks
+## Active Task
 - No active task recorded yet.
 
 ## Status
@@ -16,5 +16,5 @@
 - No next step recorded yet.
 
 ## Source of Truth
-- This file is the startup-safe active roster for the workspace.
+- This file is the startup-safe CLI runtime task summary for the workspace.
 - Remove completed tasks when they are done.

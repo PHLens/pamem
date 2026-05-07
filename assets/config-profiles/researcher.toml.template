@@ -5,11 +5,15 @@
 version = 1
 default_profile = "researcher"
 
+[runtime]
+# cli = local workspace recovery memory; slock = workspace task board owns task state and pamem only keeps durable memory.
+mode = "cli"
+
 [memory_repo]
 # Relative paths are resolved from the agent workspace; absolute paths are allowed for a shared repo used by multiple agents.
 path = ".pamem/memory"
 sharing = "shared"
-layout = "L0/L1/L2/L3"
+layout = "L0/L1/L2/projects"
 entry_file = "MEMORY.md"
 
 [memory_repo.sync]
@@ -45,13 +49,10 @@ load = [
   "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
   "L1/roles/researcher.md",
-  "L2/projects/<project-key>.md",
-  "L2/active/current-tasks.md",
-  "L2/active/<task-id>.md"
+  "L2/projects/<project-key>.md"
 ]
 write = [
-  "L2/active/current-tasks.md",
-  "L2/active/<task-id>.md",
+  "L2/projects/<project-key>.md",
   "requests/inbox/"
 ]
 guarded_write = [

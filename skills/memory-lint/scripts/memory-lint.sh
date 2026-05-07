@@ -266,6 +266,15 @@ elif ! printf '%s\n' "$PROFILE_NAMES" | grep -Fxq "$DEFAULT_PROFILE"; then
     "fix-config"
 fi
 
+RUNTIME_MODE="$(pamem_config_value_or_default "$CONFIG_PATH" 'runtime' 'mode' 'cli')"
+if ! printf '%s\n' 'cli' 'slock' | grep -Fxq "$RUNTIME_MODE"; then
+  add_finding "error" "ML002" ".pamem/config.toml" "" \
+    "Runtime mode is not configured" \
+    "runtime.mode, when present, must be either cli or slock." \
+    "$RUNTIME_MODE" \
+    "fix-config"
+fi
+
 NESTED_CONFIG="$MEMORY_ROOT/.pamem/config.toml"
 if [ -s "$NESTED_CONFIG" ]; then
   add_finding "error" "ML003" "$(repo_display_path "$NESTED_CONFIG")" "" \
@@ -327,8 +336,7 @@ for required in \
   "L1/shared/preferences.md" \
   "L1/shared/operating-rules.md" \
   "L1/shared/experience.md" \
-  "L2/active/current-tasks.md" \
-  "L3/work-log.md" \
+  "L2/projects/" \
   "requests/inbox/"
 do
   check_repo_target "$required" "error" "ML004" "required skeleton"
@@ -343,44 +351,6 @@ while IFS= read -r profile; do
     done < <(pamem_toml_array_values "$CONFIG_PATH" "profiles.$profile" "$key")
   done
 done <<< "$PROFILE_NAMES"
-
-CURRENT_TASKS="$MEMORY_ROOT/L2/active/current-tasks.md"
-if [ -s "$CURRENT_TASKS" ]; then
-  TASK_IDS="$(awk '
-    /^[[:space:]]*-[[:space:]]*[A-Za-z0-9._-]+:/ {
-      line = $0
-      sub(/^[[:space:]]*-[[:space:]]*/, "", line)
-      sub(/:.*/, "", line)
-      print line
-    }
-  ' "$CURRENT_TASKS")"
-
-  while IFS= read -r task_id; do
-    [ -n "$task_id" ] || continue
-    if [ ! -s "$MEMORY_ROOT/L2/active/$task_id.md" ]; then
-      add_finding "error" "ML008" "L2/active/current-tasks.md" "" \
-        "Active roster points to a missing task file" \
-        "Every active task in current-tasks.md should have a matching L2/active/<task-id>.md file." \
-        "$task_id" \
-        "repair-active-task"
-    fi
-  done <<< "$TASK_IDS"
-
-  for task_file in "$MEMORY_ROOT"/L2/active/*.md; do
-    [ -e "$task_file" ] || continue
-    task_name="$(basename "$task_file" .md)"
-    if [ "$task_name" = "current-tasks" ]; then
-      continue
-    fi
-    if ! printf '%s\n' "$TASK_IDS" | grep -Fxq "$task_name"; then
-      add_finding "warning" "ML008" "$(repo_display_path "$task_file")" "" \
-        "Active task file is not listed in the active roster" \
-        "Completed or abandoned task files should be archived or listed in L2/active/current-tasks.md." \
-        "$task_name" \
-        "archive-or-list-task"
-    fi
-  done
-fi
 
 ERROR_COUNT="$(jq -s '[.[] | select(.severity == "error")] | length' "$FINDINGS_FILE")"
 WARNING_COUNT="$(jq -s '[.[] | select(.severity == "warning")] | length' "$FINDINGS_FILE")"
@@ -404,6 +374,7 @@ if [ "$JSON" -eq 1 ]; then
     --arg memory_root "$MEMORY_ROOT" \
     --arg entry_file "$ENTRY_FILE_RAW" \
     --arg default_profile "$DEFAULT_PROFILE" \
+    --arg runtime_mode "$RUNTIME_MODE" \
     --argjson profiles "$PROFILE_NAMES_JSON" \
     --argjson findings "$FINDINGS_JSON" \
     --argjson error_count "$ERROR_COUNT" \
@@ -418,6 +389,7 @@ if [ "$JSON" -eq 1 ]; then
       config: {
         entry_file: $entry_file,
         default_profile: $default_profile,
+        runtime_mode: $runtime_mode,
         profiles: $profiles
       },
       summary: {

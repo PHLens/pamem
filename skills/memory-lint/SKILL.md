@@ -1,6 +1,6 @@
 ---
 name: memory-lint
-description: Run the report-only pamem memory lint against the memory repo configured by a workspace-local .pamem/config.toml. Use when explicitly checking shared memory repo health, profile load/write targets, MEMORY.md pointers, active roster cleanup, or accidental repo-local config files.
+description: Run the report-only pamem memory lint against the memory repo configured by a workspace-local .pamem/config.toml. Use when explicitly checking shared memory repo health, runtime mode, profile load/write targets, MEMORY.md pointers, or accidental repo-local config files.
 ---
 
 # Memory Lint
@@ -26,7 +26,7 @@ It may:
 - read the configured memory repo
 - report missing profile load/write targets
 - report missing `MEMORY.md` pointers
-- report stale or unlisted active task files
+- report invalid runtime mode
 - report oversized entry files
 - report accidental `.pamem/config.toml` files inside the memory repo
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: onboard-pamem.sh <workspace> [--profile <onboarding|human|coder|reviewer|researcher|wiki>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
+Usage: onboard-pamem.sh <workspace> [--profile <onboarding|human|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
 
 Create the workspace pamem config during onboarding, then install the runtime.
 
@@ -13,6 +13,7 @@ re-onboarding.
 
 Options:
   --profile <name>       Default active profile. Defaults to onboarding.
+  --runtime <mode>       Runtime mode. Defaults to cli.
   --memory-repo <path>   Override memory_repo.path.
   --sync-backend <name>  Override memory_repo.sync.backend.
   --sync-remote <target> Override memory_repo.sync.remote.
@@ -44,6 +45,7 @@ TARGET_INPUT="$1"
 shift
 
 PROFILE="onboarding"
+RUNTIME_MODE="cli"
 MEMORY_REPO=""
 SYNC_BACKEND=""
 SYNC_REMOTE=""
@@ -56,6 +58,11 @@ while [ "$#" -gt 0 ]; do
     --profile)
       [ "$#" -ge 2 ] || { echo "missing value for --profile" >&2; exit 2; }
       PROFILE="$2"
+      shift 2
+      ;;
+    --runtime)
+      [ "$#" -ge 2 ] || { echo "missing value for --runtime" >&2; exit 2; }
+      RUNTIME_MODE="$2"
       shift 2
       ;;
     --memory-repo)
@@ -113,6 +120,15 @@ case "$SYNC_BACKEND" in
     ;;
   *)
     echo "unsupported sync backend: $SYNC_BACKEND" >&2
+    exit 2
+    ;;
+esac
+
+case "$RUNTIME_MODE" in
+  cli|slock)
+    ;;
+  *)
+    echo "unsupported runtime mode: $RUNTIME_MODE" >&2
     exit 2
     ;;
 esac
@@ -209,6 +225,8 @@ cp "$TEMPLATE_PATH" "$CONFIG_PATH"
 if [ -n "$MEMORY_REPO" ]; then
   set_toml_value "$CONFIG_PATH" "memory_repo" "path" "$(toml_string "$MEMORY_REPO")"
 fi
+
+set_toml_value "$CONFIG_PATH" "runtime" "mode" "$(toml_string "$RUNTIME_MODE")"
 
 if [ -n "$SYNC_BACKEND" ]; then
   set_toml_value "$CONFIG_PATH" "memory_repo.sync" "backend" "$(toml_string "$SYNC_BACKEND")"
