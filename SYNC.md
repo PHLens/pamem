@@ -1,6 +1,6 @@
 # Sync
 
-This document explains how `pamem` fits with `sync-request` and the standalone memory repo sync helper.
+This document explains how `pamem` fits with sync request handoff and the standalone memory repo sync helper.
 
 It intentionally describes the **protocol and boundaries**, not a concrete sync executor implementation.
 
@@ -8,7 +8,13 @@ It intentionally describes the **protocol and boundaries**, not a concrete sync 
 
 `pamem` provides the shared memory runtime for a workspace.
 
-`sync-request` provides the shared way to ask for cross-device retention when durable local memory or managed workspace config changes should be propagated elsewhere and the user explicitly asks or workspace policy requires retention.
+Sync request handoff provides the shared way to ask for cross-device retention
+when durable local memory or managed workspace config changes should be
+propagated elsewhere and the user explicitly asks or workspace policy requires
+retention. Use the `sync-request` plugin skill to create the structured request.
+If `sync-request` is unavailable, pamem plugin/bootstrap exposure is incomplete:
+do not create ad hoc queue files, do not run sync directly, and ask onboarding or
+the sync executor to repair the runtime capability.
 
 `scripts/memory-sync.sh` is the repo-level sync helper. Installed workspaces call it through `.pamem/scripts/memory-sync.sh`. It knows how to sync the configured memory repo backend (`local`, `git`, or `webdav`) and is meant for the sync executor or a dedicated sync capability, not for ordinary task delivery.
 
@@ -17,7 +23,7 @@ It is intentionally **not** a channel for project work, source code, branches, o
 In short:
 
 - `pamem` manages local memory runtime
-- `sync-request` creates structured requests for external sync
+- sync request handoff creates structured requests for external sync
 - an external executor consumes those requests
 - a sync executor may call `scripts/memory-sync.sh` when it is time to propagate the configured memory repo
 
@@ -45,7 +51,7 @@ memory, but they have different risk levels.
 
 | Surface | Risk | Control |
 |---|---|---|
-| `sync-request` pending files | Medium | Creates intent only; use only by explicit user request or workspace policy. |
+| sync request pending files | Medium | Creates intent only; use only by explicit user request or workspace policy. |
 | `scripts/memory-sync.sh` | High | Executor-only. It can commit/push `git` repos or run `rclone bisync` for WebDAV. |
 | `memory-sync.sh --resync` | High | WebDAV recovery path where local state wins; require explicit executor decision. |
 | `.pamem/config.toml` | High | Changes memory repo, backend, remote, profile, write targets, or executor; route through onboarding/config-owner review. |
@@ -57,12 +63,16 @@ memory, but they have different risk levels.
 Ordinary task agents should not run propagation or repair paths unless that
 executor/config-owner responsibility was explicitly assigned.
 
+Missing `memory-rule` or `sync-request` skills are setup failures, not fallback
+authorization. Before repair, ordinary agents may read injected context but must
+not update shared memory, memory config, sync queues, or sync backend state.
+
 ## Relationship
 
 ```mermaid
 flowchart LR
     A["Agent workspace<br/>pamem runtime"] --> B["Durable local change"]
-    B --> C["sync-request"]
+    B --> C["sync request"]
     C --> D["<sync-queue-root>/pending/*.json"]
     D --> E["External executor"]
     E --> G["memory-sync.sh<br/>optional repo propagation"]
@@ -87,7 +97,7 @@ Supported backends:
 
 For WebDAV first sync or recovery, use `--resync` only when the local memory repo should win. After a successful initial sync, update `sync_bootstrapped = true` through the normal config review path.
 
-## When To Use `sync-request`
+## When To Use Sync Requests
 
 Create a sync request when local changes are durable enough that they should be retained or propagated beyond the current workspace, and the user explicitly asks or workspace policy requires retention.
 
@@ -120,7 +130,7 @@ The queue is defined by the active sync configuration. A typical shape is:
   rejected/
 ```
 
-`sync-request` only creates or refreshes files in `pending/`.
+Sync request helpers only create or refresh files in `pending/`.
 
 An external executor is responsible for moving requests through the lifecycle.
 
@@ -156,14 +166,14 @@ Executor declined the request or could not complete it safely.
 The workspace agent may:
 
 - decide a durable change is worth syncing
-- generate or refresh a request with `sync-request`
+- generate or refresh a sync request
 - provide the authoritative source paths
 
 The workspace agent must not:
 
 - process the queue
 - mutate `processing`, `done`, or `rejected`
-- directly execute environment-specific sync logic under the `sync-request` contract
+- directly execute environment-specific sync logic under the sync request contract
 
 ### External Executor
 
@@ -177,7 +187,7 @@ The external executor may:
 
 ## How This Maps To Memory Layers
 
-`sync-request` mostly interacts with:
+Sync requests mostly interact with:
 
 - **Layer 1: Stable Shared Memory**
   - user preferences

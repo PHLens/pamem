@@ -6,6 +6,13 @@ For the plugin overview, memory-layer model, and Claude install command, see [RE
 
 Codex bootstrap is workspace-local. It does not install or enable the Claude plugin and it does not modify `.claude/settings.json`.
 
+Current Codex plugin CLI support can add or update a marketplace source, but it
+does not expose a Claude-style `plugin install` step for runtime capabilities.
+The pamem bootstrap therefore creates workspace- or agent-home-local
+`.codex/skills` links for packaged pamem skills. Missing `memory-rule` or
+`sync-request` means the pamem runtime is not fully installed or exposed; repair
+bootstrap before changing shared memory, local config, or sync queues.
+
 ## Prerequisites
 
 - `bash`
@@ -154,7 +161,8 @@ It is not installed as an automatic hook and must not write the shared memory re
 
 Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
 workspace-local hooks and memory files, but points `.pamem/scripts` and
-`.pamem/assets` back to the installed plugin with symlinks.
+`.pamem/assets` back to the installed plugin with symlinks. It also exposes
+packaged pamem skills through `.codex/skills` symlinks.
 
 The bootstrap now creates `.pamem/config.toml` from `assets/config.toml.template`
 if it is missing, then seeds the configured memory repo root and shared
@@ -208,6 +216,9 @@ The Codex bootstrap creates or repairs:
 - XDG CLI runtime state only when `pamem start` or `resume` is used
 - `.codex/config.toml`
 - `.codex/hooks.json`
+- `.codex/skills/memory-rule`
+- `.codex/skills/sync-request`
+- `.codex/skills/memory-lint`
 - `.pamem/`
 - `.pamem/config.toml`
 - the configured shared memory repo root
@@ -215,6 +226,8 @@ The Codex bootstrap creates or repairs:
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
 the installed Claude marketplace plugin rather than copied runtime files.
+Within `.codex/skills/`, the managed pamem skill entries are also symlinks to
+the installed plugin's packaged `skills/` directories.
 
 ## Verify
 
@@ -226,6 +239,7 @@ After installation, check:
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
 - `.codex/hooks.json` does not contain a `PreCompact` hook
+- `.codex/skills/memory-rule`, `.codex/skills/sync-request`, and `.codex/skills/memory-lint` resolve to the installed plugin
 - startup loads the memory index
 - `.pamem/config.toml` exists and points to the shared memory repo root
 - `.pamem/config.toml` sets `[runtime].mode` to `cli` or `slock`

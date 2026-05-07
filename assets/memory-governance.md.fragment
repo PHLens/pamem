@@ -1,7 +1,7 @@
 ## Memory Governance
-Before any persistent memory read, write, compress, or archive action, apply the `memory-rule` plugin skill.
+Before any persistent memory write, compression, archive, promotion, or config/sync policy change, use the `memory-rule` plugin skill with this section and the active local config. If `memory-rule` is unavailable, pamem is not fully installed or enabled for this runtime: continue only with read-only injected context, and run `pamem install`/`pamem repair` or ask onboarding to repair the plugin before changing shared memory, local config, or sync policy.
 
-Use the `memory-rule` plugin skill when:
+Use pamem governance when:
 - updating `MEMORY.md`
 - editing `config.toml` or `.pamem/config.toml` for memory repo location, sharing, or sync policy
 - writing to `L1/`, `L2/`, `L3/`, or fallback `notes/`
