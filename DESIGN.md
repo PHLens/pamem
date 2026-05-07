@@ -93,12 +93,14 @@ flowchart TD
     L1["Layer 1<br/>Skeleton only"]
     L2["Layer 2<br/>Skeleton only"]
     L3["Layer 3<br/>CLI fallback only"]
+    CLI["CLI runtime mode<br/>workspace-local fallback"]
     C["Agent-local content<br/>Not managed by pamem"]
 
     P --> L0
     P --> L1
     P --> L2
-    P -.-> L3
+    P --> CLI
+    CLI --> L3
     L1 --> C
     L2 --> C
     L3 --> C

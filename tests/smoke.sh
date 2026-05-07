@@ -20,7 +20,6 @@ for pattern in \
   '^\[memory_repo\]$' \
   '^[[:space:]]*path[[:space:]]*=[[:space:]]*".pamem/memory"' \
   '^[[:space:]]*sharing[[:space:]]*=[[:space:]]*"shared"' \
-  '^[[:space:]]*layout[[:space:]]*=[[:space:]]*"L0/L1/L2/projects"' \
   '^\[runtime\]$' \
   '^[[:space:]]*mode[[:space:]]*=[[:space:]]*"cli"' \
   '^\[memory_repo\.sync\]$' \
