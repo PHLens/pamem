@@ -9,5 +9,5 @@ Use the `memory-rule` plugin skill when:
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
-`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo and per-task active files isolate concurrent agent instances. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the full active roster here.
-When `.pamem/config.toml` points at a shared memory repo, the active roster belongs in `L2/active/current-tasks.md`; fallback workspaces keep it in `notes/current-task.md`.
+`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while CLI runtime-local task state stays in workspace notes or local state and Slock task state stays in Slock. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
+When `.pamem/config.toml` points at a shared memory repo, durable project memory belongs in `L2/projects/`; CLI runtime-local work memory belongs in `notes/current-task.md` and `notes/work-log.md` only.

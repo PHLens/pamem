@@ -34,6 +34,7 @@ unless `--force` is passed for deliberate re-onboarding.
 Useful options:
 
 ```bash
+--runtime <cli|slock>
 --memory-repo <path>
 --sync-backend <local|git|webdav>
 --sync-remote <target>
@@ -41,9 +42,14 @@ Useful options:
 --sync-executor <name>
 ```
 
+Use `--runtime cli` when the agent should keep workspace-local recovery files
+such as `notes/current-task.md` and `notes/work-log.md`. Use `--runtime slock`
+when Slock owns task state through its workspace, task board, and threads; in
+that mode pamem keeps only durable memory surfaces.
+
 `skills/memory-lint/scripts/memory-lint.sh` is a separate read-only check. It
 reads the workspace-local `.pamem/config.toml`, resolves the configured memory
-repo, and reports boundary/pointer/active-roster issues without mutating files.
+repo, and reports boundary/pointer/runtime issues without mutating files.
 
 ## Install
 
@@ -53,8 +59,9 @@ workspace-local hooks and memory files, but points `.pamem/scripts` and
 
 The bootstrap now creates `.pamem/config.toml` from `assets/config.toml.template`
 if it is missing, then seeds the configured memory repo root and shared
-`L0/L1/L2/L3` skeleton. Update the generated config when you want to move the
-memory repo, change the sharing mode, or point sync at a different backend.
+`L0/L1/L2/projects` skeleton. Update the generated config when you want to move
+the memory repo, change the runtime mode, change the sharing mode, or point sync
+at a different backend.
 For normal human onboarding, prefer `onboard-pamem.sh`. Use `install-pamem.sh`
 directly for the default onboarding profile or for repairing runtime links after
 `.pamem/config.toml` has already been chosen.
@@ -97,14 +104,14 @@ The Codex bootstrap creates or repairs:
 - `notes/user-preferences.md`
 - `notes/operating-rules.md`
 - `notes/experience.md`
-- `notes/current-task.md`
-- `notes/work-log.md`
+- `notes/current-task.md` in CLI runtime mode
+- `notes/work-log.md` in CLI runtime mode
 - `.codex/config.toml`
 - `.codex/hooks.json`
 - `.pamem/`
 - `.pamem/config.toml`
 - `.pamem/memory/` or the configured shared memory repo root
-- `.pamem/memory/L2/active/current-tasks.md`
+- `.pamem/memory/L2/projects/`
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
 the installed Claude marketplace plugin rather than copied runtime files.
@@ -114,12 +121,13 @@ the installed Claude marketplace plugin rather than copied runtime files.
 After installation, check:
 
 - `MEMORY.md` exists
-- `notes/current-task.md` exists
+- `notes/current-task.md` exists in CLI runtime mode and is absent by default in Slock runtime mode
 - `.pamem/` exists
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
 - startup loads the memory index
 - `.pamem/config.toml` exists and points to the shared memory repo root
+- `.pamem/config.toml` sets `[runtime].mode` to `cli` or `slock`
 - `default_profile` was selected during onboarding and is not changed by startup hooks
 - `.pamem/scripts/memory-sync.sh --dry-run` prints the configured sync backend action
 - `skills/memory-lint/scripts/memory-lint.sh --root <workspace> --json` reports the workspace-local config and shared repo state
@@ -162,5 +170,5 @@ It does not replace:
 - `notes/user-preferences.md`
 - `notes/operating-rules.md`
 - `notes/projects/*`
-- `notes/current-task.md`
+- runtime-local task state owned by CLI notes or by Slock
 - the local sync executor workflow

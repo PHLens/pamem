@@ -90,12 +90,18 @@ copy_legacy_or_template_if_missing() {
   fi
 }
 
+copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
+
+RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
+
 copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
 copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
 copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
-copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$NOTES_DIR/current-task.md"
-copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$NOTES_DIR/work-log.md"
-copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
+
+if [ "$RUNTIME_MODE" = "cli" ]; then
+  copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$NOTES_DIR/current-task.md"
+  copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$NOTES_DIR/work-log.md"
+fi
 
 MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
 pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"

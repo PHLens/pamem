@@ -35,15 +35,19 @@ MEMORY_ROOT="$(pamem_memory_repo_root "$ROOT")"
 MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$ROOT")"
 MEMORY_PATH="$MEMORY_ROOT/$MEMORY_ENTRY_FILE"
 NOTES_DIR="$ROOT/notes"
+RUNTIME_MODE="$(pamem_runtime_mode "$ROOT")"
 CURRENT_TASK_LABEL="notes/current-task.md"
 
 if pamem_workspace_has_config "$ROOT"; then
   pamem_ensure_memory_repo_skeleton "$MEMORY_ROOT" "$ASSETS_DIR"
-  CURRENT_TASK_PATH="$MEMORY_ROOT/L2/active/current-tasks.md"
-  CURRENT_TASK_LABEL="L2/active/current-tasks.md"
 else
-  CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
   mkdir -p "$NOTES_DIR"
+fi
+
+if [ "$RUNTIME_MODE" = "cli" ]; then
+  CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
+else
+  CURRENT_TASK_PATH=""
 fi
 
 CREATED_MEMORY=0
@@ -70,7 +74,7 @@ if [ -s "$MEMORY_PATH" ] && ! grep -q '^## Sync Trigger$' "$MEMORY_PATH"; then
   ADDED_SYNC_TRIGGER=1
 fi
 
-if [ ! -s "$CURRENT_TASK_PATH" ]; then
+if [ -n "$CURRENT_TASK_PATH" ] && [ ! -s "$CURRENT_TASK_PATH" ]; then
   mkdir -p "$(dirname "$CURRENT_TASK_PATH")"
   printf '%s\n' "$CURRENT_TASK_TEMPLATE" > "$CURRENT_TASK_PATH"
   CREATED_CURRENT_TASK=1

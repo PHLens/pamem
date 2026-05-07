@@ -22,11 +22,11 @@ This plugin skill governs how persistent agent memory is structured, loaded, upd
 
 ```text
 MEMORY.md          = human-readable startup index and pointers
-.pamem/config.toml = machine-readable profile, memory repo location, load, write, and sync policy when present
+.pamem/config.toml = machine-readable profile, runtime, memory repo location, load, write, and sync policy when present
 L0/ or this skill   = constitution and governance
 L1/ or notes/       = stable shared, role, preference, and experience memory
-L2/ or notes/       = project and active task memory
-L3/ or notes/       = archive summaries not loaded by default
+L2/ or notes/       = project memory
+L3/ or notes/       = archive summaries not loaded by default, usually CLI-local
 requests/           = reviewable memory-promotion requests
 .pamem/scripts/memory-sync.sh = repo-level sync helper for the configured memory repo backend
 sync-request        = separate request-generation skill for cross-device retention
@@ -63,12 +63,6 @@ agent-memory/
   L2/
     projects/
       <project-key>.md
-    active/
-      current-tasks.md
-      <task-id>.md
-  L3/
-    work-log.md
-    archive/
   requests/
     inbox/
     promoted/
@@ -93,8 +87,8 @@ agent-memory/
 Map fallback files to the same layers:
 
 - `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` are L1.
-- `notes/projects/<project-key>.md` and `notes/current-task.md` are L2.
-- `notes/work-log.md` is L3.
+- `notes/projects/<project-key>.md` is L2.
+- `notes/current-task.md` and `notes/work-log.md` are CLI-local runtime files, not durable shared memory layers.
 
 ## Memory Layers
 
@@ -134,19 +128,17 @@ Examples:
 
 Role memory belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
 
-### Layer 2: Project And Working Memory
+### Layer 2: Project Memory
 
-Layer 2 contains specific project context and active resumable task state.
+Layer 2 contains specific project context.
 
 Examples:
 
 - `L2/projects/<project-key>.md`
-- `L2/active/current-tasks.md`
-- `L2/active/<task-id>.md`
 - `notes/projects/<project-key>.md`
-- `notes/current-task.md`
 
 Project-specific memory belongs in L2, not L1. Project context usually changes faster than role experience and should not pollute global stable memory.
+Runtime task state is handled outside the shared memory repo.
 
 ### Layer 3: Archive
 
@@ -154,15 +146,14 @@ Layer 3 preserves closed-task summaries and historical context that should not b
 
 Examples:
 
-- `L3/work-log.md`
 - `L3/archive/<date-or-task>.md`
-- `notes/work-log.md`
+- `notes/work-log.md` in CLI runtime mode
 
 Archive stores summaries, not transcripts or raw evidence chains.
 
 ## Profile Configuration
 
-When `.pamem/config.toml` exists, it is the machine-readable source for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
+When `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
 
 For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
@@ -178,6 +169,9 @@ The shared repo is resolved through:
 path = ".pamem/memory"
 sharing = "shared"
 entry_file = "MEMORY.md"
+
+[runtime]
+mode = "cli"
 
 [memory_repo.sync]
 backend = "local"
@@ -197,13 +191,10 @@ load = [
   "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
   "L1/roles/coder.md",
-  "L2/projects/pamem.md",
-  "L2/active/current-tasks.md",
-  "L2/active/task-123.md"
+  "L2/projects/pamem.md"
 ]
 write = [
-  "L2/active/current-tasks.md",
-  "L2/active/task-123.md",
+  "L2/projects/pamem.md",
   "requests/inbox/"
 ]
 guarded_write = [
@@ -217,7 +208,7 @@ Rules:
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
 - Role-specific memory is a profile overlay loaded from L1.
 - Project memory is loaded from L2 and wins over role memory on conflict.
-- Ordinary task agents should write active task state and promotion requests, not stable shared files.
+- Ordinary task agents should write project memory and promotion requests, not mutable task state in the shared repo.
 - `guarded_write` means the agent may update the target only when the change is high-confidence, reusable across tasks, and allowed by local policy; otherwise create a promotion request.
 - Config changes that alter ownership, precedence, or sync policy should be treated as governance changes and reviewed by the config owner or onboarding profile.
 - If no config exists, use the per-agent notes fallback load order.
@@ -233,9 +224,9 @@ On wake-up:
 5. Load L1 shared memory.
 6. Load the L1 role overlay for the profile.
 7. Load L2 project memory for the active project.
-8. Load L2 active task memory only when a task is open.
+8. If runtime mode is `cli`, load `notes/current-task.md` and `notes/work-log.md` when they exist as local recovery context.
 9. Do not load L3 archive or `requests/` by default.
-10. If using the shared repo layout, prefer `L2/active/current-tasks.md` as the startup-safe active roster and keep `notes/current-task.md` only for fallback workspaces.
+10. If runtime mode is `slock`, treat Slock task state and workspace files as the source of truth for active work.
 
 Fallback load order when `.pamem/config.toml` is absent:
 
@@ -244,7 +235,8 @@ Fallback load order when `.pamem/config.toml` is absent:
 3. `notes/operating-rules.md`
 4. `notes/experience.md`
 5. `notes/projects/<project-key>.md`, if the current project has one
-6. `notes/current-task.md`, only if a task is still open
+6. `notes/current-task.md`, only in CLI runtime mode and only if a task is still open
+7. `notes/work-log.md`, only in CLI runtime mode when a summary is useful
 
 ## Precedence Rules
 
@@ -254,16 +246,16 @@ Current system, developer, and explicit user instructions outrank memory. Within
 2. L1 shared memory
 3. L2 project memory
 4. L1 role memory loaded through the active profile
-5. L2 active task memory
-6. L3 archive
+5. L3 archive
 
 Lower-precedence memory may extend but must not override higher-precedence memory.
+Runtime-local task files are outside this precedence list.
 
 Important consequences:
 
 - Project-specific memory wins over role memory.
 - Role memory can provide defaults, habits, and reusable role experience, but project constraints override it.
-- Active task memory can record current state and next steps, but it cannot redefine stable rules.
+- Runtime-local task files can record current state and next steps, but they cannot redefine stable rules.
 - Archive is historical context and never an active rule source unless explicitly re-promoted.
 
 ## Write Gate
@@ -272,7 +264,7 @@ Before writing any memory, classify it:
 
 - Is it stable across sessions?
 - Will it affect future decisions or behavior?
-- Is it a rule, preference, correction, reusable finding, project fact, or active task state?
+- Is it a rule, preference, correction, reusable finding, project fact, or runtime-local task state?
 - Is it a summary rather than raw evidence?
 - Which layer owns it?
 - Does an existing entry already cover it?
@@ -291,10 +283,10 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
 | Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict |
-| Active roster | `L2/active/current-tasks.md` | `notes/current-task.md` | Startup-safe active task list; remove completed tasks |
-| Active task state | `L2/active/<task-id>.md` | `notes/current-task.md` | Startup-safe summary and pointers only |
+| CLI current-task recovery | n/a | `notes/current-task.md` | Runtime-local, startup-safe summary only |
+| CLI work-log summary | n/a | `notes/work-log.md` | Runtime-local summary only |
 | Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
-| Closed task summary | `L3/work-log.md` or `L3/archive/` | `notes/work-log.md` | Newest first; summaries only |
+| Closed task summary | `L3/archive/` | `notes/work-log.md` in CLI runtime mode | Newest first; summaries only |
 
 ## Promotion Policy
 
@@ -324,16 +316,21 @@ Promotion decisions:
 
 Keep in L2 when the content is:
 
-- relevant only to the current task,
-- useful for resume and recovery,
 - project-specific and still changing, or
-- likely to expire at task completion.
+- useful as durable project context but not stable enough for L1.
 
-Archive to L3 when:
+Keep runtime task state out of the shared memory repo. In CLI mode, use local
+recovery notes or task-local planning files. In Slock mode, use Slock task
+state, workspace files, and task threads.
+
+Archive to CLI-local work log or optional L3 archive when:
 
 - the task is closed,
 - a concise summary is enough for future recall, or
 - detailed process history is no longer needed in startup context.
+
+In Slock mode, ordinary task summaries stay in Slock unless a durable finding is
+promoted to project or shared memory.
 
 ## Sync-Request Boundary
 
@@ -369,47 +366,48 @@ When multiple agent instances run concurrently, shared memory files become write
 ### Principles
 
 - L0 and L1 shared files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
-- `MEMORY.md` is a shared index and pointer list, not an isolation boundary.
-- L2 active task state must live in per-task files such as `L2/active/<task-id>.md` or in the task worktree.
-- The shared active roster belongs in `L2/active/current-tasks.md`; fallback workspaces keep it in `notes/current-task.md`.
-- Shared pointer files contain only short lines pointing to the authoritative task state.
-- Stable memory writes happen at task completion or through promotion review.
+- `MEMORY.md` is a shared index, not an isolation boundary.
+- The shared memory repo must not contain mutable active rosters or per-task runtime state.
+- CLI runtime state belongs in workspace-local recovery notes or task-local planning files.
+- Slock runtime state belongs in the Slock task board, task threads, and workspace files.
+- Stable memory writes happen at task completion or through promotion review, and only for durable future value.
 
 ### Pointer Format
 
-When multiple instances may be active, pointer files use a list format so entries from different instances coexist:
-
-- `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> -> <pointer to L2/active or notes/current-task>`.
-- `L2/active/current-tasks.md` or `notes/current-task.md`: the active roster for the workspace, listing active worktrees or task files in the format `<worktree-path or task-id> -> <one-line task description>`.
+When multiple instances may be active, shared `MEMORY.md` can point to durable
+project notes, but it should not try to enumerate every active task.
 
 When more than 3 instances are active, do not try to list every instance in `MEMORY.md`. Keep `MEMORY.md` as a startup dashboard:
 
 - one line for the lead blocker, if any
 - one line for the current primary workstream
-- one line pointing to the full active roster, such as `L2/active/current-tasks.md` or `notes/current-task.md`
+- one line pointing to the relevant durable project note, if any
 
-The full roster belongs in `L2/active/current-tasks.md`, `notes/current-task.md`, or per-task L2 files. Compressing `MEMORY.md` removes startup noise only; it must not delete task state.
+The full task roster belongs to the runtime: Slock stores it in the task board
+and threads; CLI workspaces may keep a local `notes/current-task.md` summary.
+Compressing `MEMORY.md` removes startup noise only; it must not delete runtime
+task state.
 
 ### Conflict Tolerance
 
-If last-write-wins occurs on a pointer file:
+If last-write-wins occurs on a shared durable memory file:
 
-- The loss is limited to a pointer line, not task content.
-- Full state is recoverable from the task file or worktree progress file.
-- Do not attempt file-locking or atomic-append protocols by default; the pointer format keeps recovery simple.
+- Treat it as a memory governance conflict, not a task-state recovery path.
+- Prefer promotion requests when a change might conflict or cross scopes.
+- Do not attempt to use the shared memory repo as a concurrent work queue.
 
 ### Write Sequencing
 
-1. Task start: create or update the L2 task file and add a pointer line if needed.
-2. Task execution: write task state only to L2 active files or task-local planning files.
-3. Task completion: remove the completed task from `MEMORY.md` and the active roster (`L2/active/current-tasks.md` or `notes/current-task.md`), update L2 project memory if needed, create promotion requests for L1 candidates, and archive a concise summary to L3.
+1. Task start: update only the runtime-owned task surface, not the shared memory repo.
+2. Task execution: keep task state in CLI local notes/planning files or in Slock task threads and workspace files.
+3. Task completion: promote durable findings to L2 project memory or `requests/inbox/`; in CLI mode optionally add a concise local work-log summary; in Slock mode leave ordinary work logs in Slock.
 
 ## Current Task Vs Planning Files
 
-Use L2 active task memory as the default startup-safe task summary.
+Use runtime-local current-task memory only when the runtime owns no stronger task-state surface.
 
-- Shared layout: `L2/active/current-tasks.md` for the roster and `L2/active/<task-id>.md` for detailed per-task state
-- Fallback layout: `notes/current-task.md`
+- CLI mode: `notes/current-task.md` is the local startup-safe task summary.
+- Slock mode: the Slock task board, task thread, and workspace files are the task-state source of truth.
 
 Keep it short: task, status, current phase, blocker, next step, and pointers.
 
@@ -423,15 +421,15 @@ Use detailed planning files only for complex task execution tracking, not for pe
 When planning files are active:
 
 - `task_plan.md` remains the detailed execution source of truth.
-- L2 active task memory becomes the startup-safe exported summary.
-- L2 active task memory should point back to `task_plan.md` for full details.
+- CLI `notes/current-task.md` may become the startup-safe exported summary.
+- Slock task state should point to the relevant task thread or workspace planning file when useful.
 - Do not merge startup-safe task memory and detailed task planning into one file.
 
 ## Planning Upgrade Rules
 
 Default to light mode first.
 
-- Start with L2 active task memory only.
+- Start with the runtime-owned task surface only.
 - Do not create planning files for simple or short-lived tasks by default.
 - Do not invoke detailed planning for memory-only or workflow-only maintenance tasks.
 
@@ -446,9 +444,9 @@ Upgrade to detailed planning when any of these become true:
 
 If complexity was underestimated, upgrade in place:
 
-- keep the L2 active summary,
+- keep the runtime-owned task summary,
 - create `task_plan.md`, `findings.md`, and `progress.md`,
-- export only the compact current snapshot back into L2 active memory.
+- export only the compact current snapshot back into CLI local recovery notes or the Slock task thread.
 
 ## Active Context Rules
 
@@ -462,7 +460,7 @@ Compress immediately if `Active Context` grows beyond 3 items, mixes closed work
 
 ## Work Log Order
 
-L3 work logs must be maintained in reverse-chronological order.
+CLI-local work logs and optional L3 archives must be maintained in reverse-chronological order.
 
 - Newest date sections go at the top.
 - Newest entries inside a date section go above older entries when practical.
@@ -472,7 +470,7 @@ L3 work logs must be maintained in reverse-chronological order.
 
 | Do not write | Why | Where instead |
 |---|---|---|
-| Closed task details | Clutters index | L3 work log |
+| Closed task details | Clutters index | CLI-local work log, optional L3 archive, or Slock thread |
 | Evidence chains | Linear narrative, not reusable | L1 experience outcomes only |
 | Session transcripts | Historical, not actionable | Do not save |
 | Raw command outputs | Transient data | Do not save |
@@ -549,7 +547,7 @@ Writeback format:
 
 ## Memory Lint
 
-On startup or when explicitly requested, perform a quick health check on memory files:
+When explicitly requested or during memory review, perform a quick health check on memory files:
 
 | Check | Condition | Action |
 |---|---|---|
@@ -558,7 +556,7 @@ On startup or when explicitly requested, perform a quick health check on memory 
 | Empty note | File has only heading or template placeholder | Remove from startup load order until populated |
 | Conflicting entries | Two entries in same scope contradict each other | Flag for conflict repair |
 | Orphan pointer | `MEMORY.md` or config references a note that does not exist | Remove or repair the pointer |
-| Layer mismatch | Project content appears in L1, or role content appears only in L2 task state | Move or request promotion to the correct layer |
+| Layer mismatch | Project content appears in L1, or role content appears only in runtime-local task state | Move or request promotion to the correct layer |
 | Direct stable write | Ordinary task work changed L0/L1 without policy support | Convert to promotion request or ask for review |
 
 Memory lint is informational by default. Conflicts and stale entries should be resolved by supersession, not silent deletion.

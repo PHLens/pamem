@@ -166,12 +166,14 @@ The external executor may:
   - experience (includes corrections and meta-knowledge)
 - **Layer 2: Project Memory**
   - project notes when they should be retained externally
-- **Layer 3: Archive**
-  - closed-task summaries when they should be retained externally
+- **CLI-local archive summaries**
+  - only when a completed-task summary has durable future value and the active
+    workspace policy asks for external retention
 
 It may also be used for managed workspace config changes that support the memory runtime itself.
 
-It should not be used as a substitute for normal Layer 2 active-task handling.
+It should not be used as a substitute for runtime-owned task handling. CLI task
+state remains workspace-local, and Slock task state remains in Slock.
 
 ## Design Principle
 

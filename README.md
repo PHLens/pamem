@@ -15,6 +15,7 @@ Persistent agent memory becomes unstable when every workspace assembles its own 
 - memory governance
 - startup hooks
 - memory skeleton files
+- runtime-mode boundaries for CLI and Slock task state
 - shared memory repo bootstrap and config templates
 - sync-request support
 - sync helper entry points
@@ -36,6 +37,10 @@ plugin runtime.
 
 The bootstrap scripts assume `bash`, `jq`, and GNU `realpath` are available in
 the workspace environment.
+
+Onboarding chooses the runtime mode. `cli` mode keeps local recovery notes for
+current-task and work-log state. `slock` mode leaves task state in Slock and uses
+the shared memory repo only for durable memory and promotion requests.
 
 ### More
 

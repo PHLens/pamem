@@ -34,6 +34,7 @@ MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$ROOT")"
 MEMORY_PATH="$MEMORY_ROOT/$MEMORY_ENTRY_FILE"
 MEMORY_SHARING="$(pamem_memory_repo_sharing "$ROOT")"
 MEMORY_SYNC_BACKEND="$(pamem_memory_repo_sync_backend "$ROOT")"
+RUNTIME_MODE="$(pamem_runtime_mode "$ROOT")"
 
 if pamem_workspace_has_config "$ROOT"; then
   pamem_ensure_memory_repo_skeleton "$MEMORY_ROOT" "$ASSETS_DIR"
@@ -69,9 +70,9 @@ LINE_COUNT="$(printf '%s\n' "$MEMORY_TEXT" | wc -l | awk '{print $1}')"
 BYTE_COUNT="$(printf '%s' "$MEMORY_TEXT" | wc -c | awk '{print $1}')"
 
 if pamem_workspace_has_config "$ROOT"; then
-  CONTEXT="Persistent memory source: \`${MEMORY_ROOT}\` (sharing=${MEMORY_SHARING}, sync=${MEMORY_SYNC_BACKEND})."
+  CONTEXT="Persistent memory source: \`${MEMORY_ROOT}\` (runtime=${RUNTIME_MODE}, sharing=${MEMORY_SHARING}, sync=${MEMORY_SYNC_BACKEND})."
 else
-  CONTEXT="Persistent memory source: workspace fallback \`${ROOT}\`."
+  CONTEXT="Persistent memory source: workspace fallback \`${ROOT}\` (runtime=${RUNTIME_MODE})."
 fi
 
 if [ "$CREATED" -eq 1 ]; then

@@ -20,10 +20,12 @@ for pattern in \
   '^\[memory_repo\]$' \
   '^[[:space:]]*path[[:space:]]*=[[:space:]]*".pamem/memory"' \
   '^[[:space:]]*sharing[[:space:]]*=[[:space:]]*"shared"' \
+  '^[[:space:]]*layout[[:space:]]*=[[:space:]]*"L0/L1/L2/projects"' \
+  '^\[runtime\]$' \
+  '^[[:space:]]*mode[[:space:]]*=[[:space:]]*"cli"' \
   '^\[memory_repo\.sync\]$' \
   '^[[:space:]]*backend[[:space:]]*=[[:space:]]*"local"' \
   '^[[:space:]]*sync_bootstrapped[[:space:]]*=[[:space:]]*false' \
-  'L2/active/current-tasks\.md' \
   '^\[governance\]$' \
   '^\[sync\]$'
 do
@@ -52,7 +54,12 @@ for profile in human coder reviewer researcher wiki; do
   profile_template="$ROOT/assets/config-profiles/${profile}.toml.template"
   test -s "$profile_template"
   grep -Eq "^[[:space:]]*default_profile[[:space:]]*=[[:space:]]*\"${profile}\"" "$profile_template"
+  grep -Eq '^[[:space:]]*mode[[:space:]]*=[[:space:]]*"cli"' "$profile_template"
   grep -Eq "^\[profiles\.${profile}\]$" "$profile_template"
+  if grep -Eq 'L2/active|L3/work-log|current-tasks' "$profile_template"; then
+    echo "profile template must not use shared active/work-log paths: $profile_template" >&2
+    exit 1
+  fi
 done
 
 for file in \
@@ -61,6 +68,7 @@ for file in \
   "$ROOT/assets/sync-trigger.md.fragment" \
   "$ROOT/assets/notes/operating-rules.md.template" \
   "$ROOT/assets/notes/current-task.md.template" \
+  "$ROOT/assets/notes/work-log.md.template" \
   "$ROOT/assets/shared/L0/constitution.md.template" \
   "$ROOT/assets/shared/L1/roles/onboarding.md.template" \
   "$ROOT/assets/shared/L1/roles/coder.md.template" \
@@ -100,12 +108,19 @@ if grep -RIn --exclude-dir=.git --exclude-dir=tests -E '~/sync-queue|for Adam|Ad
   exit 1
 fi
 
+if grep -RIn --exclude-dir=.git --exclude-dir=tests -E 'L2/active|L3/work-log|current-tasks' "$ROOT"; then
+  echo "stale shared active/work-log wording found" >&2
+  exit 1
+fi
+
 WORKSPACE="$(mktemp -d)"
 ONBOARD_WORKSPACE="$(mktemp -d)"
 WIKI_WORKSPACE="$(mktemp -d)"
 LEGACY_WORKSPACE="$(mktemp -d)"
+SLOCK_WORKSPACE="$(mktemp -d)"
+INVALID_RUNTIME_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE" "$ONBOARD_WORKSPACE" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE"
+  rm -rf "$WORKSPACE" "$ONBOARD_WORKSPACE" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$INVALID_RUNTIME_WORKSPACE"
 }
 trap cleanup EXIT
 
@@ -126,14 +141,17 @@ for file in \
   "$WORKSPACE/.pamem/memory/L1/shared/operating-rules.md" \
   "$WORKSPACE/.pamem/memory/L1/roles/onboarding.md" \
   "$WORKSPACE/.pamem/memory/L1/roles/wiki.md" \
-  "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md" \
-  "$WORKSPACE/.pamem/memory/L3/work-log.md" \
   "$WORKSPACE/MEMORY.md" \
   "$WORKSPACE/notes/operating-rules.md" \
-  "$WORKSPACE/notes/current-task.md"
+  "$WORKSPACE/notes/current-task.md" \
+  "$WORKSPACE/notes/work-log.md"
 do
   test -s "$file"
 done
+
+test -d "$WORKSPACE/.pamem/memory/L2/projects"
+test ! -e "$WORKSPACE/.pamem/memory/L2/active"
+test ! -e "$WORKSPACE/.pamem/memory/L3/work-log.md"
 
 if [ -e "$WORKSPACE/.pamem/memory/L1/shared/workflow.md" ] || [ -e "$WORKSPACE/notes/agent-workflow.md" ]; then
   echo "legacy shared workflow file names should not be generated" >&2
@@ -145,29 +163,14 @@ printf '%s' "$MEMORY_LINT_OUTPUT" | jq -e '
   .status == "ok" and
   .config_scope == "workspace-local" and
   .summary.error_count == 0 and
-  .config.default_profile == "onboarding"
+  .config.default_profile == "onboarding" and
+  .config.runtime_mode == "cli"
 ' >/dev/null
 
-cat > "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md" <<'EOF'
-# Active Roster
-
-## Active Tasks
-- task-smoke: validate memory-lint active roster checks
-
-## Status
-- in_progress
-EOF
-
-cat > "$WORKSPACE/.pamem/memory/L2/active/task-smoke.md" <<'EOF'
-# task-smoke
-
-- status: in_progress
-EOF
-
-bash "$MEMORY_LINT" --root "$WORKSPACE" --json | jq -e '.status == "ok"' >/dev/null
-rm "$WORKSPACE/.pamem/memory/L2/active/task-smoke.md"
-if bash "$MEMORY_LINT" --root "$WORKSPACE" --json >/dev/null 2>&1; then
-  echo "memory-lint must fail when the active roster points to a missing task file" >&2
+cp -a "$WORKSPACE/." "$INVALID_RUNTIME_WORKSPACE/"
+sed -i 's/mode = "cli"/mode = "invalid"/' "$INVALID_RUNTIME_WORKSPACE/.pamem/config.toml"
+if bash "$MEMORY_LINT" --root "$INVALID_RUNTIME_WORKSPACE" --json >/dev/null 2>&1; then
+  echo "memory-lint must fail when runtime.mode is invalid" >&2
   exit 1
 fi
 
@@ -182,12 +185,12 @@ rm -rf "$WORKSPACE/.pamem/memory/.pamem"
 SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
-  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains(".pamem/memory"))
+  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("runtime=cli") and contains(".pamem/memory"))
 ' >/dev/null
 
-rm -f "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md"
+rm -f "$WORKSPACE/notes/current-task.md"
 printf '{"cwd":"%s","trigger":"manual"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
-test -s "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md"
+test -s "$WORKSPACE/notes/current-task.md"
 
 LOCAL_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --dry-run)"
 if [[ "$LOCAL_SYNC_OUTPUT" != local-only:* ]]; then
@@ -236,6 +239,26 @@ grep -Fq 'default_profile = "wiki"' "$WIKI_WORKSPACE/.pamem/config.toml"
 grep -Fq 'path = ".pamem/wiki-memory"' "$WIKI_WORKSPACE/.pamem/config.toml"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/MEMORY.md"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/wiki.md"
+
+bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_WORKSPACE" \
+  --profile coder \
+  --runtime slock \
+  --memory-repo ".pamem/slock-memory" >/dev/null
+
+grep -Fq 'default_profile = "coder"' "$SLOCK_WORKSPACE/.pamem/config.toml"
+grep -Fq 'mode = "slock"' "$SLOCK_WORKSPACE/.pamem/config.toml"
+test -s "$SLOCK_WORKSPACE/.pamem/slock-memory/MEMORY.md"
+test ! -e "$SLOCK_WORKSPACE/notes/current-task.md"
+test ! -e "$SLOCK_WORKSPACE/notes/work-log.md"
+
+SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
+printf '%s' "$SLOCK_SESSION_OUTPUT" | jq -e '
+  .hookSpecificOutput.hookEventName == "SessionStart" and
+  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("runtime=slock") and contains(".pamem/slock-memory"))
+' >/dev/null
+
+printf '{"cwd":"%s","trigger":"manual"}\n' "$SLOCK_WORKSPACE" | bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
+test ! -e "$SLOCK_WORKSPACE/notes/current-task.md"
 
 if bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" --profile coder >/dev/null 2>&1; then
   echo "onboarding must not overwrite an existing config without --force" >&2
