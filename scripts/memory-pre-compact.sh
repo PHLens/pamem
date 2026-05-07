@@ -5,8 +5,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ASSETS_DIR="$PLUGIN_ROOT/assets"
 
+# shellcheck source=memory-store.sh
+source "$SCRIPT_DIR/memory-store.sh"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "pamem requires jq; install jq and rerun." >&2
+  exit 1
+fi
+
+if ! command -v realpath >/dev/null 2>&1; then
+  echo "pamem requires GNU realpath; install coreutils and rerun." >&2
   exit 1
 fi
 
@@ -23,11 +31,20 @@ if [ -z "$ROOT" ]; then
   ROOT="$PWD"
 fi
 
+MEMORY_ROOT="$(pamem_memory_repo_root "$ROOT")"
+MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$ROOT")"
+MEMORY_PATH="$MEMORY_ROOT/$MEMORY_ENTRY_FILE"
 NOTES_DIR="$ROOT/notes"
-MEMORY_PATH="$ROOT/MEMORY.md"
-CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
+CURRENT_TASK_LABEL="notes/current-task.md"
 
-mkdir -p "$NOTES_DIR"
+if pamem_workspace_has_config "$ROOT"; then
+  pamem_ensure_memory_repo_skeleton "$MEMORY_ROOT" "$ASSETS_DIR"
+  CURRENT_TASK_PATH="$MEMORY_ROOT/L2/active/current-tasks.md"
+  CURRENT_TASK_LABEL="L2/active/current-tasks.md"
+else
+  CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
+  mkdir -p "$NOTES_DIR"
+fi
 
 CREATED_MEMORY=0
 ADDED_GOVERNANCE=0
@@ -35,6 +52,7 @@ ADDED_SYNC_TRIGGER=0
 CREATED_CURRENT_TASK=0
 
 if [ ! -s "$MEMORY_PATH" ]; then
+  mkdir -p "$(dirname "$MEMORY_PATH")"
   printf '%s\n' "$MEMORY_SKELETON" > "$MEMORY_PATH"
   CREATED_MEMORY=1
 elif ! grep -q '^## Memory Governance$' "$MEMORY_PATH"; then
@@ -53,6 +71,7 @@ if [ -s "$MEMORY_PATH" ] && ! grep -q '^## Sync Trigger$' "$MEMORY_PATH"; then
 fi
 
 if [ ! -s "$CURRENT_TASK_PATH" ]; then
+  mkdir -p "$(dirname "$CURRENT_TASK_PATH")"
   printf '%s\n' "$CURRENT_TASK_TEMPLATE" > "$CURRENT_TASK_PATH"
   CREATED_CURRENT_TASK=1
 fi
@@ -70,7 +89,7 @@ if [ "$ADDED_SYNC_TRIGGER" -eq 1 ]; then
 fi
 
 if [ "$CREATED_CURRENT_TASK" -eq 1 ]; then
-  printf '[memory-pre-compact] Created notes/current-task.md placeholder before %s compact.\n' "${TRIGGER:-unknown}" >&2
+  printf '[memory-pre-compact] Created %s placeholder before %s compact.\n' "$CURRENT_TASK_LABEL" "${TRIGGER:-unknown}" >&2
 fi
 
 exit 0

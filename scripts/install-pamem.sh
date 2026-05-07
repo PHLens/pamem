@@ -11,6 +11,9 @@ PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ASSETS_DIR="$PLUGIN_ROOT/assets"
 TARGET_INPUT="$1"
 
+# shellcheck source=memory-store.sh
+source "$SCRIPT_DIR/memory-store.sh"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "pamem requires jq; install jq and rerun." >&2
   exit 1
@@ -28,6 +31,7 @@ CODEX_DIR="$WORKSPACE/.codex"
 FOUNDATION_DIR="$WORKSPACE/.pamem"
 FOUNDATION_SCRIPTS_DIR="$FOUNDATION_DIR/scripts"
 FOUNDATION_ASSETS_DIR="$FOUNDATION_DIR/assets"
+CONFIG_PATH="$FOUNDATION_DIR/config.toml"
 MEMORY_PATH="$WORKSPACE/MEMORY.md"
 
 SESSION_CMD='.pamem/scripts/memory-session-start.sh'
@@ -74,6 +78,10 @@ copy_if_missing "$ASSETS_DIR/notes/agent-workflow.md.template" "$NOTES_DIR/agent
 copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
 copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$NOTES_DIR/current-task.md"
 copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$NOTES_DIR/work-log.md"
+copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
+
+MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
+pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
 
 if [ ! -s "$MEMORY_PATH" ]; then
   cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"

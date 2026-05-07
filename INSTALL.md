@@ -18,7 +18,10 @@ Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
 workspace-local hooks and memory files, but points `.pamem/scripts` and
 `.pamem/assets` back to the installed plugin with symlinks.
 
-For shared-memory onboarding, copy `assets/config.toml.template` to `.pamem/config.toml` and replace the placeholders with the workspace's actual profile and sync settings. The bootstrap does not create this file automatically because it should be owned by human or onboarding review.
+The bootstrap now creates `.pamem/config.toml` from `assets/config.toml.template`
+if it is missing, then seeds the configured memory repo root and shared
+`L0/L1/L2/L3` skeleton. Update the generated config when you want to move the
+memory repo, change the sharing mode, or point sync at a different backend.
 
 Install into a workspace:
 
@@ -63,6 +66,9 @@ The Codex bootstrap creates or repairs:
 - `.codex/config.toml`
 - `.codex/hooks.json`
 - `.pamem/`
+- `.pamem/config.toml`
+- `.pamem/memory/` or the configured shared memory repo root
+- `.pamem/memory/L2/active/current-tasks.md`
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
 the installed Claude marketplace plugin rather than copied runtime files.
@@ -77,6 +83,8 @@ After installation, check:
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
 - startup loads the memory index
+- `.pamem/config.toml` exists and points to the shared memory repo root
+- `.pamem/scripts/memory-sync.sh --dry-run` prints the configured sync backend action
 
 ## Update
 

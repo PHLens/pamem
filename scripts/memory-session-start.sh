@@ -5,8 +5,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ASSETS_DIR="$PLUGIN_ROOT/assets"
 
+# shellcheck source=memory-store.sh
+source "$SCRIPT_DIR/memory-store.sh"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "pamem requires jq; install jq and rerun." >&2
+  exit 1
+fi
+
+if ! command -v realpath >/dev/null 2>&1; then
+  echo "pamem requires GNU realpath; install coreutils and rerun." >&2
   exit 1
 fi
 
@@ -21,12 +29,22 @@ if [ -z "$ROOT" ]; then
   ROOT="$PWD"
 fi
 
-MEMORY_PATH="$ROOT/MEMORY.md"
+MEMORY_ROOT="$(pamem_memory_repo_root "$ROOT")"
+MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$ROOT")"
+MEMORY_PATH="$MEMORY_ROOT/$MEMORY_ENTRY_FILE"
+MEMORY_SHARING="$(pamem_memory_repo_sharing "$ROOT")"
+MEMORY_SYNC_BACKEND="$(pamem_memory_repo_sync_backend "$ROOT")"
+
+if pamem_workspace_has_config "$ROOT"; then
+  pamem_ensure_memory_repo_skeleton "$MEMORY_ROOT" "$ASSETS_DIR"
+fi
+
 CREATED=0
 ADDED_GOVERNANCE=0
 ADDED_SYNC_TRIGGER=0
 
 if [ ! -s "$MEMORY_PATH" ]; then
+  mkdir -p "$(dirname "$MEMORY_PATH")"
   printf '%s\n' "$MEMORY_SKELETON" > "$MEMORY_PATH"
   CREATED=1
 else
@@ -50,36 +68,33 @@ MEMORY_TEXT="$(cat "$MEMORY_PATH")"
 LINE_COUNT="$(printf '%s\n' "$MEMORY_TEXT" | wc -l | awk '{print $1}')"
 BYTE_COUNT="$(printf '%s' "$MEMORY_TEXT" | wc -c | awk '{print $1}')"
 
-CONTEXT=""
+if pamem_workspace_has_config "$ROOT"; then
+  CONTEXT="Persistent memory source: \`${MEMORY_ROOT}\` (sharing=${MEMORY_SHARING}, sync=${MEMORY_SYNC_BACKEND})."
+else
+  CONTEXT="Persistent memory source: workspace fallback \`${ROOT}\`."
+fi
+
 if [ "$CREATED" -eq 1 ]; then
+  CONTEXT="${CONTEXT}"$'\n\n'
   CONTEXT="${CONTEXT}Persistent memory bootstrap: created a minimal \`MEMORY.md\` because it was missing or empty."
 fi
 
 if [ "$ADDED_GOVERNANCE" -eq 1 ]; then
-  if [ -n "$CONTEXT" ]; then
-    CONTEXT="${CONTEXT}\n\n"
-  fi
+  CONTEXT="${CONTEXT}"$'\n\n'
   CONTEXT="${CONTEXT}Persistent memory bootstrap: added a missing \`Memory Governance\` section to \`MEMORY.md\`."
 fi
 
 if [ "$ADDED_SYNC_TRIGGER" -eq 1 ]; then
-  if [ -n "$CONTEXT" ]; then
-    CONTEXT="${CONTEXT}\n\n"
-  fi
+  CONTEXT="${CONTEXT}"$'\n\n'
   CONTEXT="${CONTEXT}Persistent memory bootstrap: added a missing \`Sync Trigger\` section to \`MEMORY.md\`."
 fi
 
 if [ "$LINE_COUNT" -gt 120 ] || [ "$BYTE_COUNT" -gt 6000 ]; then
-  if [ -n "$CONTEXT" ]; then
-    CONTEXT="${CONTEXT}\n\n"
-  fi
+  CONTEXT="${CONTEXT}"$'\n\n'
   CONTEXT="${CONTEXT}Warning: \`MEMORY.md\` is larger than index guidance and should be compressed with \`memory-rule\`."
 fi
 
-if [ -n "$CONTEXT" ]; then
-  CONTEXT="${CONTEXT}\n\n"
-fi
-CONTEXT="${CONTEXT}Load and follow this persistent memory index before proceeding:\n\n${MEMORY_TEXT}"
+CONTEXT="${CONTEXT}"$'\n\n'"Load and follow this persistent memory index before proceeding:"$'\n\n'"${MEMORY_TEXT}"
 
 jq -n --arg ctx "$CONTEXT" '{
   hookSpecificOutput: {

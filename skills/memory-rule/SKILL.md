@@ -22,12 +22,13 @@ This plugin skill governs how persistent agent memory is structured, loaded, upd
 
 ```text
 MEMORY.md          = human-readable startup index and pointers
-.pamem/config.toml = machine-readable profile, load, and write policy when present
+.pamem/config.toml = machine-readable profile, memory repo location, load, write, and sync policy when present
 L0/ or this skill   = constitution and governance
 L1/ or notes/       = stable shared, role, preference, and experience memory
 L2/ or notes/       = project and active task memory
 L3/ or notes/       = archive summaries not loaded by default
 requests/           = reviewable memory-promotion requests
+.pamem/scripts/memory-sync.sh = repo-level sync helper for the configured memory repo backend
 sync-request        = separate request-generation skill for cross-device retention
 ```
 
@@ -40,9 +41,11 @@ Pamem supports both the current per-agent notes scaffold and a shared memory rep
 ### Shared Memory Repo
 
 ```text
-agent-memory/
+<agent-workspace>/
   .pamem/
-    config.toml
+    config.toml        # points at memory_repo.path
+
+agent-memory/
   MEMORY.md
   L0/
     constitution.md
@@ -60,6 +63,7 @@ agent-memory/
     projects/
       <project-key>.md
     active/
+      current-tasks.md
       <task-id>.md
   L3/
     work-log.md
@@ -136,6 +140,7 @@ Layer 2 contains specific project context and active resumable task state.
 Examples:
 
 - `L2/projects/<project-key>.md`
+- `L2/active/current-tasks.md`
 - `L2/active/<task-id>.md`
 - `notes/projects/<project-key>.md`
 - `notes/current-task.md`
@@ -156,9 +161,24 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 ## Profile Configuration
 
-When `.pamem/config.toml` exists, it is the machine-readable source for profiles, load targets, and write targets. `MEMORY.md` should point to it instead of duplicating its details.
+When `.pamem/config.toml` exists, it is the machine-readable source for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
 
-For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual queue root, executor, and profile owners.
+For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners.
+
+The shared repo is resolved through:
+
+```toml
+[memory_repo]
+path = ".pamem/memory"
+sharing = "shared"
+entry_file = "MEMORY.md"
+
+[memory_repo.sync]
+backend = "local"
+remote = ""
+ref = "main"
+sync_bootstrapped = false
+```
 
 Example shape:
 
@@ -172,9 +192,11 @@ load = [
   "L1/shared/experience.md",
   "L1/roles/coder.md",
   "L2/projects/pamem.md",
+  "L2/active/current-tasks.md",
   "L2/active/task-123.md"
 ]
 write = [
+  "L2/active/current-tasks.md",
   "L2/active/task-123.md",
   "requests/inbox/"
 ]
@@ -198,13 +220,15 @@ Rules:
 On wake-up:
 
 1. Read `MEMORY.md`.
-2. If present, read `.pamem/config.toml` and select the requested or default profile.
-3. Load L0 constitution sources for that profile.
-4. Load L1 shared memory.
-5. Load the L1 role overlay for the profile.
-6. Load L2 project memory for the active project.
-7. Load L2 active task memory only when a task is open.
-8. Do not load L3 archive or `requests/` by default.
+2. If present, read `.pamem/config.toml`, resolve `memory_repo.path`, and select the requested or default profile.
+3. Load the repo entry file from `memory_repo.entry_file`; default is `MEMORY.md`.
+4. Load L0 constitution sources for that profile.
+5. Load L1 shared memory.
+6. Load the L1 role overlay for the profile.
+7. Load L2 project memory for the active project.
+8. Load L2 active task memory only when a task is open.
+9. Do not load L3 archive or `requests/` by default.
+10. If using the shared repo layout, prefer `L2/active/current-tasks.md` as the startup-safe active roster and keep `notes/current-task.md` only for fallback workspaces.
 
 Fallback load order when `.pamem/config.toml` is absent:
 
@@ -260,6 +284,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
 | Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict |
+| Active roster | `L2/active/current-tasks.md` | `notes/current-task.md` | Startup-safe active task list; remove completed tasks |
 | Active task state | `L2/active/<task-id>.md` | `notes/current-task.md` | Startup-safe summary and pointers only |
 | Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
 | Closed task summary | `L3/work-log.md` or `L3/archive/` | `notes/work-log.md` | Newest first; summaries only |
@@ -328,6 +353,8 @@ Never use `sync-request` for:
 
 Do not use the sync queue as the memory promotion queue. Use `requests/inbox/` or a task thread for promotion review.
 
+`memory-sync.sh` is separate from `sync-request`: it is the repo-level helper a sync executor may call after policy decides the configured memory repo should be propagated. Ordinary task agents should not run it unless explicitly assigned executor responsibility.
+
 ## Multi-Instance Concurrency
 
 When multiple agent instances run concurrently, shared memory files become write-contended. The following rules prevent data loss and merge conflicts.
@@ -337,6 +364,7 @@ When multiple agent instances run concurrently, shared memory files become write
 - L0 and L1 shared files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
 - `MEMORY.md` is a shared index and pointer list, not an isolation boundary.
 - L2 active task state must live in per-task files such as `L2/active/<task-id>.md` or in the task worktree.
+- The shared active roster belongs in `L2/active/current-tasks.md`; fallback workspaces keep it in `notes/current-task.md`.
 - Shared pointer files contain only short lines pointing to the authoritative task state.
 - Stable memory writes happen at task completion or through promotion review.
 
@@ -345,15 +373,15 @@ When multiple agent instances run concurrently, shared memory files become write
 When multiple instances may be active, pointer files use a list format so entries from different instances coexist:
 
 - `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> -> <pointer to L2/active or notes/current-task>`.
-- `notes/current-task.md`: the active roster for the workspace, listing active worktrees or task files in the format `<worktree-path or task-id> -> <one-line task description>`.
+- `L2/active/current-tasks.md` or `notes/current-task.md`: the active roster for the workspace, listing active worktrees or task files in the format `<worktree-path or task-id> -> <one-line task description>`.
 
 When more than 3 instances are active, do not try to list every instance in `MEMORY.md`. Keep `MEMORY.md` as a startup dashboard:
 
 - one line for the lead blocker, if any
 - one line for the current primary workstream
-- one line pointing to the full active roster, such as `notes/current-task.md` or `L2/active/`
+- one line pointing to the full active roster, such as `L2/active/current-tasks.md` or `notes/current-task.md`
 
-The full roster belongs in `notes/current-task.md` or per-task L2 files. Compressing `MEMORY.md` removes startup noise only; it must not delete task state.
+The full roster belongs in `L2/active/current-tasks.md`, `notes/current-task.md`, or per-task L2 files. Compressing `MEMORY.md` removes startup noise only; it must not delete task state.
 
 ### Conflict Tolerance
 
@@ -367,13 +395,13 @@ If last-write-wins occurs on a pointer file:
 
 1. Task start: create or update the L2 task file and add a pointer line if needed.
 2. Task execution: write task state only to L2 active files or task-local planning files.
-3. Task completion: remove the completed task from `MEMORY.md` and `notes/current-task.md`, update L2 project memory if needed, create promotion requests for L1 candidates, and archive a concise summary to L3.
+3. Task completion: remove the completed task from `MEMORY.md` and the active roster (`L2/active/current-tasks.md` or `notes/current-task.md`), update L2 project memory if needed, create promotion requests for L1 candidates, and archive a concise summary to L3.
 
 ## Current Task Vs Planning Files
 
 Use L2 active task memory as the default startup-safe task summary.
 
-- Shared layout: `L2/active/<task-id>.md`
+- Shared layout: `L2/active/current-tasks.md` for the roster and `L2/active/<task-id>.md` for detailed per-task state
 - Fallback layout: `notes/current-task.md`
 
 Keep it short: task, status, current phase, blocker, next step, and pointers.

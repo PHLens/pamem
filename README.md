@@ -15,7 +15,9 @@ Persistent agent memory becomes unstable when every workspace assembles its own 
 - memory governance
 - startup hooks
 - memory skeleton files
+- shared memory repo bootstrap and config templates
 - sync-request support
+- sync helper entry points
 
 It is the runtime, not the memory content itself.
 
@@ -38,9 +40,10 @@ the workspace environment.
 ### More
 
 - [DESIGN.md](DESIGN.md): memory layers, design philosophy, and plugin responsibilities
-- [SYNC.md](SYNC.md): how `pamem` works with `sync-request` and external sync executors
+- [SYNC.md](SYNC.md): how `pamem` works with `sync-request`, the memory sync helper, and external sync executors
 - [INSTALL.md](INSTALL.md): Codex install, repair, update, and removal
 - `assets/config.toml.template`: starter config for onboarding a shared memory repo
+- `scripts/memory-sync.sh`: sync helper for the configured memory repo backend
 
 ## Check
 
