@@ -6,6 +6,12 @@ This document explains the memory model behind `pamem`, what each layer means, a
 
 The model has 4 layers.
 
+The layer names are logical contracts, not a requirement that every runtime or
+every storage backend must mirror the same folder names. The current shared-repo
+layout uses directories like `L0/`, `L1/`, and `L2/` because they are easy to
+bootstrap and lint, but the meaning comes from the layer contract, not the
+path shape.
+
 ```mermaid
 flowchart TD
     L0["Layer 0: Constitution<br/>Shared runtime rules, startup loading, precedence, write gates"]
@@ -56,6 +62,8 @@ Examples:
 - `notes/projects/<project-key>.md`
 
 Project-specific memory belongs in L2, not L1. It should be more specific than role memory and should win over role defaults on conflict.
+
+`projects/` is a namespace inside L2, not another layer.
 
 Runtime-local task state is not part of the shared memory repo. CLI mode may
 keep local recovery notes such as `notes/current-task.md`; Slock mode uses the
