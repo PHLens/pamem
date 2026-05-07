@@ -37,3 +37,4 @@ plugin runtime.
 - [DESIGN.md](DESIGN.md): memory layers, design philosophy, and plugin responsibilities
 - [SYNC.md](SYNC.md): how `pamem` works with `sync-request` and external sync executors
 - [INSTALL.md](INSTALL.md): Codex install, repair, update, and removal
+- `assets/config.toml.template`: starter config for onboarding a shared memory repo

@@ -158,6 +158,8 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 When `.pamem/config.toml` exists, it is the machine-readable source for profiles, load targets, and write targets. `MEMORY.md` should point to it instead of duplicating its details.
 
+For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual queue root, executor, and profile owners.
+
 Example shape:
 
 ```toml
@@ -188,6 +190,7 @@ Rules:
 - Project memory is loaded from L2 and wins over role memory on conflict.
 - Ordinary task agents should write active task state and promotion requests, not stable shared files.
 - `guarded_write` means the agent may update the target only when the change is high-confidence, reusable across tasks, and allowed by local policy; otherwise create a promotion request.
+- Config changes that alter ownership, precedence, or sync policy should be treated as governance changes and reviewed by the config owner or onboarding profile.
 - If no config exists, use the per-agent notes fallback load order.
 
 ## Startup Load Workflow
