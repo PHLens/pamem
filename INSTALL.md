@@ -12,6 +12,35 @@ Codex bootstrap is workspace-local. It does not install or enable the Claude plu
 - `jq`
 - GNU coreutils `realpath`
 
+## Onboard
+
+Use `onboard-pamem.sh` when a human or onboarding agent needs to choose the
+initial profile config for a workspace:
+
+```bash
+$HOME/.claude/plugins/marketplaces/phlens/scripts/onboard-pamem.sh <workspace> --profile coder
+```
+
+Supported profiles are `onboarding`, `human`, `coder`, `reviewer`, and
+`researcher`. The script chooses the matching config template, writes
+`.pamem/config.toml`, runs the normal install path, and seeds the configured
+memory repo.
+
+Profile selection is an onboarding-time decision. Runtime startup hooks read
+the selected `.pamem/config.toml`; they do not switch `default_profile`. If
+`.pamem/config.toml` already exists, the onboarding script refuses to replace it
+unless `--force` is passed for deliberate re-onboarding.
+
+Useful options:
+
+```bash
+--memory-repo <path>
+--sync-backend <local|git|webdav>
+--sync-remote <target>
+--sync-ref <ref>
+--sync-executor <name>
+```
+
 ## Install
 
 Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
@@ -22,9 +51,9 @@ The bootstrap now creates `.pamem/config.toml` from `assets/config.toml.template
 if it is missing, then seeds the configured memory repo root and shared
 `L0/L1/L2/L3` skeleton. Update the generated config when you want to move the
 memory repo, change the sharing mode, or point sync at a different backend.
-A workspace should only activate one `default_profile` at a time; if you want a
-different default role, replace `.pamem/config.toml` with the matching file
-from `assets/config-profiles/`.
+For normal human onboarding, prefer `onboard-pamem.sh`. Use `install-pamem.sh`
+directly for the default onboarding profile or for repairing runtime links after
+`.pamem/config.toml` has already been chosen.
 
 Install into a workspace:
 
@@ -87,6 +116,7 @@ After installation, check:
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
 - startup loads the memory index
 - `.pamem/config.toml` exists and points to the shared memory repo root
+- `default_profile` was selected during onboarding and is not changed by startup hooks
 - `.pamem/scripts/memory-sync.sh --dry-run` prints the configured sync backend action
 
 ## Update

@@ -154,6 +154,10 @@ In practice, a workspace should activate one `default_profile` at a time. The
 templates in `assets/config-profiles/` are standalone starters for alternate
 defaults, not simultaneous runtime roles.
 
+Profile selection belongs to onboarding. `onboard-pamem.sh` writes the selected
+`.pamem/config.toml` before runtime hooks start reading it; startup and compact
+hooks must treat the selected profile as read-only policy.
+
 ### Config Ownership
 
 When a workspace uses `.pamem/config.toml`, that file is the source of truth for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.

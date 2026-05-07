@@ -69,10 +69,16 @@ for file in \
   "$ROOT/assets/config-profiles/coder.toml.template" \
   "$ROOT/assets/config-profiles/reviewer.toml.template" \
   "$ROOT/assets/config-profiles/researcher.toml.template" \
+  "$ROOT/scripts/onboard-pamem.sh" \
   "$ROOT/scripts/memory-sync.sh"
 do
   test -s "$file"
 done
+
+if [ ! -x "$ROOT/scripts/onboard-pamem.sh" ]; then
+  echo "onboard-pamem.sh must be executable" >&2
+  exit 1
+fi
 
 if [ ! -x "$ROOT/scripts/memory-sync.sh" ]; then
   echo "memory-sync.sh must be executable" >&2
@@ -85,8 +91,9 @@ if grep -RIn --exclude-dir=.git --exclude-dir=tests -E '~/sync-queue|for Adam|Ad
 fi
 
 WORKSPACE="$(mktemp -d)"
+ONBOARD_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE"
+  rm -rf "$WORKSPACE" "$ONBOARD_WORKSPACE"
 }
 trap cleanup EXIT
 
@@ -136,6 +143,27 @@ fi
 WEBDAV_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --resync --dry-run)"
 if [[ "$WEBDAV_SYNC_OUTPUT" != rclone\ bisync\ * ]]; then
   echo "webdav sync dry-run output did not start with the expected command" >&2
+  exit 1
+fi
+
+bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" \
+  --profile reviewer \
+  --memory-repo ".pamem/reviewer-memory" \
+  --sync-backend webdav \
+  --sync-remote "example:Memory" \
+  --sync-ref "main" \
+  --sync-executor "sync-executor" >/dev/null
+
+grep -Fq 'default_profile = "reviewer"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
+grep -Fq 'path = ".pamem/reviewer-memory"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
+grep -Fq 'backend = "webdav"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
+grep -Fq 'remote = "example:Memory"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
+grep -Fq 'executor = "sync-executor"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
+test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/MEMORY.md"
+test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/L1/roles/reviewer.md"
+
+if bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" --profile coder >/dev/null 2>&1; then
+  echo "onboarding must not overwrite an existing config without --force" >&2
   exit 1
 fi
 
