@@ -42,7 +42,7 @@ description = "Human review profile for approving governance and config changes.
 load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
-  "L1/shared/workflow.md",
+  "L1/shared/operating-rules.md",
   "L1/shared/experience.md"
 ]
 write = [
@@ -54,7 +54,7 @@ write = [
 guarded_write = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
-  "L1/shared/workflow.md",
+  "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
   "L1/roles/onboarding.md"
 ]

@@ -73,8 +73,25 @@ copy_if_missing() {
   fi
 }
 
+copy_legacy_or_template_if_missing() {
+  local legacy="$1"
+  local src="$2"
+  local dst="$3"
+
+  if [ -s "$dst" ]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dst")"
+  if [ -s "$legacy" ]; then
+    cp "$legacy" "$dst"
+  else
+    cp "$src" "$dst"
+  fi
+}
+
 copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
-copy_if_missing "$ASSETS_DIR/notes/agent-workflow.md.template" "$NOTES_DIR/agent-workflow.md"
+copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
 copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
 copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$NOTES_DIR/current-task.md"
 copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$NOTES_DIR/work-log.md"

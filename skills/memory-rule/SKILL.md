@@ -52,7 +52,7 @@ agent-memory/
   L1/
     shared/
       preferences.md
-      workflow.md
+      operating-rules.md
       experience.md
     roles/
       coder.md
@@ -82,7 +82,7 @@ agent-memory/
   MEMORY.md
   notes/
     user-preferences.md
-    agent-workflow.md
+    operating-rules.md
     experience.md
     current-task.md
     work-log.md
@@ -92,7 +92,7 @@ agent-memory/
 
 Map fallback files to the same layers:
 
-- `notes/user-preferences.md`, `notes/agent-workflow.md`, and `notes/experience.md` are L1.
+- `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` are L1.
 - `notes/projects/<project-key>.md` and `notes/current-task.md` are L2.
 - `notes/work-log.md` is L3.
 
@@ -194,7 +194,7 @@ role = "coder"
 load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
-  "L1/shared/workflow.md",
+  "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
   "L1/roles/coder.md",
   "L2/projects/pamem.md",
@@ -241,7 +241,7 @@ Fallback load order when `.pamem/config.toml` is absent:
 
 1. `MEMORY.md`
 2. `notes/user-preferences.md`
-3. `notes/agent-workflow.md`
+3. `notes/operating-rules.md`
 4. `notes/experience.md`
 5. `notes/projects/<project-key>.md`, if the current project has one
 6. `notes/current-task.md`, only if a task is still open
@@ -285,7 +285,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Type | Shared layout | Fallback layout | Notes |
 |---|---|---|---|
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
-| Shared workflow rules | `L1/shared/workflow.md` | `notes/agent-workflow.md` | Stable workflow defaults; must not override L0 |
+| Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
 | Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |

@@ -59,6 +59,7 @@ for file in \
   "$ROOT/assets/MEMORY.md.template" \
   "$ROOT/assets/memory-governance.md.fragment" \
   "$ROOT/assets/sync-trigger.md.fragment" \
+  "$ROOT/assets/notes/operating-rules.md.template" \
   "$ROOT/assets/notes/current-task.md.template" \
   "$ROOT/assets/shared/L0/constitution.md.template" \
   "$ROOT/assets/shared/L1/roles/onboarding.md.template" \
@@ -102,27 +103,42 @@ fi
 WORKSPACE="$(mktemp -d)"
 ONBOARD_WORKSPACE="$(mktemp -d)"
 WIKI_WORKSPACE="$(mktemp -d)"
+LEGACY_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE" "$ONBOARD_WORKSPACE" "$WIKI_WORKSPACE"
+  rm -rf "$WORKSPACE" "$ONBOARD_WORKSPACE" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE"
 }
 trap cleanup EXIT
 
 bash "$ROOT/scripts/install-pamem.sh" "$WORKSPACE" >/dev/null
+
+mkdir -p "$LEGACY_WORKSPACE/notes" "$LEGACY_WORKSPACE/.pamem/memory/L1/shared"
+printf '# Legacy Agent Workflow\n\n- legacy workspace operating rule\n' > "$LEGACY_WORKSPACE/notes/agent-workflow.md"
+printf '# Legacy Shared Workflow\n\n- legacy shared operating rule\n' > "$LEGACY_WORKSPACE/.pamem/memory/L1/shared/workflow.md"
+bash "$ROOT/scripts/install-pamem.sh" "$LEGACY_WORKSPACE" >/dev/null
+grep -Fq 'legacy workspace operating rule' "$LEGACY_WORKSPACE/notes/operating-rules.md"
+grep -Fq 'legacy shared operating rule' "$LEGACY_WORKSPACE/.pamem/memory/L1/shared/operating-rules.md"
 
 for file in \
   "$WORKSPACE/.pamem/config.toml" \
   "$WORKSPACE/.pamem/memory/MEMORY.md" \
   "$WORKSPACE/.pamem/memory/L0/constitution.md" \
   "$WORKSPACE/.pamem/memory/L1/shared/preferences.md" \
+  "$WORKSPACE/.pamem/memory/L1/shared/operating-rules.md" \
   "$WORKSPACE/.pamem/memory/L1/roles/onboarding.md" \
   "$WORKSPACE/.pamem/memory/L1/roles/wiki.md" \
   "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md" \
   "$WORKSPACE/.pamem/memory/L3/work-log.md" \
   "$WORKSPACE/MEMORY.md" \
+  "$WORKSPACE/notes/operating-rules.md" \
   "$WORKSPACE/notes/current-task.md"
 do
   test -s "$file"
 done
+
+if [ -e "$WORKSPACE/.pamem/memory/L1/shared/workflow.md" ] || [ -e "$WORKSPACE/notes/agent-workflow.md" ]; then
+  echo "legacy shared workflow file names should not be generated" >&2
+  exit 1
+fi
 
 MEMORY_LINT_OUTPUT="$(bash "$MEMORY_LINT" --root "$WORKSPACE" --json)"
 printf '%s' "$MEMORY_LINT_OUTPUT" | jq -e '

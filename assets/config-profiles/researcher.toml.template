@@ -42,7 +42,7 @@ description = "Research profile for gathering findings and durable meta-knowledg
 load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
-  "L1/shared/workflow.md",
+  "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
   "L1/roles/researcher.md",
   "L2/projects/<project-key>.md",

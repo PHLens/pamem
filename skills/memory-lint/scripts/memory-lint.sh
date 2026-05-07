@@ -325,7 +325,7 @@ fi
 for required in \
   "L0/constitution.md" \
   "L1/shared/preferences.md" \
-  "L1/shared/workflow.md" \
+  "L1/shared/operating-rules.md" \
   "L1/shared/experience.md" \
   "L2/active/current-tasks.md" \
   "L3/work-log.md" \

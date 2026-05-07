@@ -95,7 +95,7 @@ The Codex bootstrap creates or repairs:
 
 - `MEMORY.md`
 - `notes/user-preferences.md`
-- `notes/agent-workflow.md`
+- `notes/operating-rules.md`
 - `notes/experience.md`
 - `notes/current-task.md`
 - `notes/work-log.md`
@@ -160,7 +160,7 @@ Constraints:
 It does not replace:
 
 - `notes/user-preferences.md`
-- `notes/agent-workflow.md`
+- `notes/operating-rules.md`
 - `notes/projects/*`
 - `notes/current-task.md`
 - the local sync executor workflow

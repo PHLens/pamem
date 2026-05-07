@@ -39,7 +39,7 @@ This is durable memory that should survive across tasks and be reusable by multi
 Examples:
 
 - `notes/user-preferences.md`
-- `notes/agent-workflow.md`
+- `notes/operating-rules.md`
 - `notes/experience.md`
 - `L1/shared/*`
 - `L1/roles/<role>.md`
@@ -116,7 +116,7 @@ flowchart TD
 - `L2/active/current-tasks.md`
 - `L3/work-log.md`
 - `notes/user-preferences.md`
-- `notes/agent-workflow.md`
+- `notes/operating-rules.md`
 - `notes/experience.md`
 - `notes/projects/*`
 - `notes/current-task.md`
