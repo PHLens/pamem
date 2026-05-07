@@ -335,6 +335,7 @@ When multiple agent instances run concurrently, shared memory files become write
 ### Principles
 
 - L0 and L1 shared files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
+- `MEMORY.md` is a shared index and pointer list, not an isolation boundary.
 - L2 active task state must live in per-task files such as `L2/active/<task-id>.md` or in the task worktree.
 - Shared pointer files contain only short lines pointing to the authoritative task state.
 - Stable memory writes happen at task completion or through promotion review.
