@@ -132,6 +132,14 @@ But it does not decide the actual contents of those files for a specific agent.
 
 The runtime should be shared. The memory content may live in a shared repo or a workspace fallback, but the repo location, sharing mode, and sync policy are configuration, not hardcoded behavior.
 
+### Local Convenience, Shared Infrastructure
+
+CLI-native memory is a convenience feature for one tool, one machine, or one session flow.
+`pamem` is the shared infrastructure around that feature: it standardizes durable memory
+layers, profile selection, write gates, promotion, and sync boundaries so Claude, Codex,
+and Slock can share the same governed memory without turning runtime-local task state into
+shared history.
+
 ### Thin Index, Not Transcript
 
 `MEMORY.md` should remain a startup-safe index, not become a running notebook or log.
