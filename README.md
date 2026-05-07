@@ -17,7 +17,7 @@ Persistent agent memory becomes unstable when every workspace assembles its own 
 - memory skeleton files
 - runtime-mode boundaries for CLI and Slock task state
 - shared memory repo bootstrap and config templates
-- sync-request support
+- sync request handoff
 - sync helper entry points
 
 It is the runtime, not the memory content itself.
@@ -33,7 +33,10 @@ claude plugin install pamem@phlens --scope project
 
 Codex bootstrap reuses that same marketplace install by symlinking the
 workspace `.pamem/scripts` and `.pamem/assets` paths back to the installed
-plugin runtime.
+plugin runtime. It also exposes packaged pamem skills through `.codex/skills`
+so `memory-rule`, `sync-request`, and `memory-lint` are runtime capabilities.
+If those skills are missing, repair the pamem bootstrap before writing shared
+memory, local config, or sync queues.
 
 The bootstrap scripts assume `bash`, `jq`, and GNU `realpath` are available in
 the workspace environment.
@@ -116,7 +119,7 @@ This writes `.pamem/config.toml` into the Slock workspace and leaves
 ### More
 
 - [DESIGN.md](DESIGN.md): memory layers, design philosophy, and plugin responsibilities
-- [SYNC.md](SYNC.md): how `pamem` works with `sync-request`, the memory sync helper, and external sync executors
+- [SYNC.md](SYNC.md): how `pamem` works with sync request handoff, the memory sync helper, and external sync executors
 - [INSTALL.md](INSTALL.md): Codex install, repair, update, and removal
 - `assets/config.toml.template`: starter config for onboarding a shared memory repo
 - `assets/config-profiles/*.toml.template`: alternate role-specific starter configs

@@ -97,7 +97,7 @@ if [ "$MEMORY_AVAILABLE" -ne 1 ]; then
   CONTEXT="${CONTEXT}Warning: configured memory entry file is missing or empty: \`${MEMORY_PATH}\`. Run pamem install/repair or ask the config owner before writing shared memory."
 elif [ "$LINE_COUNT" -gt 120 ] || [ "$BYTE_COUNT" -gt 6000 ]; then
   CONTEXT="${CONTEXT}"$'\n\n'
-  CONTEXT="${CONTEXT}Warning: \`MEMORY.md\` is larger than index guidance and should be compressed with \`memory-rule\`."
+  CONTEXT="${CONTEXT}Warning: \`MEMORY.md\` is larger than index guidance and should be compressed with the \`memory-rule\` plugin skill; if that skill is unavailable, run pamem install/repair or ask onboarding before changing shared memory."
 fi
 
 if [ "$MEMORY_AVAILABLE" -eq 1 ]; then

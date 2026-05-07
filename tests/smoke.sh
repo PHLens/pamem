@@ -102,6 +102,29 @@ do
   test -s "$file"
 done
 
+if grep -RIn -E 'otherwise follow these rules directly|otherwise ask the assigned sync executor|helper skills when the runtime exposes|If the runtime exposes a `sync-request` helper' \
+  "$ROOT/assets/MEMORY.md.template" \
+  "$ROOT/assets/memory-governance.md.fragment" \
+  "$ROOT/assets/sync-trigger.md.fragment" \
+  "$ROOT/DESIGN.md" \
+  "$ROOT/SYNC.md" \
+  "$ROOT/scripts/memory-session-start.sh"; then
+  echo "runtime-loaded pamem text must treat missing helper skills as install/repair failures" >&2
+  exit 1
+fi
+
+for required_helper in memory-rule sync-request memory-lint; do
+  if ! grep -RIn "$required_helper" \
+    "$ROOT/assets/MEMORY.md.template" \
+    "$ROOT/assets/memory-governance.md.fragment" \
+    "$ROOT/assets/sync-trigger.md.fragment" \
+    "$ROOT/DESIGN.md" \
+    "$ROOT/INSTALL.md" >/dev/null; then
+    echo "runtime text must mention packaged pamem helper skill: $required_helper" >&2
+    exit 1
+  fi
+done
+
 MEMORY_LINT="$ROOT/skills/memory-lint/scripts/memory-lint.sh"
 
 if [ ! -x "$MEMORY_LINT" ]; then
@@ -148,13 +171,34 @@ LEGACY_WORKSPACE="$(mktemp -d)"
 SLOCK_WORKSPACE="$(mktemp -d)"
 SLOCK_XDG_DATA_ROOT="$(mktemp -d)"
 INVALID_RUNTIME_WORKSPACE="$(mktemp -d)"
+REMOVE_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$SLOCK_XDG_DATA_ROOT" "$INVALID_RUNTIME_WORKSPACE"
+  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$SLOCK_XDG_DATA_ROOT" "$INVALID_RUNTIME_WORKSPACE" "$REMOVE_WORKSPACE"
 }
 trap cleanup EXIT
 
 XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/install-pamem.sh" "$WORKSPACE" >/dev/null
 DEFAULT_MEMORY_REPO="$SHARED_XDG_DATA_ROOT/pamem/memory"
+
+for skill in memory-rule sync-request memory-lint; do
+  test -L "$WORKSPACE/.codex/skills/$skill"
+  if [ "$(readlink -f "$WORKSPACE/.codex/skills/$skill")" != "$ROOT/skills/$skill" ]; then
+    echo "Codex bootstrap skill link does not resolve to packaged skill: $skill" >&2
+    exit 1
+  fi
+done
+
+XDG_DATA_HOME="$SHARED_XDG_DATA_ROOT" bash "$ROOT/scripts/install-pamem.sh" "$REMOVE_WORKSPACE" >/dev/null
+for skill in memory-rule sync-request memory-lint; do
+  test -L "$REMOVE_WORKSPACE/.codex/skills/$skill"
+done
+bash "$ROOT/scripts/remove-pamem.sh" "$REMOVE_WORKSPACE" >/dev/null
+for skill in memory-rule sync-request memory-lint; do
+  if [ -e "$REMOVE_WORKSPACE/.codex/skills/$skill" ]; then
+    echo "remove-pamem.sh must remove managed Codex skill link: $skill" >&2
+    exit 1
+  fi
+done
 
 mkdir -p "$LEGACY_WORKSPACE/notes" "$LEGACY_WORKSPACE/.pamem/memory/L1/shared"
 printf '# Legacy Agent Workflow\n\n- legacy workspace operating rule\n' > "$LEGACY_WORKSPACE/notes/agent-workflow.md"
@@ -338,6 +382,13 @@ test -s "$WIKI_AGENT_HOME/work-log.md"
 test ! -e "$WIKI_AGENT_HOME/.pamem"
 test ! -e "$WIKI_AGENT_HOME/scripts"
 test ! -e "$WIKI_AGENT_HOME/assets"
+for skill in memory-rule sync-request memory-lint; do
+  test -L "$WIKI_AGENT_HOME/.codex/skills/$skill"
+  if [ "$(readlink -f "$WIKI_AGENT_HOME/.codex/skills/$skill")" != "$ROOT/skills/$skill" ]; then
+    echo "agent-home Codex skill link does not resolve to packaged skill: $skill" >&2
+    exit 1
+  fi
+done
 
 SHARED_A_STATUS="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ONBOARD_WORKSPACE/shared-a/.pamem/scripts/pamem-cli.sh" status)"
 printf '%s' "$SHARED_A_STATUS" | grep -Fq "root=$ONBOARD_WORKSPACE/shared-a"

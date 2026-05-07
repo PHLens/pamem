@@ -40,6 +40,7 @@ mkdir -p "$TARGET_INPUT"
 WORKSPACE="$(cd "$TARGET_INPUT" && pwd)"
 if [ "$AGENT_HOME_MODE" -eq 1 ]; then
   CODEX_DIR="$WORKSPACE/.codex"
+  CODEX_SKILLS_DIR="$CODEX_DIR/skills"
   CONFIG_PATH="$(pamem_agent_home_config_path "$WORKSPACE")"
   CURRENT_TASK_PATH="$WORKSPACE/current-task.md"
   WORK_LOG_PATH="$WORKSPACE/work-log.md"
@@ -48,6 +49,7 @@ if [ "$AGENT_HOME_MODE" -eq 1 ]; then
 else
   NOTES_DIR="$WORKSPACE/notes"
   CODEX_DIR="$WORKSPACE/.codex"
+  CODEX_SKILLS_DIR="$CODEX_DIR/skills"
   FOUNDATION_DIR="$WORKSPACE/.pamem"
   FOUNDATION_SCRIPTS_DIR="$FOUNDATION_DIR/scripts"
   FOUNDATION_ASSETS_DIR="$FOUNDATION_DIR/assets"
@@ -83,10 +85,49 @@ ensure_runtime_link() {
   ln -s "$rel_src" "$dst"
 }
 
+ensure_skill_link() {
+  local src="$1"
+  local dst="$2"
+  local rel_src
+
+  rel_src="$(relative_link_target "$src" "$dst")"
+  mkdir -p "$(dirname "$dst")"
+
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$rel_src" ]; then
+    return 0
+  fi
+
+  if [ -e "$dst" ] && [ ! -L "$dst" ]; then
+    echo "pamem skill target exists and is not a symlink: $dst" >&2
+    echo "remove or rename it, then rerun pamem install/repair" >&2
+    exit 1
+  fi
+
+  rm -f "$dst"
+  ln -s "$rel_src" "$dst"
+}
+
+ensure_codex_skill_links() {
+  local skill_src
+  local skill_name
+
+  if [ ! -d "$PLUGIN_ROOT/skills" ]; then
+    return 0
+  fi
+
+  mkdir -p "$CODEX_SKILLS_DIR"
+  for skill_src in "$PLUGIN_ROOT"/skills/*; do
+    [ -d "$skill_src" ] || continue
+    skill_name="$(basename "$skill_src")"
+    ensure_skill_link "$skill_src" "$CODEX_SKILLS_DIR/$skill_name"
+  done
+}
+
 if [ "$AGENT_HOME_MODE" -ne 1 ]; then
   ensure_runtime_link "$PLUGIN_ROOT/scripts" "$FOUNDATION_SCRIPTS_DIR"
   ensure_runtime_link "$ASSETS_DIR" "$FOUNDATION_ASSETS_DIR"
 fi
+ensure_codex_skill_links
 
 copy_if_missing() {
   local src="$1"

@@ -111,13 +111,18 @@ flowchart TD
 
 `pamem` directly manages Layer 0 by shipping:
 
-- `memory-rule`
-- `sync-request`
+- `memory-rule`, `sync-request`, and `memory-lint` plugin skills
+- bootstrap/repair behavior that exposes those skills to supported runtimes
 - Claude `SessionStart` hook
 - Codex bootstrap scripts
 - default memory skeleton and read-only startup behavior
 - optional profile/load policy through `config.toml` or `.pamem/config.toml`
 - shared memory repo bootstrap and sync helper entry points
+
+If `memory-rule` or `sync-request` is missing during a runtime session, treat
+that as an incomplete pamem plugin/bootstrap installation. Until onboarding or a
+human repairs it, agents may read injected startup context but must not change
+shared memory, local memory config, sync policy, or run repo sync.
 
 ### Created But Not Owned By Pamem
 
@@ -272,9 +277,23 @@ The plugin manages the memory system, not the agent's actual memories.
 
 Agent memory is the schema layer, not the wiki. Its growth direction is not "knowing more facts" but "judging more accurately and retrieving more efficiently". Domain knowledge belongs in external wikis; memory stores the meta-knowledge of how to find and apply that knowledge. The memory system should compound over time: each interaction can yield methodological experience (tool tips, corrected assumptions, workflow improvements) that makes future interactions more effective.
 
+### Plugin Capability Boundary
+
+`memory-rule` and `sync-request` are pamem runtime capabilities, not optional
+advice. Supported bootstrap paths should expose them to the agent runtime. A
+missing capability is a setup or runtime exposure problem to repair, not
+permission for ordinary task agents to bypass governance by editing memory,
+config, sync queues, or repo sync behavior directly.
+
 ### Sync Request Separation
 
-`sync-request` remains a separate skill. `memory-rule` decides whether a memory or managed-config change is durable and eligible for retention; `sync-request` only creates a structured request when explicitly asked or when workspace policy requires one. It is not a mechanism for project work, branches, PRs, or source-code delivery.
+Sync request handoff remains separate from memory governance. Memory governance
+decides whether a memory or managed-config change is durable and eligible for
+retention; a sync request only records the intent when explicitly asked or when
+workspace policy requires one. Use the `sync-request` plugin skill to create the
+structured request. If it is unavailable, repair pamem plugin exposure before
+creating requests; do not create ad hoc queue files or run sync directly. This
+is not a mechanism for project work, branches, PRs, or source-code delivery.
 
 ### Sync Risk Surface
 
@@ -287,6 +306,6 @@ responsibility.
 memory repo, backend, remote, profile, write targets, or executor. Treat config
 changes as onboarding/config-owner work.
 
-`sync-request` is lower risk than direct sync because it only writes a pending
-request, but it can trigger an external executor. Use it only when the user
-explicitly asks or workspace policy requires retention.
+A sync request is lower risk than direct sync because it only writes or hands
+off a pending request, but it can trigger an external executor. Use it only when
+the user explicitly asks or workspace policy requires retention.
