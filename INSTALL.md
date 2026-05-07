@@ -59,7 +59,7 @@ workspace-local hooks and memory files, but points `.pamem/scripts` and
 
 The bootstrap now creates `.pamem/config.toml` from `assets/config.toml.template`
 if it is missing, then seeds the configured memory repo root and shared
-`L0/L1/L2/projects` skeleton. Update the generated config when you want to move
+L0, L1, and L2 project skeleton. Update the generated config when you want to move
 the memory repo, change the runtime mode, change the sharing mode, or point sync
 at a different backend.
 For normal human onboarding, prefer `onboard-pamem.sh`. Use `install-pamem.sh`

@@ -14,7 +14,6 @@ mode = "cli"
 # Relative paths are resolved from the agent workspace; absolute paths are allowed for a shared repo used by multiple agents.
 path = ".pamem/memory"
 sharing = "shared"
-layout = "L0/L1/L2/projects"
 entry_file = "MEMORY.md"
 
 [memory_repo.sync]
