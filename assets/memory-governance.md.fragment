@@ -7,3 +7,5 @@ Use the `memory-rule` plugin skill when:
 - promoting task facts into durable memory
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
+
+`MEMORY.md` is a shared index, not the isolation boundary; per-task active files and worktree-local state isolate concurrent agent instances.

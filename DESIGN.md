@@ -146,6 +146,10 @@ This keeps role memory useful as shared experience while allowing project-specif
 
 When a workspace uses `.pamem/config.toml`, that file is the source of truth for profiles, load targets, write targets, and sync policy. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.
 
+### Instance Isolation
+
+Multiple agent instances may share the same `MEMORY.md` index, but they must not share mutable active state. Instance-specific state lives in per-task active files or worktree-local planning files; the index stays pointer-only, and shared L0/L1 memory remains read-only during ordinary execution.
+
 ### Startup-Safe By Default
 
 A new or resumed session should recover the right structure without manual repair.

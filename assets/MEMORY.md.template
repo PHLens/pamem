@@ -10,6 +10,8 @@ Use the `memory-rule` plugin skill when:
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
+`MEMORY.md` is a shared index, not the isolation boundary; per-task active files and worktree-local state isolate concurrent agent instances.
+
 ## Sync Trigger
 If durable local memory or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention, use the `sync-request` plugin skill to create a sync request in the configured pending queue for the active sync executor.
 Do not run sync directly from this agent.
