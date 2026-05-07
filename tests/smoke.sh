@@ -43,11 +43,16 @@ if grep -Eq '^[[:space:]]*executor[[:space:]]*=[[:space:]]*"Adam"' "$CONFIG"; th
   exit 1
 fi
 
-for profile in onboarding human coder reviewer researcher; do
-  if ! grep -Eq "^\[profiles\.${profile}\]$" "$CONFIG"; then
-    echo "missing profile: $profile" >&2
-    exit 1
-  fi
+if grep -Eq '^\[profiles\.(human|coder|reviewer|researcher)\]$' "$CONFIG"; then
+  echo "base config template should only ship the onboarding profile" >&2
+  exit 1
+fi
+
+for profile in human coder reviewer researcher; do
+  profile_template="$ROOT/assets/config-profiles/${profile}.toml.template"
+  test -s "$profile_template"
+  grep -Eq "^[[:space:]]*default_profile[[:space:]]*=[[:space:]]*\"${profile}\"" "$profile_template"
+  grep -Eq "^\[profiles\.${profile}\]$" "$profile_template"
 done
 
 for file in \
@@ -60,6 +65,10 @@ for file in \
   "$ROOT/assets/shared/L1/roles/coder.md.template" \
   "$ROOT/assets/shared/L1/roles/reviewer.md.template" \
   "$ROOT/assets/shared/L1/roles/researcher.md.template" \
+  "$ROOT/assets/config-profiles/human.toml.template" \
+  "$ROOT/assets/config-profiles/coder.toml.template" \
+  "$ROOT/assets/config-profiles/reviewer.toml.template" \
+  "$ROOT/assets/config-profiles/researcher.toml.template" \
   "$ROOT/scripts/memory-sync.sh"
 do
   test -s "$file"
@@ -107,14 +116,27 @@ rm -f "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md"
 printf '{"cwd":"%s","trigger":"manual"}\n' "$WORKSPACE" | bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
 test -s "$WORKSPACE/.pamem/memory/L2/active/current-tasks.md"
 
-bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --dry-run | grep -q '^local-only: no remote sync ran'
-bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend git --remote origin --dry-run | grep -q '^git -C '
+LOCAL_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --dry-run)"
+if [[ "$LOCAL_SYNC_OUTPUT" != local-only:* ]]; then
+  echo "local sync output did not start with the expected status" >&2
+  exit 1
+fi
+
+GIT_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend git --remote origin --dry-run)"
+if [[ "$GIT_SYNC_OUTPUT" != git\ -C\ * ]]; then
+  echo "git sync dry-run output did not start with the expected command" >&2
+  exit 1
+fi
 
 if bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --dry-run >/dev/null 2>&1; then
   echo "webdav dry-run must require --resync until sync_bootstrapped=true" >&2
   exit 1
 fi
 
-bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --resync --dry-run | grep -q '^rclone bisync '
+WEBDAV_SYNC_OUTPUT="$(bash "$ROOT/scripts/memory-sync.sh" --root "$WORKSPACE" --backend webdav --remote example:Memory --resync --dry-run)"
+if [[ "$WEBDAV_SYNC_OUTPUT" != rclone\ bisync\ * ]]; then
+  echo "webdav sync dry-run output did not start with the expected command" >&2
+  exit 1
+fi
 
 echo "pamem smoke checks passed"
