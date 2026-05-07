@@ -1,0 +1,125 @@
+# pamem shared config template
+# Copy this file to .pamem/config.toml and replace the placeholders.
+# Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
+
+version = 1
+default_profile = "onboarding"
+
+[governance]
+config_owner = "human"
+generated_by = "onboarding"
+requires_review_for = [
+  ".pamem/config.toml",
+  "L0/**",
+  "L1/shared/**",
+  "L1/roles/**"
+]
+
+[sync]
+queue_root = ".pamem/sync-queue"
+executor = "<configured-sync-executor>"
+policy = "explicit_request_or_workspace_policy"
+
+[profiles.onboarding]
+role = "onboarding"
+description = "Onboarding profile for seeding shared memory and creating new agents."
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/onboarding.md",
+  "L2/projects/<project-key>.md",
+  "L2/active/<task-id>.md"
+]
+write = [
+  "L2/active/<task-id>.md",
+  "requests/inbox/"
+]
+guarded_write = [
+  ".pamem/config.toml",
+  "L1/roles/onboarding.md"
+]
+
+[profiles.human]
+role = "human"
+description = "Human review profile for approving governance and config changes."
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md"
+]
+write = [
+  ".pamem/config.toml",
+  "requests/inbox/",
+  "L1/shared/experience.md",
+  "L1/roles/onboarding.md"
+]
+guarded_write = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/onboarding.md"
+]
+
+[profiles.coder]
+role = "coder"
+description = "Implementation profile for code changes and task execution."
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/coder.md",
+  "L2/projects/<project-key>.md",
+  "L2/active/<task-id>.md"
+]
+write = [
+  "L2/active/<task-id>.md",
+  "requests/inbox/"
+]
+guarded_write = [
+  "L1/roles/coder.md"
+]
+
+[profiles.reviewer]
+role = "reviewer"
+description = "Review profile for validation, critique, and change risk analysis."
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/reviewer.md",
+  "L2/projects/<project-key>.md",
+  "L2/active/<task-id>.md"
+]
+write = [
+  "L2/active/<task-id>.md",
+  "requests/inbox/"
+]
+guarded_write = [
+  "L1/roles/reviewer.md"
+]
+
+[profiles.researcher]
+role = "researcher"
+description = "Research profile for gathering findings and durable meta-knowledge."
+load = [
+  "L0/constitution.md",
+  "L1/shared/preferences.md",
+  "L1/shared/workflow.md",
+  "L1/shared/experience.md",
+  "L1/roles/researcher.md",
+  "L2/projects/<project-key>.md",
+  "L2/active/<task-id>.md"
+]
+write = [
+  "L2/active/<task-id>.md",
+  "requests/inbox/"
+]
+guarded_write = [
+  "L1/roles/researcher.md"
+]

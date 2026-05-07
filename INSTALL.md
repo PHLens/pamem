@@ -12,6 +12,8 @@ Codex reuses the Claude marketplace-installed runtime. The bootstrap keeps the
 workspace-local hooks and memory files, but points `.pamem/scripts` and
 `.pamem/assets` back to the installed plugin with symlinks.
 
+For shared-memory onboarding, copy `assets/config.toml.template` to `.pamem/config.toml` and replace the placeholders with the workspace's actual profile and sync settings. The bootstrap does not create this file automatically because it should be owned by human or onboarding review.
+
 Install into a workspace:
 
 ```bash
