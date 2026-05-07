@@ -44,6 +44,7 @@ the workspace environment.
 - [INSTALL.md](INSTALL.md): Codex install, repair, update, and removal
 - `assets/config.toml.template`: starter config for onboarding a shared memory repo
 - `assets/config-profiles/*.toml.template`: alternate role-specific starter configs
+- `scripts/onboard-pamem.sh`: human-facing onboarding helper for selecting the initial profile config
 - `scripts/memory-sync.sh`: sync helper for the configured memory repo backend
 
 ## Check

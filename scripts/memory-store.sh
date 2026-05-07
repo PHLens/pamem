@@ -19,7 +19,7 @@ pamem_toml_get_value() {
       sub(/[[:space:]]+$/, "", value)
       return value
     }
-    BEGIN { in_section = 0 }
+    BEGIN { in_section = (section == "[]") }
     {
       line = $0
       sub(/[[:space:]]*#.*/, "", line)

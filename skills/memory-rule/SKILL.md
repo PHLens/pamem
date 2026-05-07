@@ -166,6 +166,7 @@ When `.pamem/config.toml` exists, it is the machine-readable source for profiles
 For onboarding, seed `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the workspace's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
 Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
+Profile selection happens during onboarding, preferably through `onboard-pamem.sh`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
 
 The shared repo is resolved through:
 
@@ -210,6 +211,7 @@ guarded_write = [
 Rules:
 
 - Profiles describe what to load; they do not create new precedence.
+- Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
 - Role-specific memory is a profile overlay loaded from L1.
 - Project memory is loaded from L2 and wins over role memory on conflict.
 - Ordinary task agents should write active task state and promotion requests, not stable shared files.
