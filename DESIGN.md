@@ -53,6 +53,7 @@ This is the project and active task layer.
 Examples:
 
 - `L2/projects/<project-key>.md`
+- `L2/active/current-tasks.md`
 - `L2/active/<task-id>.md`
 - `notes/projects/<project-key>.md`
 - `notes/current-task.md`
@@ -65,6 +66,7 @@ This is history that should be preserved without polluting startup context.
 
 Examples:
 
+- `L3/work-log.md`
 - `notes/work-log.md`
 
 It stores summaries, not transcripts.
@@ -100,13 +102,19 @@ flowchart TD
 - Claude hooks
 - Codex bootstrap scripts
 - default memory skeleton and startup behavior
-- optional profile/load policy through `.pamem/config.toml` when a shared memory repo provides one
+- optional profile/load policy through `.pamem/config.toml`
+- shared memory repo bootstrap and sync helper entry points
 
 ### Created But Not Owned By Pamem
 
-`pamem` creates the base structure for Layers 1-3:
+`pamem` creates the base structure for Layers 1-3 in either the shared memory repo or the workspace fallback:
 
 - `MEMORY.md`
+- `L1/shared/*`
+- `L1/roles/*`
+- `L2/projects/*`
+- `L2/active/current-tasks.md`
+- `L3/work-log.md`
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
 - `notes/experience.md`
@@ -118,9 +126,9 @@ But it does not decide the actual contents of those files for a specific agent.
 
 ## Design Philosophy
 
-### Stable Governance, Local Data
+### Stable Governance, Shared Runtime
 
-The runtime should be shared. The memory content should remain local to each agent.
+The runtime should be shared. The memory content may live in a shared repo or a workspace fallback, but the repo location, sharing mode, and sync policy are configuration, not hardcoded behavior.
 
 ### Thin Index, Not Transcript
 
@@ -144,13 +152,13 @@ This keeps role memory useful as shared experience while allowing project-specif
 
 ### Config Ownership
 
-When a workspace uses `.pamem/config.toml`, that file is the source of truth for profiles, load targets, write targets, and sync policy. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.
+When a workspace uses `.pamem/config.toml`, that file is the source of truth for profiles, memory repo location, sharing mode, load targets, write targets, and sync policy. Onboarding can seed it from `assets/config.toml.template`, but ordinary task agents should treat it as read-only and route changes through the config owner or onboarding review.
 
 ### Instance Isolation
 
-Multiple agent instances may share the same `MEMORY.md` index, but they must not share mutable active state. Instance-specific state lives in per-task active files or worktree-local planning files; the index stays pointer-only, and shared L0/L1 memory remains read-only during ordinary execution.
+Multiple agent instances may share the same memory repo, but they must not share mutable active state. Instance-specific state lives in per-task active files or worktree-local planning files; the index stays pointer-only, and shared L0/L1 memory remains read-only during ordinary execution.
 
-When many instances are active, `MEMORY.md` should summarize the lead blocker, primary workstream, and a pointer to the full active roster. The complete instance list belongs in `notes/current-task.md` or per-task L2 files, not in the startup index.
+When many instances are active, `MEMORY.md` should summarize the lead blocker, primary workstream, and a pointer to the full active roster. The complete instance list belongs in `L2/active/current-tasks.md` for the shared layout or `notes/current-task.md` for the fallback layout.
 
 ### Startup-Safe By Default
 

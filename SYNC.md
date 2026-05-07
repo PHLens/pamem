@@ -1,6 +1,6 @@
 # Sync
 
-This document explains how `pamem` fits with `sync-request`.
+This document explains how `pamem` fits with `sync-request` and the standalone memory repo sync helper.
 
 It intentionally describes the **protocol and boundaries**, not a concrete sync executor implementation.
 
@@ -10,6 +10,8 @@ It intentionally describes the **protocol and boundaries**, not a concrete sync 
 
 `sync-request` provides the shared way to ask for cross-device retention when durable local memory or managed workspace config changes should be propagated elsewhere and the user explicitly asks or workspace policy requires retention.
 
+`scripts/memory-sync.sh` is the repo-level sync helper. Installed workspaces call it through `.pamem/scripts/memory-sync.sh`. It knows how to sync the configured memory repo backend (`local`, `git`, or `webdav`) and is meant for the sync executor or a dedicated sync capability, not for ordinary task delivery.
+
 It is intentionally **not** a channel for project work, source code, branches, or PR workflow.
 
 In short:
@@ -17,6 +19,7 @@ In short:
 - `pamem` manages local memory runtime
 - `sync-request` creates structured requests for external sync
 - an external executor consumes those requests
+- a sync executor may call `scripts/memory-sync.sh` when it is time to propagate the configured memory repo
 
 ## Boundary
 
@@ -24,9 +27,9 @@ In short:
 
 It does not include:
 
-- git push logic
-- config-repo workflows
-- remote copy or delete logic
+- sync scheduling or queue processing
+- backend-selection policy
+- credential management
 - note publication logic
 - environment-specific sync policy
 - source-code delivery
@@ -43,8 +46,27 @@ flowchart LR
     B --> C["sync-request"]
     C --> D["<sync-queue-root>/pending/*.json"]
     D --> E["External executor"]
-    E --> F["done / rejected / propagated state"]
+    E --> G["memory-sync.sh<br/>optional repo propagation"]
+    G --> F["done / rejected / propagated state"]
 ```
+
+## Memory Repo Sync Helper
+
+`scripts/memory-sync.sh` reads the workspace `.pamem/config.toml` and resolves:
+
+- `memory_repo.path`
+- `memory_repo.sync.backend`
+- `memory_repo.sync.remote`
+- `memory_repo.sync.ref`
+- `memory_repo.sync.sync_bootstrapped`
+
+Supported backends:
+
+- `local`: no remote sync; useful for onboarding and dry local setups.
+- `git`: add/commit/push the memory repo when it has changes.
+- `webdav`: run the LoreForge-style `rclone bisync` flow against `remote`.
+
+For WebDAV first sync or recovery, use `--resync` only when the local memory repo should win. After a successful initial sync, update `sync_bootstrapped = true` through the normal config review path.
 
 ## When To Use `sync-request`
 

@@ -5,21 +5,25 @@ Before any persistent memory read, write, compress, or archive action, apply the
 
 Use the `memory-rule` plugin skill when:
 - updating `MEMORY.md`
-- writing to `notes/`
+- editing `.pamem/config.toml` for memory repo location, sharing, or sync policy
+- writing to `L1/`, `L2/`, `L3/`, or fallback `notes/`
 - promoting task facts into durable memory
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
-`MEMORY.md` is a shared index, not the isolation boundary; per-task active files and worktree-local state isolate concurrent agent instances. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the full active roster here.
+`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo and per-task active files isolate concurrent agent instances. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the full active roster here.
+When `.pamem/config.toml` points at a shared memory repo, the active roster belongs in `L2/active/current-tasks.md`; fallback workspaces keep it in `notes/current-task.md`.
 
 ## Sync Trigger
 If durable local memory or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention, use the `sync-request` plugin skill to create a sync request in the configured pending queue for the active sync executor.
-Do not run sync directly from this agent.
+Do not run sync directly from this agent; the sync executor may call `.pamem/scripts/memory-sync.sh` when policy says to propagate the configured memory repo.
 
 ## Key Knowledge
-- `notes/user-preferences.md` — collaboration preferences and constraints
-- `notes/agent-workflow.md` — agent-local workflow and operational defaults
-- `notes/experience.md` — experience: findings, corrections, and meta-knowledge
+- `.pamem/config.toml` — memory repo path, sharing mode, sync backend, and profile policy
+- `L1/shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
+- `L1/shared/workflow.md` or `notes/agent-workflow.md` — stable workflow and operational defaults
+- `L1/shared/experience.md` or `notes/experience.md` — findings, corrections, and meta-knowledge
+- `L2/active/current-tasks.md` or `notes/current-task.md` — active roster and startup-safe task state
 
 ## Active Context
 - No active context recorded yet.

@@ -5,10 +5,26 @@
 version = 1
 default_profile = "onboarding"
 
+[memory_repo]
+# Relative paths are resolved from the agent workspace; absolute paths are allowed for a shared repo used by multiple agents.
+path = ".pamem/memory"
+sharing = "shared"
+layout = "L0/L1/L2/L3"
+entry_file = "MEMORY.md"
+
+[memory_repo.sync]
+# local = no remote sync; git = private git repo; webdav = rclone remote:path
+backend = "local"
+remote = ""
+ref = "main"
+sync_bootstrapped = false
+
 [governance]
 config_owner = "human"
 generated_by = "onboarding"
 requires_review_for = [
+  "memory_repo",
+  "memory_repo.sync",
   ".pamem/config.toml",
   "L0/**",
   "L1/shared/**",
@@ -30,9 +46,11 @@ load = [
   "L1/shared/experience.md",
   "L1/roles/onboarding.md",
   "L2/projects/<project-key>.md",
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md"
 ]
 write = [
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md",
   "requests/inbox/"
 ]
@@ -74,9 +92,11 @@ load = [
   "L1/shared/experience.md",
   "L1/roles/coder.md",
   "L2/projects/<project-key>.md",
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md"
 ]
 write = [
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md",
   "requests/inbox/"
 ]
@@ -94,9 +114,11 @@ load = [
   "L1/shared/experience.md",
   "L1/roles/reviewer.md",
   "L2/projects/<project-key>.md",
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md"
 ]
 write = [
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md",
   "requests/inbox/"
 ]
@@ -114,9 +136,11 @@ load = [
   "L1/shared/experience.md",
   "L1/roles/researcher.md",
   "L2/projects/<project-key>.md",
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md"
 ]
 write = [
+  "L2/active/current-tasks.md",
   "L2/active/<task-id>.md",
   "requests/inbox/"
 ]
