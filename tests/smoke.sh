@@ -7,6 +7,11 @@ for file in "$ROOT"/scripts/*.sh; do
   bash -n "$file"
 done
 
+if grep -RIn --exclude-dir=.git -E '(^|[^A-Za-z0-9_])jq([^A-Za-z0-9_]|$)' "$ROOT/scripts"; then
+  echo "scripts must not require jq" >&2
+  exit 1
+fi
+
 python3 - "$ROOT/assets/config.toml.template" <<'PY'
 from pathlib import Path
 import sys

@@ -10,7 +10,33 @@ MEMORY_GOVERNANCE_BLOCK="$(cat "$ASSETS_DIR/memory-governance.md.fragment")"
 SYNC_TRIGGER_BLOCK="$(cat "$ASSETS_DIR/sync-trigger.md.fragment")"
 
 HOOK_INPUT="$(cat || true)"
-ROOT="$(printf '%s' "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
+
+json_field() {
+  local field="$1"
+  HOOK_INPUT="$HOOK_INPUT" python3 - "$field" <<'PY'
+import json
+import os
+import sys
+
+field = sys.argv[1]
+raw = os.environ.get("HOOK_INPUT", "")
+if raw.strip():
+    try:
+        data = json.loads(raw)
+    except Exception:
+        data = {}
+else:
+    data = {}
+
+value = data.get(field, "")
+if value is None:
+    value = ""
+
+sys.stdout.write(str(value))
+PY
+}
+
+ROOT="$(json_field cwd || true)"
 if [ -z "$ROOT" ]; then
   ROOT="$PWD"
 fi
@@ -75,9 +101,15 @@ if [ -n "$CONTEXT" ]; then
 fi
 CONTEXT="${CONTEXT}Load and follow this persistent memory index before proceeding:\n\n${MEMORY_TEXT}"
 
-jq -n --arg ctx "$CONTEXT" '{
-  hookSpecificOutput: {
-    hookEventName: "SessionStart",
-    additionalContext: $ctx
-  }
-}'
+CONTEXT="$CONTEXT" python3 - <<'PY'
+import json
+import os
+
+ctx = os.environ.get("CONTEXT", "")
+print(json.dumps({
+    "hookSpecificOutput": {
+        "hookEventName": "SessionStart",
+        "additionalContext": ctx,
+    }
+}, ensure_ascii=False))
+PY

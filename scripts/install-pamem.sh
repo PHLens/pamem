@@ -103,34 +103,71 @@ ensure_json_file() {
   if [ ! -s "$file" ]; then
     printf '{}\n' > "$file"
   fi
-  jq empty "$file" >/dev/null
+  python3 - "$file" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+try:
+    json.loads(path.read_text())
+except Exception as exc:
+    raise SystemExit(f"invalid JSON in {path}: {exc}")
+PY
 }
 
 merge_codex_hooks() {
   local file="$1"
   local tmp_file
   tmp_file="$(mktemp)"
-  jq \
-    --arg session_cmd "$SESSION_CMD" '
-    def ensure_hook($event; $matcher; $hook):
-      .hooks = (.hooks // {}) |
-      .hooks[$event] = (
-        (.hooks[$event] // [])
-        | if any(.matcher == $matcher) then
-            map(
-              if .matcher == $matcher then
-                .hooks = (
-                  (.hooks // [])
-                  | if any(.command == $hook.command) then . else . + [$hook] end
-                )
-              else . end
-            )
-          else
-            . + [{"matcher": $matcher, "hooks": [$hook]}]
-          end
-      );
-    ensure_hook("SessionStart"; "startup|resume"; {"type":"command","command":$session_cmd,"statusMessage":"Loading memory index"})
-    ' "$file" > "$tmp_file"
+  python3 - "$file" "$SESSION_CMD" <<'PY' > "$tmp_file"
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+session_cmd = sys.argv[2]
+
+try:
+    data = json.loads(path.read_text())
+except Exception as exc:
+    raise SystemExit(f"invalid JSON in {path}: {exc}")
+
+if not isinstance(data, dict):
+    raise SystemExit(f"{path} must contain a JSON object")
+
+hooks = data.setdefault("hooks", {})
+if not isinstance(hooks, dict):
+    raise SystemExit(f"{path}: hooks must be a JSON object")
+
+entries = hooks.setdefault("SessionStart", [])
+if not isinstance(entries, list):
+    raise SystemExit(f"{path}: hooks.SessionStart must be a JSON array")
+
+hook = {
+    "type": "command",
+    "command": session_cmd,
+    "statusMessage": "Loading memory index",
+}
+
+found = False
+for entry in entries:
+    if not isinstance(entry, dict):
+        continue
+    if entry.get("matcher") != "startup|resume":
+        continue
+    found = True
+    entry_hooks = entry.setdefault("hooks", [])
+    if not isinstance(entry_hooks, list):
+        raise SystemExit(f"{path}: hooks.SessionStart[].hooks must be a JSON array")
+    if not any(isinstance(existing, dict) and existing.get("command") == session_cmd for existing in entry_hooks):
+        entry_hooks.append(hook)
+
+if not found:
+    entries.append({"matcher": "startup|resume", "hooks": [hook]})
+
+print(json.dumps(data, indent=2, ensure_ascii=False))
+PY
   mv "$tmp_file" "$file"
 }
 
