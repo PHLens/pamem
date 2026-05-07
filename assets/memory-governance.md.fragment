@@ -8,4 +8,4 @@ Use the `memory-rule` plugin skill when:
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
-`MEMORY.md` is a shared index, not the isolation boundary; per-task active files and worktree-local state isolate concurrent agent instances.
+`MEMORY.md` is a shared index, not the isolation boundary; per-task active files and worktree-local state isolate concurrent agent instances. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the full active roster here.

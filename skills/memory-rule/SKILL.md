@@ -347,6 +347,14 @@ When multiple instances may be active, pointer files use a list format so entrie
 - `MEMORY.md` Active Context: one line per active task, format `<project>: <brief description> -> <pointer to L2/active or notes/current-task>`.
 - `notes/current-task.md`: list of active worktrees or task files, format `<worktree-path or task-id> -> <one-line task description>`.
 
+When more than 3 instances are active, do not try to list every instance in `MEMORY.md`. Keep `MEMORY.md` as a startup dashboard:
+
+- one line for the lead blocker, if any
+- one line for the current primary workstream
+- one line pointing to the full active roster, such as `notes/current-task.md` or `L2/active/`
+
+The full roster belongs in `notes/current-task.md` or per-task L2 files. Compressing `MEMORY.md` removes startup noise only; it must not delete task state.
+
 ### Conflict Tolerance
 
 If last-write-wins occurs on a pointer file:
