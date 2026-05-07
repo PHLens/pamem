@@ -9,8 +9,8 @@ The model has 4 layers.
 ```mermaid
 flowchart TD
     L0["Layer 0: Constitution<br/>Shared runtime rules, startup loading, precedence, write gates"]
-    L1["Layer 1: Stable Memory<br/>User preferences, workflow rules, findings, corrections, meta-knowledge"]
-    L2["Layer 2: Working Memory<br/>Current task, blocker, next step, resumable context"]
+    L1["Layer 1: Stable Shared Memory<br/>Shared preferences, role memory, findings, corrections, meta-knowledge"]
+    L2["Layer 2: Project And Working Memory<br/>Project context, current task, blocker, next step, resumable context"]
     L3["Layer 3: Archive<br/>Closed-task summaries and history not loaded by default"]
 
     L0 --> L1
@@ -32,26 +32,32 @@ It defines:
 
 Layer 0 is not a fact store. It is the governance layer.
 
-### Layer 1: Stable Memory
+### Layer 1: Stable Shared Memory
 
-This is durable memory that should survive across tasks.
+This is durable memory that should survive across tasks and be reusable by multiple sessions or agents.
 
 Examples:
 
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
 - `notes/experience.md`
-- `notes/projects/*`
+- `L1/shared/*`
+- `L1/roles/<role>.md`
 
-### Layer 2: Working Memory
+Role-specific shared experience belongs in L1, but it is loaded through profile overlays and does not outrank project-specific memory.
 
-This is the active task layer.
+### Layer 2: Project And Working Memory
+
+This is the project and active task layer.
 
 Examples:
 
+- `L2/projects/<project-key>.md`
+- `L2/active/<task-id>.md`
+- `notes/projects/<project-key>.md`
 - `notes/current-task.md`
 
-It should stay short and recovery-oriented.
+Project-specific memory belongs in L2, not L1. It should be more specific than role memory and should win over role defaults on conflict. Active task memory should stay short and recovery-oriented.
 
 ### Layer 3: Archive
 
@@ -94,6 +100,7 @@ flowchart TD
 - Claude hooks
 - Codex bootstrap scripts
 - default memory skeleton and startup behavior
+- optional profile/load policy through `.pamem/config.toml` when a shared memory repo provides one
 
 ### Created But Not Owned By Pamem
 
@@ -103,6 +110,7 @@ flowchart TD
 - `notes/user-preferences.md`
 - `notes/agent-workflow.md`
 - `notes/experience.md`
+- `notes/projects/*`
 - `notes/current-task.md`
 - `notes/work-log.md`
 
@@ -122,6 +130,18 @@ The runtime should be shared. The memory content should remain local to each age
 
 Only durable rules, preferences, corrections, reusable findings, and meta-knowledge should move into stable memory.
 
+Project-specific context should remain in L2 unless it becomes a reusable cross-project rule or role finding.
+
+### Profile Overlays
+
+Profiles choose which role memory and project/task memory to load. The profile itself does not create precedence. The default memory precedence is:
+
+```text
+L0 constitution > L1 shared > L2 project > L1 role > L2 task > L3 archive
+```
+
+This keeps role memory useful as shared experience while allowing project-specific constraints to win.
+
 ### Startup-Safe By Default
 
 A new or resumed session should recover the right structure without manual repair.
@@ -137,3 +157,7 @@ The plugin manages the memory system, not the agent's actual memories.
 ### Meta-Knowledge Over Knowledge
 
 Agent memory is the schema layer, not the wiki. Its growth direction is not "knowing more facts" but "judging more accurately and retrieving more efficiently". Domain knowledge belongs in external wikis; memory stores the meta-knowledge of how to find and apply that knowledge. The memory system should compound over time: each interaction can yield methodological experience (tool tips, corrected assumptions, workflow improvements) that makes future interactions more effective.
+
+### Sync Request Separation
+
+`sync-request` remains a separate skill. `memory-rule` decides whether a memory or managed-config change is durable and eligible for retention; `sync-request` only creates a structured request when explicitly asked or when workspace policy requires one. It is not a mechanism for project work, branches, PRs, or source-code delivery.
