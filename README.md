@@ -52,6 +52,11 @@ shared memory repo is the path configured by `[memory_repo].path`; by default it
 homes and workspaces on the same machine share memory unless onboarding
 overrides it.
 
+In Slock runtime mode, pass the Slock-generated agent workspace as `--workspace`.
+That workspace is only the runtime/config anchor for `.pamem/config.toml` and
+hooks; the default shared memory repo remains
+`${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`.
+
 For direct CLI use across changing working directories, use a stable agent id:
 
 ```bash
@@ -98,6 +103,15 @@ pamem resume --agent-id coder-local
 exists, `resume` fails instead of silently behaving like `start`.
 
 Replace `codex` with `claude` or another local CLI launcher when needed.
+
+For a Slock agent workspace, initialize the workspace anchor explicitly:
+
+```bash
+pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --runtime slock
+```
+
+This writes `.pamem/config.toml` into the Slock workspace and leaves
+`[memory_repo].path` pointing at the machine-level shared memory repo by default.
 
 ### More
 

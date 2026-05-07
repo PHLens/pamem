@@ -1,6 +1,6 @@
 # pamem onboarding config template
-# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml for a legacy workspace.
-# An agent home or legacy workspace activates one profile at a time; alternate role-specific starters live in assets/config-profiles/*.toml.template.
+# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml for a legacy/Slock workspace anchor.
+# An agent home or legacy/Slock workspace activates one profile at a time; alternate role-specific starters live in assets/config-profiles/*.toml.template.
 # Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
 
 version = 1
@@ -18,7 +18,7 @@ agent_id = ""
 command = []
 
 [memory_repo]
-# Default is a machine-level shared memory repo. Relative paths are resolved from the agent home or legacy workspace when an override is needed.
+# Default is a machine-level shared memory repo. Relative paths are resolved from the agent home or legacy/Slock workspace anchor when an override is needed.
 path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"
 sharing = "shared"
 entry_file = "MEMORY.md"

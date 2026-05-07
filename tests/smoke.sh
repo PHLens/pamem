@@ -146,9 +146,10 @@ ONBOARD_XDG_DATA_ROOT="$(mktemp -d)"
 WIKI_WORKSPACE="$(mktemp -d)"
 LEGACY_WORKSPACE="$(mktemp -d)"
 SLOCK_WORKSPACE="$(mktemp -d)"
+SLOCK_XDG_DATA_ROOT="$(mktemp -d)"
 INVALID_RUNTIME_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$INVALID_RUNTIME_WORKSPACE"
+  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$SLOCK_XDG_DATA_ROOT" "$INVALID_RUNTIME_WORKSPACE"
 }
 trap cleanup EXIT
 
@@ -367,27 +368,28 @@ grep -Fq 'path = ".pamem/wiki-memory"' "$WIKI_WORKSPACE/.pamem/config.toml"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/MEMORY.md"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/wiki.md"
 
-bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_WORKSPACE" \
+XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_WORKSPACE" \
   --profile coder \
-  --runtime slock \
-  --memory-repo ".pamem/slock-memory" >/dev/null
+  --runtime slock >/dev/null
 
 grep -Fq 'default_profile = "coder"' "$SLOCK_WORKSPACE/.pamem/config.toml"
 grep -Fq 'mode = "slock"' "$SLOCK_WORKSPACE/.pamem/config.toml"
-test -s "$SLOCK_WORKSPACE/.pamem/slock-memory/MEMORY.md"
+grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$SLOCK_WORKSPACE/.pamem/config.toml"
+test -s "$SLOCK_XDG_DATA_ROOT/pamem/memory/MEMORY.md"
+test ! -e "$SLOCK_WORKSPACE/.pamem/memory/MEMORY.md"
 test ! -e "$SLOCK_WORKSPACE/notes/current-task.md"
 test ! -e "$SLOCK_WORKSPACE/notes/work-log.md"
 
-SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | bash "$ROOT/scripts/memory-session-start.sh")"
+SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SLOCK_SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
-  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("Runtime anchor:") and contains("runtime=slock") and contains(".pamem/slock-memory"))
+  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("Runtime anchor:") and contains("runtime=slock") and contains("/pamem/memory"))
 ' >/dev/null
 
-printf '{"cwd":"%s","trigger":"manual"}\n' "$SLOCK_WORKSPACE" | bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
+printf '{"cwd":"%s","trigger":"manual"}\n' "$SLOCK_WORKSPACE" | XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-pre-compact.sh" 2>/dev/null
 test ! -e "$SLOCK_WORKSPACE/notes/current-task.md"
 
-SLOCK_CLI_STATUS="$(bash "$ROOT/scripts/pamem-cli.sh" status --workspace "$SLOCK_WORKSPACE")"
+SLOCK_CLI_STATUS="$(XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" status --workspace "$SLOCK_WORKSPACE")"
 grep -Fq 'runtime=slock' <<<"$SLOCK_CLI_STATUS"
 grep -Fq 'task_state=slock' <<<"$SLOCK_CLI_STATUS"
 if grep -Fq 'current_task=' <<<"$SLOCK_CLI_STATUS"; then
@@ -395,7 +397,7 @@ if grep -Fq 'current_task=' <<<"$SLOCK_CLI_STATUS"; then
   exit 1
 fi
 
-SLOCK_CLI_HOOK_JSON="$(bash "$ROOT/scripts/pamem-cli.sh" hook-json --workspace "$SLOCK_WORKSPACE")"
+SLOCK_CLI_HOOK_JSON="$(XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" hook-json --workspace "$SLOCK_WORKSPACE")"
 printf '%s' "$SLOCK_CLI_HOOK_JSON" | jq -e '
   .pamem.runtime == "slock" and
   .pamem.task_state == "slock" and
@@ -403,7 +405,7 @@ printf '%s' "$SLOCK_CLI_HOOK_JSON" | jq -e '
   (.pamem | has("work_log") | not)
 ' >/dev/null
 
-if bash "$ROOT/scripts/pamem-cli.sh" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
+if XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem-cli.sh" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
   echo "pamem-cli start must reject slock runtime" >&2
   exit 1
 fi
