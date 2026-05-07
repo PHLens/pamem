@@ -33,19 +33,19 @@ It may:
 ## Command
 
 ```bash
-skills/memory-lint/memory-lint.sh --root <workspace>
+scripts/memory-lint.sh --root <workspace>
 ```
 
 JSON output:
 
 ```bash
-skills/memory-lint/memory-lint.sh --root <workspace> --json
+scripts/memory-lint.sh --root <workspace> --json
 ```
 
 Strict mode returns non-zero for warnings:
 
 ```bash
-skills/memory-lint/memory-lint.sh --root <workspace> --strict
+scripts/memory-lint.sh --root <workspace> --strict
 ```
 
 Exit codes:

@@ -75,7 +75,7 @@ do
   test -s "$file"
 done
 
-MEMORY_LINT="$ROOT/skills/memory-lint/memory-lint.sh"
+MEMORY_LINT="$ROOT/skills/memory-lint/scripts/memory-lint.sh"
 
 if [ ! -x "$MEMORY_LINT" ]; then
   echo "memory-lint.sh must be executable" >&2
