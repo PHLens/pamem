@@ -54,12 +54,12 @@ if grep -Eq '^[[:space:]]*executor[[:space:]]*=[[:space:]]*"Adam"' "$CONFIG"; th
   exit 1
 fi
 
-if grep -Eq '^\[profiles\.(human|coder|reviewer|researcher|wiki)\]$' "$CONFIG"; then
+if grep -Eq '^\[profiles\.(common|coder|reviewer|researcher|wiki)\]$' "$CONFIG"; then
   echo "base config template should only ship the onboarding profile" >&2
   exit 1
 fi
 
-for profile in human coder reviewer researcher wiki; do
+for profile in common coder reviewer researcher wiki; do
   profile_template="$ROOT/assets/config-profiles/${profile}.toml.template"
   test -s "$profile_template"
   grep -Eq "^[[:space:]]*default_profile[[:space:]]*=[[:space:]]*\"${profile}\"" "$profile_template"
@@ -84,12 +84,12 @@ for file in \
   "$ROOT/assets/notes/work-log.md.template" \
   "$ROOT/assets/shared/L0/constitution.md.template" \
   "$ROOT/assets/shared/L1/roles/onboarding/experience.md.template" \
-  "$ROOT/assets/shared/L1/roles/human/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/common/experience.md.template" \
   "$ROOT/assets/shared/L1/roles/coder/experience.md.template" \
   "$ROOT/assets/shared/L1/roles/reviewer/experience.md.template" \
   "$ROOT/assets/shared/L1/roles/researcher/experience.md.template" \
   "$ROOT/assets/shared/L1/roles/wiki/experience.md.template" \
-  "$ROOT/assets/config-profiles/human.toml.template" \
+  "$ROOT/assets/config-profiles/common.toml.template" \
   "$ROOT/assets/config-profiles/coder.toml.template" \
   "$ROOT/assets/config-profiles/reviewer.toml.template" \
   "$ROOT/assets/config-profiles/researcher.toml.template" \
@@ -216,7 +216,7 @@ for file in \
   "$DEFAULT_MEMORY_REPO/L0/constitution.md" \
   "$DEFAULT_MEMORY_REPO/L1/shared/preferences.md" \
   "$DEFAULT_MEMORY_REPO/L1/shared/operating-rules.md" \
-  "$DEFAULT_MEMORY_REPO/L1/roles/human/experience.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/common/experience.md" \
   "$DEFAULT_MEMORY_REPO/L1/roles/onboarding/experience.md" \
   "$DEFAULT_MEMORY_REPO/L1/roles/wiki/experience.md" \
   "$WORKSPACE/MEMORY.md" \
@@ -236,6 +236,7 @@ test -d "$DEFAULT_MEMORY_REPO/L2/projects"
 test ! -e "$DEFAULT_MEMORY_REPO/L2/active"
 test ! -e "$DEFAULT_MEMORY_REPO/L3/work-log.md"
 test ! -e "$DEFAULT_MEMORY_REPO/L1/shared/experience.md"
+test ! -e "$DEFAULT_MEMORY_REPO/L1/roles/human"
 test ! -e "$DEFAULT_MEMORY_REPO/L1/roles/onboarding.md"
 
 if [ -e "$DEFAULT_MEMORY_REPO/L1/shared/workflow.md" ] || [ -e "$WORKSPACE/notes/agent-workflow.md" ]; then
@@ -362,6 +363,7 @@ grep -Fq 'backend = "webdav"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'remote = "example:Memory"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'executor = "sync-executor"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/MEMORY.md"
+test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/L1/roles/common/experience.md"
 test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/L1/roles/reviewer/experience.md"
 
 XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE/shared-a" \
@@ -372,12 +374,21 @@ XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" init \
   --profile wiki \
   --agent-id wiki-agent >/dev/null
 WIKI_AGENT_HOME="$ONBOARD_XDG_DATA_ROOT/pamem/agents/wiki-agent"
+XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" init \
+  --profile common \
+  --agent-id common-agent >/dev/null
+COMMON_AGENT_HOME="$ONBOARD_XDG_DATA_ROOT/pamem/agents/common-agent"
 
 grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$ONBOARD_WORKSPACE/shared-a/.pamem/config.toml"
 grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$ONBOARD_WORKSPACE/shared-b/.pamem/config.toml"
 grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$WIKI_AGENT_HOME/config.toml"
 grep -Fq 'agent_id = "wiki-agent"' "$WIKI_AGENT_HOME/config.toml"
+grep -Fq 'default_profile = "common"' "$COMMON_AGENT_HOME/config.toml"
+grep -Fq 'agent_id = "common-agent"' "$COMMON_AGENT_HOME/config.toml"
+test -s "$COMMON_AGENT_HOME/current-task.md"
+test -s "$COMMON_AGENT_HOME/work-log.md"
 test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/MEMORY.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/common/experience.md"
 test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/coder/experience.md"
 test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/reviewer/experience.md"
 test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/wiki/experience.md"
@@ -421,6 +432,7 @@ bash "$ROOT/scripts/onboard-pamem.sh" "$WIKI_WORKSPACE" \
 grep -Fq 'default_profile = "wiki"' "$WIKI_WORKSPACE/.pamem/config.toml"
 grep -Fq 'path = ".pamem/wiki-memory"' "$WIKI_WORKSPACE/.pamem/config.toml"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/MEMORY.md"
+test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/common/experience.md"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/wiki/experience.md"
 
 XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_WORKSPACE" \

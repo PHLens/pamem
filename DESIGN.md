@@ -48,9 +48,10 @@ Examples:
 - `notes/operating-rules.md`
 - `notes/experience.md`
 - `L1/shared/*`
+- `L1/roles/common/experience.md`
 - `L1/roles/<role>/experience.md`
 
-Role-specific experience belongs in `L1/roles/<role>/experience.md`, with `notes/experience.md` as the compatibility surface. `notes/projects/<project-key>.md` is the compatibility surface for `L2/projects/<project-key>.md`. These are loaded through profile overlays and do not outrank project-specific memory.
+Common cross-role experience belongs in `L1/roles/common/experience.md`; role-specific experience belongs in `L1/roles/<role>/experience.md`, with `notes/experience.md` as the compatibility surface. `notes/projects/<project-key>.md` is the compatibility surface for `L2/projects/<project-key>.md`. These are loaded through profile overlays and do not outrank project-specific memory.
 
 ### Layer 2: Project Memory
 
@@ -133,6 +134,7 @@ small runtime-local recovery notes:
 
 - `MEMORY.md`
 - `L1/shared/*`
+- `L1/roles/common/experience.md`
 - `L1/roles/<role>/experience.md`
 - `L2/projects/*`
 - `notes/user-preferences.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/preferences.md` in Slock mode
