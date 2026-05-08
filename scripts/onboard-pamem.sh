@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: onboard-pamem.sh <root> [--agent-home] [--profile <onboarding|common|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--agent-id <id>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
+Usage: onboard-pamem.sh <root> [--agent-home] [--profile <onboarding|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--agent-id <id>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
 
 Create the pamem config during onboarding, then seed local files.
 
@@ -120,7 +120,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$PROFILE" in
-  onboarding|common|coder|reviewer|researcher|wiki)
+  onboarding|coder|reviewer|researcher|wiki)
     ;;
   *)
     echo "unsupported profile: $PROFILE" >&2

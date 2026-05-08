@@ -25,12 +25,14 @@ if [ -z "$ROOT" ]; then
   ROOT="${PAMEM_WORKSPACE:-$PWD}"
 fi
 
+CONFIG_PATH="$(pamem_config_path "$ROOT")"
 MEMORY_ROOT="$(pamem_memory_repo_root "$ROOT")"
 MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$ROOT")"
 MEMORY_PATH="$MEMORY_ROOT/$MEMORY_ENTRY_FILE"
 MEMORY_SHARING="$(pamem_memory_repo_sharing "$ROOT")"
 MEMORY_SYNC_BACKEND="$(pamem_memory_repo_sync_backend "$ROOT")"
 RUNTIME_MODE="$(pamem_runtime_mode "$ROOT")"
+DEFAULT_PROFILE="$(pamem_default_profile "$ROOT")"
 MEMORY_TEXT=""
 LINE_COUNT=0
 BYTE_COUNT=0
@@ -40,6 +42,47 @@ WORK_LOG_PATH=""
 CURRENT_TASK_TEXT=""
 WORK_LOG_TEXT=""
 TASK_STATE_LABEL=""
+
+append_profile_load_context() {
+  local load_target
+  local load_path
+  local load_text
+  local loaded_any=0
+
+  if [ ! -s "$CONFIG_PATH" ]; then
+    return 0
+  fi
+
+  while IFS= read -r load_target; do
+    [ -n "$load_target" ] || continue
+
+    case "$load_target" in
+      /*|*'<'*'>'*|*'*'*|*'?'*|*'['*']'*)
+        continue
+        ;;
+    esac
+
+    load_path="$(realpath -m "$MEMORY_ROOT/$load_target")"
+    case "$load_path" in
+      "$MEMORY_ROOT"|"$MEMORY_ROOT"/*)
+        ;;
+      *)
+        continue
+        ;;
+    esac
+
+    if [ ! -s "$load_path" ] || [ -d "$load_path" ]; then
+      continue
+    fi
+
+    load_text="$(cat "$load_path")"
+    if [ "$loaded_any" -eq 0 ]; then
+      CONTEXT="${CONTEXT}"$'\n\n'"Loaded profile memory for \`${DEFAULT_PROFILE}\`:"
+      loaded_any=1
+    fi
+    CONTEXT="${CONTEXT}"$'\n\n'"Source: \`${load_target}\`"$'\n\n'"${load_text}"
+  done < <(pamem_toml_array_values "$CONFIG_PATH" "profiles.$DEFAULT_PROFILE" "load")
+}
 
 if [ -s "$MEMORY_PATH" ]; then
   MEMORY_TEXT="$(cat "$MEMORY_PATH")"
@@ -139,6 +182,8 @@ fi
 if [ "$MEMORY_AVAILABLE" -eq 1 ]; then
   CONTEXT="${CONTEXT}"$'\n\n'"Load and follow this persistent memory index before proceeding:"$'\n\n'"${MEMORY_TEXT}"
 fi
+
+append_profile_load_context
 
 if [ -n "$CURRENT_TASK_TEXT" ]; then
   CONTEXT="${CONTEXT}"$'\n\n'"${TASK_STATE_LABEL} current task source: \`${CURRENT_TASK_PATH}\`."$'\n\n'"${CURRENT_TASK_TEXT}"

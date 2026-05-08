@@ -323,14 +323,6 @@ pamem_active_role() {
   fi
 }
 
-pamem_role_experience_path() {
-  local workspace="$1"
-  local role
-
-  role="$(pamem_active_role "$workspace")"
-  printf '%s/L1/roles/%s/experience.md' "$(pamem_memory_repo_root "$workspace")" "$role"
-}
-
 pamem_agent_id() {
   local workspace="$1"
   local config_path
@@ -436,8 +428,9 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/shared/L0/constitution.md.template" "$repo_root/L0/constitution.md"
   pamem_copy_if_missing "$assets_dir/notes/user-preferences.md.template" "$repo_root/L1/shared/preferences.md"
   pamem_copy_legacy_or_template_if_missing "$repo_root/L1/shared/workflow.md" "$assets_dir/notes/operating-rules.md.template" "$repo_root/L1/shared/operating-rules.md"
+  pamem_copy_if_missing "$assets_dir/shared/L1/shared/experience.md.template" "$repo_root/L1/shared/experience.md"
 
-  for role in common onboarding coder reviewer researcher wiki; do
+  for role in onboarding coder reviewer researcher wiki; do
     mkdir -p "$repo_root/L1/roles/$role"
     pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/experience.md.template" "$repo_root/L1/roles/$role/experience.md"
   done

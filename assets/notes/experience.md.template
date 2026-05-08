@@ -1,6 +1,6 @@
 # Experience
 
-Compatibility surface for role-scoped experience. The durable source lives in
-`L1/roles/<role>/experience.md` for the active profile.
+Compatibility surface for role-scoped experience. Shared experience lives in
+`L1/shared/experience.md` and is loaded directly by the active profile.
 
 - No local compatibility experience recorded yet.
