@@ -19,7 +19,7 @@ Commands:
   remove [workspace]     Remove managed hook entries.
 
 Examples:
-  pamem init --profile common --runtime cli --agent-id common-local
+  pamem init --profile coder --runtime cli --agent-id coder-local
   pamem start --agent-id coder-local -- codex
   pamem resume --agent-id coder-local -- codex
   pamem status --agent-id coder-local

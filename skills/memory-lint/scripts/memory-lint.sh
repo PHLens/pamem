@@ -287,43 +287,6 @@ if [ -s "$NESTED_CONFIG" ]; then
     "remove-repo-config"
 fi
 
-check_workspace_symlink() {
-  local path="$1"
-  local expected="$2"
-  local title="$3"
-  local evidence="$4"
-  local resolved
-  local expected_resolved
-
-  if [ ! -e "$path" ]; then
-    add_finding "error" "ML008" "$(repo_display_path "$path")" "" \
-      "$title" \
-      "Slock workspaces should surface the shared memory file as a workspace symlink." \
-      "$evidence -> missing" \
-      "repair-workspace"
-    return 0
-  fi
-
-  if [ ! -L "$path" ]; then
-    add_finding "error" "ML008" "$(repo_display_path "$path")" "" \
-      "$title" \
-      "Slock workspaces should surface the shared memory file as a workspace symlink." \
-      "$evidence -> regular file" \
-      "repair-workspace"
-    return 0
-  fi
-
-  resolved="$(realpath "$path")"
-  expected_resolved="$(realpath -m "$expected")"
-  if [ "$resolved" != "$expected_resolved" ]; then
-    add_finding "error" "ML008" "$(repo_display_path "$path")" "" \
-      "$title" \
-      "Slock workspace symlinks must resolve to the shared memory repo surface." \
-      "$evidence -> $resolved (expected $expected_resolved)" \
-      "repair-workspace"
-  fi
-}
-
 if [ "$RUNTIME_MODE" = "slock" ]; then
   for task_file in \
     "$WORKSPACE/notes/current-task.md" \
@@ -337,30 +300,6 @@ if [ "$RUNTIME_MODE" = "slock" ]; then
         "repair-workspace"
     fi
   done
-
-  check_workspace_symlink \
-    "$WORKSPACE/notes/user-preferences.md" \
-    "$MEMORY_ROOT/L1/shared/preferences.md" \
-    "Slock workspace user preferences should link to shared memory" \
-    "notes/user-preferences.md"
-
-  check_workspace_symlink \
-    "$WORKSPACE/notes/operating-rules.md" \
-    "$MEMORY_ROOT/L1/shared/operating-rules.md" \
-    "Slock workspace operating rules should link to shared memory" \
-    "notes/operating-rules.md"
-
-  check_workspace_symlink \
-    "$WORKSPACE/notes/experience.md" \
-    "$(pamem_role_experience_path "$WORKSPACE")" \
-    "Slock workspace experience should link to active role experience" \
-    "notes/experience.md"
-
-  check_workspace_symlink \
-    "$WORKSPACE/notes/projects" \
-    "$MEMORY_ROOT/L2/projects" \
-    "Slock workspace projects should link to shared project memory" \
-    "notes/projects"
 fi
 
 ENTRY_PATH=""
@@ -414,6 +353,7 @@ for required in \
   "L0/constitution.md" \
   "L1/shared/preferences.md" \
   "L1/shared/operating-rules.md" \
+  "L1/shared/experience.md" \
   "L1/roles/" \
   "L2/projects/" \
   "requests/inbox/"

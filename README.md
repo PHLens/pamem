@@ -44,8 +44,8 @@ the workspace environment.
 Onboarding chooses the runtime mode. `cli` mode keeps local recovery notes for
 current-task and work-log state in the XDG data agent home, with workspace
 `notes/` as a compatibility fallback. `slock` mode keeps current-task and
-work-log state in the Slock workspace, and surfaces stable L1 notes as
-workspace symlinks to the shared memory repo.
+work-log state in the Slock workspace, while shared memory is loaded through
+the active profile rather than mirrored into workspace notes.
 
 Here `agent home` means
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`; it contains

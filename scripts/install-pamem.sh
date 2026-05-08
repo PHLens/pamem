@@ -200,10 +200,7 @@ if [ "$AGENT_HOME_MODE" -ne 1 ]; then
       copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
       ;;
     slock)
-      ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/preferences.md" "$NOTES_DIR/user-preferences.md"
-      ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/operating-rules.md" "$NOTES_DIR/operating-rules.md"
-      ensure_workspace_link "$(pamem_role_experience_path "$WORKSPACE")" "$NOTES_DIR/experience.md"
-      ensure_workspace_link "$MEMORY_REPO_ROOT/L2/projects" "$NOTES_DIR/projects"
+      :
       ;;
   esac
 fi

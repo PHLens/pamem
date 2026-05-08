@@ -28,7 +28,7 @@ profile config for a new local agent:
 $HOME/.claude/plugins/marketplaces/phlens/scripts/pamem init --agent-id coder-local --profile coder
 ```
 
-Supported profiles are `onboarding`, `common`, `coder`, `reviewer`,
+Supported profiles are `onboarding`, `coder`, `reviewer`,
 `researcher`, and `wiki`. `pamem init` chooses the matching config template,
 writes `config.toml` into
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`, creates local
@@ -71,19 +71,18 @@ workspace anchor:
 pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --runtime slock
 ```
 
-This writes `.pamem/config.toml`, hook/runtime links, workspace task files, and
-workspace read-through links for shared L1 notes into the Slock workspace, but
-`[memory_repo].path` still defaults to the machine-level shared memory repo.
-The Slock workspace owns task state; it is not the shared memory repo.
+This writes `.pamem/config.toml`, hook/runtime links, and workspace task files
+into the Slock workspace, but `[memory_repo].path` still defaults to the
+machine-level shared memory repo. The Slock workspace owns task state; it is
+not the shared memory repo.
 
 Use `--runtime cli` when the agent should keep CLI-local recovery state for
 current-task and work-log summaries. `pamem start` stores that state in the XDG
 data agent home; workspace `notes/current-task.md` and `notes/work-log.md`
 remain compatibility fallbacks. Use `--runtime slock` when Slock owns task state through
 its workspace, task board, and threads; in that mode pamem keeps workspace
-`notes/current-task.md` and `notes/work-log.md` plus workspace symlinks to the
-shared L1 notes, and shared-memory changes still go through the governed
-request/sync flow.
+`notes/current-task.md` and `notes/work-log.md`, while shared memory is loaded
+through the selected profile and shared repo path.
 
 For direct CLI usage where the shell cwd may change between sessions, use `pamem`
 after onboarding:
@@ -212,9 +211,10 @@ This removal path removes the Codex `SessionStart` hook entry added by the boots
 The Codex bootstrap creates or repairs:
 
 - `MEMORY.md`
-- `notes/user-preferences.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
-- `notes/operating-rules.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
-- `notes/experience.md` as a local compatibility copy in CLI mode or a workspace symlink to the active role experience in Slock mode
+- `notes/user-preferences.md` as a local compatibility copy in CLI mode
+- `notes/operating-rules.md` as a local compatibility copy in CLI mode
+- `notes/experience.md` as a local compatibility copy in CLI mode
+- `notes/projects/*` as a local compatibility copy in CLI mode
 - `notes/current-task.md` in CLI and Slock runtime modes
 - `notes/work-log.md` in CLI and Slock runtime modes
 - XDG CLI runtime state only when `pamem start` or `resume` is used
@@ -226,8 +226,8 @@ The Codex bootstrap creates or repairs:
 - `.pamem/`
 - `.pamem/config.toml`
 - the configured shared memory repo root
-- `L1/roles/common/experience.md` and `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
-- `L2/projects/` inside the configured shared memory repo, surfaced as `notes/projects/` in Slock mode
+- `L1/shared/experience.md` and `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
+- `L2/projects/` inside the configured shared memory repo
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
 the installed Claude marketplace plugin rather than copied runtime files.
@@ -241,8 +241,7 @@ After installation, check:
 - `MEMORY.md` exists
 - `notes/current-task.md` exists in CLI and Slock runtime modes
 - `notes/work-log.md` exists in CLI and Slock runtime modes
-- in Slock runtime mode, `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` resolve into the shared memory repo's shared preference/rule files and active role experience file
-- in Slock runtime mode, `notes/projects/` resolves into the shared memory repo's `L2/projects/`
+- in Slock runtime mode, `notes/user-preferences.md`, `notes/operating-rules.md`, `notes/experience.md`, and `notes/projects/` are not mirrored into the workspace
 - `.pamem/` exists
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
@@ -295,6 +294,6 @@ It does not replace:
 
 - `notes/user-preferences.md`
 - `notes/operating-rules.md`
-- `notes/projects/*` as a workspace surface for `L2/projects/` in Slock mode
+- `notes/projects/*` as a CLI-local compatibility surface for `L2/projects/`
 - runtime-local task state owned by CLI notes or by Slock
 - the local sync executor workflow

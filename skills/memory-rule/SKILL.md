@@ -65,9 +65,8 @@ memory/
     shared/
       preferences.md
       operating-rules.md
+      experience.md
     roles/
-      common/
-        experience.md
       coder/
         experience.md
       reviewer/
@@ -106,8 +105,9 @@ memory/
 Map fallback files to the same layers:
 
 - `notes/user-preferences.md` and `notes/operating-rules.md` are L1 shared memory surfaces.
-- `notes/experience.md` is the compatibility surface for active common or role experience in `L1/roles/common/experience.md` and `L1/roles/<role>/experience.md`.
-- `notes/projects/<project-key>.md` is L2 and may be a Slock workspace symlink to `L2/projects/`.
+- `L1/shared/experience.md` is the cross-role shared experience surface loaded by profile overlays.
+- `notes/experience.md` is the compatibility surface for active role experience in `L1/roles/<role>/experience.md`.
+- `notes/projects/<project-key>.md` is CLI-local compatibility for `L2/projects/<project-key>.md`.
 - XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
 - `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
 
@@ -145,10 +145,10 @@ Examples:
 - durable corrections and prohibitions
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
-- common cross-role experience such as `L1/roles/common/experience.md`
+- shared cross-role experience such as `L1/shared/experience.md`
 - role-specific experience such as `L1/roles/coder/experience.md`, `L1/roles/reviewer/experience.md`, `L1/roles/wiki/experience.md`, and `L1/roles/onboarding/experience.md`
 
-Common and role experience belongs in L1 because it is stable shared experience for the active profile. It is loaded through a profile overlay and does not outrank project-specific rules.
+Shared and role experience belongs in L1 because it is stable shared experience for the active profile. Shared experience is loaded through the active profile overlay and does not outrank project-specific rules.
 
 ### Layer 2: Project Memory
 
@@ -214,7 +214,7 @@ load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
-  "L1/roles/common/experience.md",
+  "L1/shared/experience.md",
   "L1/roles/coder/experience.md",
   "L2/projects/pamem.md"
 ]
@@ -232,6 +232,7 @@ Rules:
 - Profiles describe what to load; they do not create new precedence.
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
 - `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise `pamem resume` may reuse the last launcher recorded by `pamem start -- <launcher>`.
+- Shared experience is a profile overlay loaded from L1.
 - Role-specific memory is a profile overlay loaded from L1.
 - Project memory is loaded from L2 and wins over role memory on conflict.
 - Ordinary task agents should write project memory and promotion requests, not mutable task state in the shared repo.
@@ -248,11 +249,12 @@ On wake-up:
 3. Load the repo entry file from `memory_repo.entry_file`; default is `MEMORY.md`.
 4. Load L0 constitution sources for that profile.
 5. Load L1 shared memory.
-6. Load the L1 role overlay for the profile.
-7. Load L2 project memory for the active project.
-8. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
-9. Do not load L3 archive or `requests/` by default.
-10. If runtime mode is `slock`, treat Slock task state and workspace files as the source of truth for active work.
+6. Load the L1 shared experience overlay for the profile.
+7. Load the L1 role overlay for the profile.
+8. Load L2 project memory for the active project.
+9. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
+10. Do not load L3 archive or `requests/` by default.
+11. If runtime mode is `slock`, treat Slock task state and workspace files as the source of truth for active work.
 
 Fallback load order when local config is absent:
 
@@ -304,12 +306,12 @@ If the answer is no to long-term value, do not write it to stable memory.
 |---|---|---|---|
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
-| Cross-role common experience | `L1/roles/common/experience.md` | `notes/experience.md` with common scope | Durable findings shared across roles |
-| Role-scoped experience | `L1/roles/<role>/experience.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
+| Cross-role shared experience | `L1/shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
+| Role-scoped experience | `L1/roles/<role>/experience.md` | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `L1/roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `L1/roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `L1/roles/<role>/experience.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
-| Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict |
+| Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict; CLI-local compatibility only |
 | CLI current-task recovery | n/a | XDG data `pamem/agents/<agent-id>/current-task.md`, fallback `notes/current-task.md` | Runtime-local, startup-safe summary only |
 | CLI work-log summary | n/a | XDG data `pamem/agents/<agent-id>/work-log.md`, fallback `notes/work-log.md` | Runtime-local summary only |
 | Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
