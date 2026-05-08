@@ -66,7 +66,7 @@ memory/
       preferences.md
       operating-rules.md
     roles/
-      human/
+      common/
         experience.md
       coder/
         experience.md
@@ -106,7 +106,7 @@ memory/
 Map fallback files to the same layers:
 
 - `notes/user-preferences.md` and `notes/operating-rules.md` are L1 shared memory surfaces.
-- `notes/experience.md` is the compatibility surface for active role experience in `L1/roles/<role>/experience.md`.
+- `notes/experience.md` is the compatibility surface for active common or role experience in `L1/roles/common/experience.md` and `L1/roles/<role>/experience.md`.
 - `notes/projects/<project-key>.md` is L2 and may be a Slock workspace symlink to `L2/projects/`.
 - XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
 - `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
@@ -145,9 +145,10 @@ Examples:
 - durable corrections and prohibitions
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
-- role-scoped experience such as `L1/roles/coder/experience.md`, `L1/roles/reviewer/experience.md`, `L1/roles/wiki/experience.md`, `L1/roles/human/experience.md`, and `L1/roles/onboarding/experience.md`
+- common cross-role experience such as `L1/roles/common/experience.md`
+- role-specific experience such as `L1/roles/coder/experience.md`, `L1/roles/reviewer/experience.md`, `L1/roles/wiki/experience.md`, and `L1/roles/onboarding/experience.md`
 
-Role experience belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
+Common and role experience belongs in L1 because it is stable shared experience for the active profile. It is loaded through a profile overlay and does not outrank project-specific rules.
 
 ### Layer 2: Project Memory
 
@@ -213,6 +214,7 @@ load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
+  "L1/roles/common/experience.md",
   "L1/roles/coder/experience.md",
   "L2/projects/pamem.md"
 ]
@@ -302,6 +304,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 |---|---|---|---|
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
+| Cross-role common experience | `L1/roles/common/experience.md` | `notes/experience.md` with common scope | Durable findings shared across roles |
 | Role-scoped experience | `L1/roles/<role>/experience.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `L1/roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `L1/roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |

@@ -437,7 +437,7 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/notes/user-preferences.md.template" "$repo_root/L1/shared/preferences.md"
   pamem_copy_legacy_or_template_if_missing "$repo_root/L1/shared/workflow.md" "$assets_dir/notes/operating-rules.md.template" "$repo_root/L1/shared/operating-rules.md"
 
-  for role in onboarding human coder reviewer researcher wiki; do
+  for role in common onboarding coder reviewer researcher wiki; do
     mkdir -p "$repo_root/L1/roles/$role"
     pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/experience.md.template" "$repo_root/L1/roles/$role/experience.md"
   done

@@ -1,9 +1,9 @@
-# pamem shared config template for the human review profile
-# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml when a legacy workspace should default to human review.
+# pamem shared config template for the common profile
+# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml when a legacy workspace should default to cross-role experience curation.
 # Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
 
 version = 1
-default_profile = "human"
+default_profile = "common"
 
 [runtime]
 # cli = local agent recovery memory; slock = Slock task board owns task state, workspace notes keep current-task/work-log, and pamem only keeps durable memory.
@@ -47,28 +47,20 @@ queue_root = ".pamem/sync-queue"
 executor = "<configured-sync-executor>"
 policy = "explicit_request_or_workspace_policy"
 
-[profiles.human]
-role = "human"
-description = "Human review profile for approving governance and config changes."
+[profiles.common]
+role = "common"
+description = "Common profile for cross-role experience sharing."
 load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
-  "L1/roles/human/experience.md",
+  "L1/roles/common/experience.md",
   "L2/projects/<project-key>.md"
 ]
 write = [
-  "config.toml",
-  ".pamem/config.toml",
-  "requests/inbox/",
-  "L1/roles/human/experience.md",
-  "L1/roles/onboarding/experience.md"
+  "L2/projects/<project-key>.md",
+  "requests/inbox/"
 ]
 guarded_write = [
-  "L0/constitution.md",
-  "L1/shared/preferences.md",
-  "L1/shared/operating-rules.md",
-  "L1/roles/human/experience.md",
-  "L2/projects/<project-key>.md",
-  "L1/roles/onboarding/experience.md"
+  "L1/roles/common/experience.md"
 ]

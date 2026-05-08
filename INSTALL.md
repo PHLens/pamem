@@ -28,7 +28,7 @@ profile config for a new local agent:
 $HOME/.claude/plugins/marketplaces/phlens/scripts/pamem init --agent-id coder-local --profile coder
 ```
 
-Supported profiles are `onboarding`, `human`, `coder`, `reviewer`,
+Supported profiles are `onboarding`, `common`, `coder`, `reviewer`,
 `researcher`, and `wiki`. `pamem init` chooses the matching config template,
 writes `config.toml` into
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`, creates local
@@ -226,7 +226,7 @@ The Codex bootstrap creates or repairs:
 - `.pamem/`
 - `.pamem/config.toml`
 - the configured shared memory repo root
-- `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
+- `L1/roles/common/experience.md` and `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
 - `L2/projects/` inside the configured shared memory repo, surfaced as `notes/projects/` in Slock mode
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
