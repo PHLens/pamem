@@ -107,6 +107,28 @@ ensure_skill_link() {
   ln -s "$rel_src" "$dst"
 }
 
+ensure_workspace_link() {
+  local src="$1"
+  local dst="$2"
+  local rel_src
+
+  rel_src="$(relative_link_target "$src" "$dst")"
+  mkdir -p "$(dirname "$dst")"
+
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$rel_src" ]; then
+    return 0
+  fi
+
+  if [ -e "$dst" ] && [ ! -L "$dst" ]; then
+    echo "pamem workspace target exists and is not a symlink: $dst" >&2
+    echo "remove or rename it, then rerun pamem install/repair" >&2
+    exit 1
+  fi
+
+  rm -f "$dst"
+  ln -s "$rel_src" "$dst"
+}
+
 ensure_codex_skill_links() {
   local skill_src
   local skill_name
@@ -158,20 +180,29 @@ copy_legacy_or_template_if_missing() {
 copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
 
 RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
+MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
+
+pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
 
 if [ "$AGENT_HOME_MODE" -ne 1 ]; then
-  copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
-  copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
-  copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
+  case "$RUNTIME_MODE" in
+    cli)
+      copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
+      copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
+      copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
+      ;;
+    slock)
+      ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/preferences.md" "$NOTES_DIR/user-preferences.md"
+      ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/operating-rules.md" "$NOTES_DIR/operating-rules.md"
+      ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/experience.md" "$NOTES_DIR/experience.md"
+      ;;
+  esac
 fi
 
-if [ "$RUNTIME_MODE" = "cli" ]; then
+if [ "$RUNTIME_MODE" = "cli" ] || [ "$RUNTIME_MODE" = "slock" ]; then
   copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$CURRENT_TASK_PATH"
   copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$WORK_LOG_PATH"
 fi
-
-MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
-pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
 
 if [ "$AGENT_HOME_MODE" -ne 1 ]; then
   if [ ! -s "$MEMORY_PATH" ]; then

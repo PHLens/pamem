@@ -16,6 +16,6 @@
 - No next step recorded yet.
 
 ## Source of Truth
-- This file is the startup-safe CLI runtime task summary.
-- Prefer the XDG data agent home via `pamem start` or `pamem-cli.sh`; workspace `notes/current-task.md` is a compatibility fallback.
+- This file is the startup-safe runtime task summary.
+- Prefer the XDG data agent home via `pamem start` or `pamem-cli.sh` in CLI mode; workspace `notes/current-task.md` is the task-state file in Slock mode and the compatibility fallback elsewhere.
 - Remove completed tasks when they are done.

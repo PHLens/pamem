@@ -39,6 +39,7 @@ CURRENT_TASK_PATH=""
 WORK_LOG_PATH=""
 CURRENT_TASK_TEXT=""
 WORK_LOG_TEXT=""
+TASK_STATE_LABEL=""
 
 if [ -s "$MEMORY_PATH" ]; then
   MEMORY_TEXT="$(cat "$MEMORY_PATH")"
@@ -47,35 +48,70 @@ if [ -s "$MEMORY_PATH" ]; then
   MEMORY_AVAILABLE=1
 fi
 
-if [ "$RUNTIME_MODE" = "cli" ]; then
-  if [ -n "$HOOK_CURRENT_TASK" ]; then
-    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
-  elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
-    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
-  else
-    CURRENT_TASK_PATH="$(pamem_agent_current_task_path "$ROOT")"
-  fi
+case "$RUNTIME_MODE" in
+  cli)
+    TASK_STATE_LABEL="CLI runtime"
+    if [ -n "$HOOK_CURRENT_TASK" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
+    elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
+    else
+      CURRENT_TASK_PATH="$(pamem_agent_current_task_path "$ROOT")"
+    fi
 
-  if [ -n "$HOOK_WORK_LOG" ]; then
-    WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$HOOK_WORK_LOG")"
-  elif [ -n "${PAMEM_WORK_LOG:-}" ]; then
-    WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_WORK_LOG")"
-  else
-    WORK_LOG_PATH="$(pamem_agent_work_log_path "$ROOT")"
-  fi
+    if [ -n "$HOOK_WORK_LOG" ]; then
+      WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$HOOK_WORK_LOG")"
+    elif [ -n "${PAMEM_WORK_LOG:-}" ]; then
+      WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_WORK_LOG")"
+    else
+      WORK_LOG_PATH="$(pamem_agent_work_log_path "$ROOT")"
+    fi
 
-  if [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/current-task.md" ]; then
-    CURRENT_TASK_PATH="$ROOT/current-task.md"
-  elif [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/notes/current-task.md" ]; then
-    CURRENT_TASK_PATH="$ROOT/notes/current-task.md"
-  fi
+    if [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/current-task.md" ]; then
+      CURRENT_TASK_PATH="$ROOT/current-task.md"
+    elif [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/notes/current-task.md" ]; then
+      CURRENT_TASK_PATH="$ROOT/notes/current-task.md"
+    fi
 
-  if [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/work-log.md" ]; then
-    WORK_LOG_PATH="$ROOT/work-log.md"
-  elif [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/notes/work-log.md" ]; then
-    WORK_LOG_PATH="$ROOT/notes/work-log.md"
-  fi
+    if [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/work-log.md" ]; then
+      WORK_LOG_PATH="$ROOT/work-log.md"
+    elif [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/notes/work-log.md" ]; then
+      WORK_LOG_PATH="$ROOT/notes/work-log.md"
+    fi
+    ;;
+  slock)
+    TASK_STATE_LABEL="Slock runtime"
+    if [ -n "$HOOK_CURRENT_TASK" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
+    elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
+    else
+      CURRENT_TASK_PATH="$(pamem_workspace_current_task_path "$ROOT")"
+    fi
 
+    if [ -n "$HOOK_WORK_LOG" ]; then
+      WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$HOOK_WORK_LOG")"
+    elif [ -n "${PAMEM_WORK_LOG:-}" ]; then
+      WORK_LOG_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_WORK_LOG")"
+    else
+      WORK_LOG_PATH="$(pamem_workspace_work_log_path "$ROOT")"
+    fi
+
+    if [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/current-task.md" ]; then
+      CURRENT_TASK_PATH="$ROOT/current-task.md"
+    elif [ ! -s "$CURRENT_TASK_PATH" ] && [ -s "$ROOT/notes/current-task.md" ]; then
+      CURRENT_TASK_PATH="$ROOT/notes/current-task.md"
+    fi
+
+    if [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/work-log.md" ]; then
+      WORK_LOG_PATH="$ROOT/work-log.md"
+    elif [ ! -s "$WORK_LOG_PATH" ] && [ -s "$ROOT/notes/work-log.md" ]; then
+      WORK_LOG_PATH="$ROOT/notes/work-log.md"
+    fi
+    ;;
+esac
+
+if [ "$RUNTIME_MODE" = "cli" ] || [ "$RUNTIME_MODE" = "slock" ]; then
   if [ -s "$CURRENT_TASK_PATH" ]; then
     CURRENT_TASK_TEXT="$(cat "$CURRENT_TASK_PATH")"
   fi
@@ -105,11 +141,11 @@ if [ "$MEMORY_AVAILABLE" -eq 1 ]; then
 fi
 
 if [ -n "$CURRENT_TASK_TEXT" ]; then
-  CONTEXT="${CONTEXT}"$'\n\n'"CLI runtime current task source: \`${CURRENT_TASK_PATH}\`."$'\n\n'"${CURRENT_TASK_TEXT}"
+  CONTEXT="${CONTEXT}"$'\n\n'"${TASK_STATE_LABEL} current task source: \`${CURRENT_TASK_PATH}\`."$'\n\n'"${CURRENT_TASK_TEXT}"
 fi
 
 if [ -n "$WORK_LOG_TEXT" ]; then
-  CONTEXT="${CONTEXT}"$'\n\n'"CLI runtime work log source: \`${WORK_LOG_PATH}\`."$'\n\n'"${WORK_LOG_TEXT}"
+  CONTEXT="${CONTEXT}"$'\n\n'"${TASK_STATE_LABEL} work log source: \`${WORK_LOG_PATH}\`."$'\n\n'"${WORK_LOG_TEXT}"
 fi
 
 jq -n --arg ctx "$CONTEXT" '{

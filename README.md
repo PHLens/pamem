@@ -43,8 +43,9 @@ the workspace environment.
 
 Onboarding chooses the runtime mode. `cli` mode keeps local recovery notes for
 current-task and work-log state in the XDG data agent home, with workspace
-`notes/` as a compatibility fallback. `slock` mode leaves task state in Slock
-and uses the shared memory repo only for durable memory and promotion requests.
+`notes/` as a compatibility fallback. `slock` mode keeps current-task and
+work-log state in the Slock workspace, and surfaces stable L1 notes as
+workspace symlinks to the shared memory repo.
 
 Here `agent home` means
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`; it contains
@@ -56,8 +57,9 @@ homes and workspaces on the same machine share memory unless onboarding
 overrides it.
 
 In Slock runtime mode, pass the Slock-generated agent workspace as `--workspace`.
-That workspace is only the runtime/config anchor for `.pamem/config.toml` and
-hooks; the default shared memory repo remains
+That workspace is the runtime/config and task-recovery anchor for
+`.pamem/config.toml`, hooks, and `notes/current-task.md` / `notes/work-log.md`;
+the default shared memory repo remains
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`.
 
 For direct CLI use across changing working directories, use a stable agent id:
@@ -115,6 +117,9 @@ pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --ru
 
 This writes `.pamem/config.toml` into the Slock workspace and leaves
 `[memory_repo].path` pointing at the machine-level shared memory repo by default.
+Stable shared notes are exposed in the workspace as symlinks; update shared
+memory through the governed request/sync flow, not by treating workspace links
+as independent local files.
 
 ### More
 
@@ -127,7 +132,7 @@ This writes `.pamem/config.toml` into the Slock workspace and leaves
 - `scripts/onboard-pamem.sh`: implementation helper for selecting the initial profile config
 - `scripts/pamem-cli.sh`: implementation helper for stable agent-home and local recovery paths
 - `scripts/memory-sync.sh`: sync helper for the configured memory repo backend
-- `scripts/memory-pre-compact.sh`: explicit CLI-local current-task helper; not installed as an automatic hook
+- `scripts/memory-pre-compact.sh`: explicit runtime-local current-task helper; not installed as an automatic hook
 - `skills/memory-lint/SKILL.md`: report-only lint boundary and usage notes
 - `skills/memory-lint/scripts/memory-lint.sh`: read-only lint for the agent-local or workspace-local memory config and shared memory repo
 

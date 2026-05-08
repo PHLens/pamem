@@ -71,16 +71,19 @@ workspace anchor:
 pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --runtime slock
 ```
 
-This writes `.pamem/config.toml` and hook/runtime links into the Slock workspace,
-but `[memory_repo].path` still defaults to the machine-level shared memory repo.
+This writes `.pamem/config.toml`, hook/runtime links, workspace task files, and
+workspace read-through links for shared L1 notes into the Slock workspace, but
+`[memory_repo].path` still defaults to the machine-level shared memory repo.
 The Slock workspace owns task state; it is not the shared memory repo.
 
 Use `--runtime cli` when the agent should keep CLI-local recovery state for
 current-task and work-log summaries. `pamem start` stores that state in the XDG
 data agent home; workspace `notes/current-task.md` and `notes/work-log.md`
 remain compatibility fallbacks. Use `--runtime slock` when Slock owns task state through
-its workspace, task board, and threads; in that mode pamem keeps only durable
-memory surfaces.
+its workspace, task board, and threads; in that mode pamem keeps workspace
+`notes/current-task.md` and `notes/work-log.md` plus workspace symlinks to the
+shared L1 notes, and shared-memory changes still go through the governed
+request/sync flow.
 
 For direct CLI usage where the shell cwd may change between sessions, use `pamem`
 after onboarding:
@@ -149,13 +152,14 @@ The installed runtime hook is `SessionStart` only.
 the configured memory source, and loads the configured memory entry file when it
 exists. In CLI runtime mode it also loads CLI-local current-task/work-log state
 from hook-provided pamem paths, then from the XDG data agent home, then from
-legacy workspace `notes/` files. It must not create, repair, rewrite, promote,
-or sync shared memory.
+legacy workspace `notes/` files. In Slock runtime mode it loads workspace
+current-task/work-log state from the Slock workspace notes. It must not create,
+repair, rewrite, promote, or sync shared memory.
 
-`memory-pre-compact.sh` remains an explicit CLI-local helper for creating a
-missing current-task placeholder in CLI mode. It uses hook-provided or XDG data
-agent-home paths first and falls back to workspace notes only for compatibility.
-It is not installed as an automatic hook and must not write the shared memory repo.
+`memory-pre-compact.sh` remains an explicit runtime-local helper for creating a
+missing current-task placeholder. It uses hook-provided or XDG data agent-home
+paths first in CLI mode and workspace notes in Slock mode. It is not installed
+as an automatic hook and must not write the shared memory repo.
 
 ## Install
 
@@ -208,11 +212,11 @@ This removal path removes the Codex `SessionStart` hook entry added by the boots
 The Codex bootstrap creates or repairs:
 
 - `MEMORY.md`
-- `notes/user-preferences.md`
-- `notes/operating-rules.md`
-- `notes/experience.md`
-- `notes/current-task.md` in CLI runtime mode
-- `notes/work-log.md` in CLI runtime mode
+- `notes/user-preferences.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
+- `notes/operating-rules.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
+- `notes/experience.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
+- `notes/current-task.md` in CLI and Slock runtime modes
+- `notes/work-log.md` in CLI and Slock runtime modes
 - XDG CLI runtime state only when `pamem start` or `resume` is used
 - `.codex/config.toml`
 - `.codex/hooks.json`
@@ -234,7 +238,9 @@ the installed plugin's packaged `skills/` directories.
 After installation, check:
 
 - `MEMORY.md` exists
-- `notes/current-task.md` exists in CLI runtime mode and is absent by default in Slock runtime mode
+- `notes/current-task.md` exists in CLI and Slock runtime modes
+- `notes/work-log.md` exists in CLI and Slock runtime modes
+- in Slock runtime mode, `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` resolve into the shared memory repo's `L1/shared/` files
 - `.pamem/` exists
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`

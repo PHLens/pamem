@@ -157,18 +157,27 @@ ensure_cli_state() {
   fi
 }
 
-resolve_cli_state_paths() {
-  if [ "$RUNTIME_MODE" = "cli" ]; then
-    LOCAL_DIR="$(pamem_agent_local_dir "$WORKSPACE" "$AGENT_ID")"
-    CURRENT_TASK_PATH="$LOCAL_DIR/current-task.md"
-    WORK_LOG_PATH="$LOCAL_DIR/work-log.md"
-    SESSION_PATH="$LOCAL_DIR/session.json"
-  else
-    LOCAL_DIR=""
-    CURRENT_TASK_PATH=""
-    WORK_LOG_PATH=""
-    SESSION_PATH=""
-  fi
+resolve_runtime_state_paths() {
+  case "$RUNTIME_MODE" in
+    cli)
+      LOCAL_DIR="$(pamem_agent_local_dir "$WORKSPACE" "$AGENT_ID")"
+      CURRENT_TASK_PATH="$LOCAL_DIR/current-task.md"
+      WORK_LOG_PATH="$LOCAL_DIR/work-log.md"
+      SESSION_PATH="$LOCAL_DIR/session.json"
+      ;;
+    slock)
+      LOCAL_DIR=""
+      CURRENT_TASK_PATH="$(pamem_workspace_current_task_path "$WORKSPACE")"
+      WORK_LOG_PATH="$(pamem_workspace_work_log_path "$WORKSPACE")"
+      SESSION_PATH=""
+      ;;
+    *)
+      LOCAL_DIR=""
+      CURRENT_TASK_PATH=""
+      WORK_LOG_PATH=""
+      SESSION_PATH=""
+      ;;
+  esac
 }
 
 print_status() {
@@ -177,10 +186,11 @@ print_status() {
   printf 'agent_id=%s\n' "$AGENT_ID"
   printf 'memory_repo=%s\n' "$MEMORY_REPO_ROOT"
   printf 'memory_entry=%s\n' "$MEMORY_REPO_ROOT/$MEMORY_ENTRY_FILE"
+  printf 'task_state=%s\n' "$RUNTIME_MODE"
+  printf 'current_task=%s\n' "$CURRENT_TASK_PATH"
+  printf 'work_log=%s\n' "$WORK_LOG_PATH"
   if [ "$RUNTIME_MODE" = "cli" ]; then
     printf 'local_dir=%s\n' "$LOCAL_DIR"
-    printf 'current_task=%s\n' "$CURRENT_TASK_PATH"
-    printf 'work_log=%s\n' "$WORK_LOG_PATH"
     printf 'session_file=%s\n' "$SESSION_PATH"
     if [ -s "$SESSION_PATH" ]; then
       printf 'last_command='
@@ -188,8 +198,6 @@ print_status() {
     else
       printf 'last_command=\n'
     fi
-  else
-    printf 'task_state=slock\n'
   fi
 }
 
@@ -221,6 +229,7 @@ print_hook_json() {
       pamem: {
         runtime: $runtime,
         agent_id: $agent_id,
+        task_state: $runtime,
         local_dir: $local_dir,
         current_task: $current_task,
         work_log: $work_log,
@@ -228,12 +237,14 @@ print_hook_json() {
       }
     }'
   else
-    jq -n --arg cwd "$WORKSPACE" --arg runtime "$RUNTIME_MODE" --arg agent_id "$AGENT_ID" '{
+    jq -n --arg cwd "$WORKSPACE" --arg runtime "$RUNTIME_MODE" --arg agent_id "$AGENT_ID" --arg current_task "$CURRENT_TASK_PATH" --arg work_log "$WORK_LOG_PATH" '{
       cwd: $cwd,
       pamem: {
         runtime: $runtime,
         agent_id: $agent_id,
-        task_state: "slock"
+        task_state: "slock",
+        current_task: $current_task,
+        work_log: $work_log
       }
     }'
   fi
@@ -351,7 +362,7 @@ fi
 
 MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
 MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$WORKSPACE")"
-resolve_cli_state_paths
+resolve_runtime_state_paths
 
 case "$COMMAND" in
   start)

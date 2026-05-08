@@ -287,6 +287,76 @@ if [ -s "$NESTED_CONFIG" ]; then
     "remove-repo-config"
 fi
 
+check_workspace_symlink() {
+  local path="$1"
+  local expected="$2"
+  local title="$3"
+  local evidence="$4"
+  local resolved
+  local expected_resolved
+
+  if [ ! -e "$path" ]; then
+    add_finding "error" "ML008" "$(repo_display_path "$path")" "" \
+      "$title" \
+      "Slock workspaces should surface the shared memory file as a workspace symlink." \
+      "$evidence -> missing" \
+      "repair-workspace"
+    return 0
+  fi
+
+  if [ ! -L "$path" ]; then
+    add_finding "error" "ML008" "$(repo_display_path "$path")" "" \
+      "$title" \
+      "Slock workspaces should surface the shared memory file as a workspace symlink." \
+      "$evidence -> regular file" \
+      "repair-workspace"
+    return 0
+  fi
+
+  resolved="$(realpath "$path")"
+  expected_resolved="$(realpath -m "$expected")"
+  if [ "$resolved" != "$expected_resolved" ]; then
+    add_finding "error" "ML008" "$(repo_display_path "$path")" "" \
+      "$title" \
+      "Slock workspace symlinks must resolve to the shared memory repo surface." \
+      "$evidence -> $resolved (expected $expected_resolved)" \
+      "repair-workspace"
+  fi
+}
+
+if [ "$RUNTIME_MODE" = "slock" ]; then
+  for task_file in \
+    "$WORKSPACE/notes/current-task.md" \
+    "$WORKSPACE/notes/work-log.md"
+  do
+    if [ ! -s "$task_file" ]; then
+      add_finding "error" "ML008" "$(repo_display_path "$task_file")" "" \
+        "Slock workspace task file is missing" \
+        "Slock runtime should keep current-task and work-log in workspace notes." \
+        "$(repo_display_path "$task_file")" \
+        "repair-workspace"
+    fi
+  done
+
+  check_workspace_symlink \
+    "$WORKSPACE/notes/user-preferences.md" \
+    "$MEMORY_ROOT/L1/shared/preferences.md" \
+    "Slock workspace user preferences should link to shared memory" \
+    "notes/user-preferences.md"
+
+  check_workspace_symlink \
+    "$WORKSPACE/notes/operating-rules.md" \
+    "$MEMORY_ROOT/L1/shared/operating-rules.md" \
+    "Slock workspace operating rules should link to shared memory" \
+    "notes/operating-rules.md"
+
+  check_workspace_symlink \
+    "$WORKSPACE/notes/experience.md" \
+    "$MEMORY_ROOT/L1/shared/experience.md" \
+    "Slock workspace experience should link to shared memory" \
+    "notes/experience.md"
+fi
+
 ENTRY_PATH=""
 if ! ENTRY_PATH="$(resolve_repo_path "$ENTRY_FILE_RAW")"; then
   add_finding "error" "ML001" "$(repo_display_path "$CONFIG_PATH")" "" \
