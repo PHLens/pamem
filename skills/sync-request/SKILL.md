@@ -70,7 +70,7 @@ Common examples:
 - `<workspace>/MEMORY.md`
 - `<workspace>/notes/user-preferences.md`
 - `<workspace>/notes/operating-rules.md`
-- `<workspace>/notes/experience.md`
+- `<workspace>/notes/experience.md` or `<memory-repo>/L1/roles/<role>/experience.md`
 - `<workspace>/notes/projects/<project-key>.md`
 
 Rules:

@@ -1,6 +1,6 @@
 # Experience
 
-Durable meta-knowledge: methodology, corrected assumptions, and reusable findings.
-Each entry: type (finding/correction/meta), scope, statement, last_confirmed.
+Compatibility surface for role-scoped experience. The durable source lives in
+`L1/roles/<role>/experience.md` for the active profile.
 
-- No durable experience recorded yet.
+- No local compatibility experience recorded yet.

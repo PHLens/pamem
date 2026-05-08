@@ -48,9 +48,9 @@ Examples:
 - `notes/operating-rules.md`
 - `notes/experience.md`
 - `L1/shared/*`
-- `L1/roles/<role>.md`
+- `L1/roles/<role>/experience.md`
 
-Role-specific shared experience belongs in L1, but it is loaded through profile overlays and does not outrank project-specific memory.
+Role-specific experience belongs in `L1/roles/<role>/experience.md`, with `notes/experience.md` as the compatibility surface. `notes/projects/<project-key>.md` is the compatibility surface for `L2/projects/<project-key>.md`. These are loaded through profile overlays and do not outrank project-specific memory.
 
 ### Layer 2: Project Memory
 
@@ -133,12 +133,12 @@ small runtime-local recovery notes:
 
 - `MEMORY.md`
 - `L1/shared/*`
-- `L1/roles/*`
+- `L1/roles/<role>/experience.md`
 - `L2/projects/*`
 - `notes/user-preferences.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/preferences.md` in Slock mode
 - `notes/operating-rules.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/operating-rules.md` in Slock mode
-- `notes/experience.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/experience.md` in Slock mode
-- `notes/projects/*`
+- `notes/experience.md` as a local compatibility copy in CLI mode or a symlink to `L1/roles/<role>/experience.md` in Slock mode
+- `notes/projects/*` as a local compatibility copy in CLI mode or a symlink to `L2/projects/` in Slock mode
 - `notes/current-task.md` in CLI and Slock runtime modes
 - `notes/work-log.md` in CLI and Slock runtime modes
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/config.toml` for default CLI agent-home config

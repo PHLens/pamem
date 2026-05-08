@@ -214,7 +214,7 @@ The Codex bootstrap creates or repairs:
 - `MEMORY.md`
 - `notes/user-preferences.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
 - `notes/operating-rules.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
-- `notes/experience.md` as a local compatibility copy in CLI mode or a workspace symlink to shared memory in Slock mode
+- `notes/experience.md` as a local compatibility copy in CLI mode or a workspace symlink to the active role experience in Slock mode
 - `notes/current-task.md` in CLI and Slock runtime modes
 - `notes/work-log.md` in CLI and Slock runtime modes
 - XDG CLI runtime state only when `pamem start` or `resume` is used
@@ -226,7 +226,8 @@ The Codex bootstrap creates or repairs:
 - `.pamem/`
 - `.pamem/config.toml`
 - the configured shared memory repo root
-- `L2/projects/` inside the configured shared memory repo
+- `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
+- `L2/projects/` inside the configured shared memory repo, surfaced as `notes/projects/` in Slock mode
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
 the installed Claude marketplace plugin rather than copied runtime files.
@@ -240,7 +241,8 @@ After installation, check:
 - `MEMORY.md` exists
 - `notes/current-task.md` exists in CLI and Slock runtime modes
 - `notes/work-log.md` exists in CLI and Slock runtime modes
-- in Slock runtime mode, `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` resolve into the shared memory repo's `L1/shared/` files
+- in Slock runtime mode, `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` resolve into the shared memory repo's shared preference/rule files and active role experience file
+- in Slock runtime mode, `notes/projects/` resolves into the shared memory repo's `L2/projects/`
 - `.pamem/` exists
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`
@@ -293,6 +295,6 @@ It does not replace:
 
 - `notes/user-preferences.md`
 - `notes/operating-rules.md`
-- `notes/projects/*`
+- `notes/projects/*` as a workspace surface for `L2/projects/` in Slock mode
 - runtime-local task state owned by CLI notes or by Slock
 - the local sync executor workflow
