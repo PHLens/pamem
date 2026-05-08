@@ -32,20 +32,35 @@ fi
 RUNTIME_MODE="$(pamem_runtime_mode "$ROOT")"
 CURRENT_TASK_LABEL="current-task.md"
 
-if [ "$RUNTIME_MODE" = "cli" ]; then
-  if [ -n "$HOOK_CURRENT_TASK" ]; then
-    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
-    CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
-  elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
-    CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
-    CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
-  else
-    CURRENT_TASK_PATH="$(pamem_agent_current_task_path "$ROOT")"
-    CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
-  fi
-else
-  CURRENT_TASK_PATH=""
-fi
+case "$RUNTIME_MODE" in
+  cli)
+    if [ -n "$HOOK_CURRENT_TASK" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
+      CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+    elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
+      CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+    else
+      CURRENT_TASK_PATH="$(pamem_agent_current_task_path "$ROOT")"
+      CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+    fi
+    ;;
+  slock)
+    if [ -n "$HOOK_CURRENT_TASK" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$HOOK_CURRENT_TASK")"
+      CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+    elif [ -n "${PAMEM_CURRENT_TASK:-}" ]; then
+      CURRENT_TASK_PATH="$(pamem_expand_path "$ROOT" "$PAMEM_CURRENT_TASK")"
+      CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+    else
+      CURRENT_TASK_PATH="$(pamem_workspace_current_task_path "$ROOT")"
+      CURRENT_TASK_LABEL="$CURRENT_TASK_PATH"
+    fi
+    ;;
+  *)
+    CURRENT_TASK_PATH=""
+    ;;
+esac
 
 CREATED_CURRENT_TASK=0
 

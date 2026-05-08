@@ -65,10 +65,11 @@ Project-specific memory belongs in L2, not L1. It should be more specific than r
 
 `projects/` is a namespace inside L2, not another layer.
 
-Runtime-local task state is not part of the shared memory repo. CLI mode may
-keep local recovery notes in the XDG data agent home or compatibility files such as
-`notes/current-task.md`; Slock mode uses the Slock workspace, task board, and
-threads as the task-state source of truth.
+Runtime-local task state is not part of the shared memory repo. CLI mode keeps
+local recovery notes in the XDG data agent home or compatibility files such as
+`notes/current-task.md`; Slock mode keeps `notes/current-task.md` and
+`notes/work-log.md` in the Slock workspace while the task board and threads
+remain the execution record.
 
 ### Layer 3: Archive
 
@@ -78,10 +79,11 @@ Examples:
 
 - `notes/work-log.md`
 
-It stores summaries, not transcripts. It is a CLI-local fallback surface by
-default, not a shared memory repo surface. In Slock mode, pamem does not update
-a task work log by default; completed task state remains in Slock unless a
-durable, reusable finding is promoted to L1 or L2 project memory.
+It stores summaries, not transcripts. It is runtime-local, not a shared memory
+repo surface. In CLI mode it lives in the agent home or compatibility workspace
+notes; in Slock mode it lives in the Slock workspace. Durable, reusable findings
+should be promoted to L1 or L2 project memory instead of being left only in a
+work log.
 
 ## What Pamem Manages
 
@@ -93,8 +95,8 @@ flowchart TD
     L0["Layer 0<br/>Directly managed"]
     L1["Layer 1<br/>Skeleton only"]
     L2["Layer 2<br/>Skeleton only"]
-    L3["Layer 3<br/>CLI fallback only"]
-    CLI["CLI runtime mode<br/>workspace-local fallback"]
+    L3["Layer 3<br/>Runtime-local summaries"]
+    CLI["CLI/Slock runtime mode<br/>local task recovery"]
     C["Agent-local content<br/>Not managed by pamem"]
 
     P --> L0
@@ -126,19 +128,19 @@ shared memory, local memory config, sync policy, or run repo sync.
 
 ### Created But Not Owned By Pamem
 
-`pamem` creates the base durable memory structure in the shared memory repo and,
-for CLI runtime mode, small local recovery notes:
+`pamem` creates the base durable memory structure in the shared memory repo and
+small runtime-local recovery notes:
 
 - `MEMORY.md`
 - `L1/shared/*`
 - `L1/roles/*`
 - `L2/projects/*`
-- `notes/user-preferences.md`
-- `notes/operating-rules.md`
-- `notes/experience.md`
+- `notes/user-preferences.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/preferences.md` in Slock mode
+- `notes/operating-rules.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/operating-rules.md` in Slock mode
+- `notes/experience.md` as a local compatibility copy in CLI mode or a symlink to `L1/shared/experience.md` in Slock mode
 - `notes/projects/*`
-- `notes/current-task.md` in CLI runtime mode
-- `notes/work-log.md` in CLI runtime mode
+- `notes/current-task.md` in CLI and Slock runtime modes
+- `notes/work-log.md` in CLI and Slock runtime modes
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/config.toml` for default CLI agent-home config
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` when `pamem start` or `resume` is used
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem start` or `resume` is used
@@ -156,10 +158,12 @@ sharing mode, and sync policy remain configurable for teams that need a separate
 repo or remote backend. Legacy or Slock workspaces may still use
 `.pamem/config.toml`.
 
-In Slock runtime mode, the Slock-generated agent workspace is the config and
-hook anchor, not the memory repo. Its `.pamem/config.toml` should normally point
-to the same machine-level shared memory repo so multiple Slock and CLI agents can
-reuse durable memory while Slock continues to own task state.
+In Slock runtime mode, the Slock-generated agent workspace is the config, hook,
+and task-recovery anchor, not the memory repo. Its `.pamem/config.toml` should
+normally point to the same machine-level shared memory repo so multiple Slock
+and CLI agents can reuse durable memory while Slock continues to own task state.
+Workspace L1 note files are symlinks into the shared memory repo and should be
+treated as governed shared memory, not independent local files.
 
 ### Local Convenience, Shared Infrastructure
 
@@ -242,8 +246,8 @@ repair, rewrite, promote, or sync shared memory.
 
 An automatic `PreCompact` hook is not part of the runtime contract. Compact-time
 automatic writes are too easy to confuse with durable memory promotion. The
-`memory-pre-compact.sh` script remains only as an explicit CLI-local helper for
-current-task state; it must not write the shared memory repo.
+`memory-pre-compact.sh` script remains only as an explicit runtime-local helper
+for current-task state; it must not write the shared memory repo.
 
 ### Instance Isolation
 
@@ -251,13 +255,14 @@ Multiple agent instances may share the same memory repo, but they must not share
 mutable task state through that repo. The shared repo is for durable L0/L1/L2
 project memory and promotion requests. Runtime state is owned by the runtime:
 CLI mode keeps local recovery notes in the XDG data agent home or compatibility
-workspace notes, while Slock mode uses Slock task state, workspace files, and
-task threads.
+workspace notes, while Slock mode uses workspace `notes/current-task.md`,
+workspace `notes/work-log.md`, the Slock task board, and task threads.
 
 When many instances are active, the shared repo `MEMORY.md` should stay a thin
 index to durable memory. It may point to project notes, but it should not try to
-list every active task. Any CLI current-task summary is local to the agent home
-or compatibility workspace; Slock task state remains in Slock.
+list every active task. CLI current-task summaries are local to the agent home
+or compatibility workspace; Slock current-task summaries are local to the Slock
+workspace.
 
 ### Startup-Safe By Default
 

@@ -339,6 +339,16 @@ pamem_agent_work_log_path() {
   printf '%s/work-log.md' "$(pamem_agent_local_dir "$workspace")"
 }
 
+pamem_workspace_current_task_path() {
+  local workspace="$1"
+  printf '%s/notes/current-task.md' "$workspace"
+}
+
+pamem_workspace_work_log_path() {
+  local workspace="$1"
+  printf '%s/notes/work-log.md' "$workspace"
+}
+
 pamem_copy_if_missing() {
   local src="$1"
   local dst="$2"

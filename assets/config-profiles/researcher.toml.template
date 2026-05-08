@@ -6,7 +6,7 @@ version = 1
 default_profile = "researcher"
 
 [runtime]
-# cli = local agent recovery memory; slock = Slock task board owns task state and pamem only keeps durable memory.
+# cli = local agent recovery memory; slock = Slock task board owns task state, workspace notes keep current-task/work-log, and pamem only keeps durable memory.
 mode = "cli"
 # Optional stable id for the local agent home. Empty means derive from the configured root path.
 agent_id = ""
