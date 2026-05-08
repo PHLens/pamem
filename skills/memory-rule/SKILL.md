@@ -68,14 +68,19 @@ memory/
       experience.md
     roles/
       coder/
+        index.md
         experience.md
       reviewer/
+        index.md
         experience.md
       researcher/
+        index.md
         experience.md
       onboarding/
+        index.md
         experience.md
       wiki/
+        index.md
         experience.md
   L2/
     projects/
@@ -106,6 +111,7 @@ Map fallback files to the same layers:
 
 - `notes/user-preferences.md` and `notes/operating-rules.md` are L1 shared memory surfaces.
 - `L1/shared/experience.md` is the cross-role shared experience surface loaded by profile overlays.
+- `L1/roles/<role>/index.md` is the startup-loaded role entry point and should stay a thin router.
 - `notes/experience.md` is the compatibility surface for active role experience in `L1/roles/<role>/experience.md`.
 - `notes/projects/<project-key>.md` is CLI-local compatibility for `L2/projects/<project-key>.md`.
 - XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
@@ -146,9 +152,10 @@ Examples:
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
 - shared cross-role experience such as `L1/shared/experience.md`
+- role-specific entry indexes such as `L1/roles/coder/index.md`, `L1/roles/reviewer/index.md`, `L1/roles/wiki/index.md`, and `L1/roles/onboarding/index.md`
 - role-specific experience such as `L1/roles/coder/experience.md`, `L1/roles/reviewer/experience.md`, `L1/roles/wiki/experience.md`, and `L1/roles/onboarding/experience.md`
 
-Shared and role experience belongs in L1 because it is stable shared experience for the active profile. Shared experience is loaded through the active profile overlay and does not outrank project-specific rules.
+Shared and role experience belongs in L1 because it is stable shared experience for the active profile. Shared experience is loaded through the active profile overlay; role indexes are loaded as thin routers, and deeper role shards are read on demand. These overlays do not outrank project-specific rules.
 
 ### Layer 2: Project Memory
 
@@ -215,7 +222,7 @@ load = [
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
-  "L1/roles/coder/experience.md",
+  "L1/roles/coder/index.md",
   "L2/projects/pamem.md"
 ]
 write = [
@@ -223,6 +230,7 @@ write = [
   "requests/inbox/"
 ]
 guarded_write = [
+  "L1/roles/coder/index.md",
   "L1/roles/coder/experience.md"
 ]
 ```
@@ -233,7 +241,7 @@ Rules:
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
 - `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise `pamem resume` may reuse the last launcher recorded by `pamem start -- <launcher>`.
 - Shared experience is a profile overlay loaded from L1.
-- Role-specific memory is a profile overlay loaded from L1.
+- Role-specific indexes are profile overlays loaded from L1; deeper role shards are read on demand.
 - Project memory is loaded from L2 and wins over role memory on conflict.
 - Ordinary task agents should write project memory and promotion requests, not mutable task state in the shared repo.
 - `guarded_write` means the agent may update the target only when the change is high-confidence, reusable across tasks, and allowed by local policy; otherwise create a promotion request.
@@ -250,7 +258,7 @@ On wake-up:
 4. Load L0 constitution sources for that profile.
 5. Load L1 shared memory.
 6. Load the L1 shared experience overlay for the profile.
-7. Load the L1 role overlay for the profile.
+7. Load the L1 role index overlay for the profile.
 8. Load L2 project memory for the active project.
 9. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
 10. Do not load L3 archive or `requests/` by default.
@@ -307,6 +315,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
 | Cross-role shared experience | `L1/shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
+| Role startup index | `L1/roles/<role>/index.md` | n/a | Thin role router loaded through the active profile; point to shards instead of embedding them |
 | Role-scoped experience | `L1/roles/<role>/experience.md` | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `L1/roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `L1/roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
