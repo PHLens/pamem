@@ -24,6 +24,7 @@ Do not run sync directly from this agent; the sync executor may call `.pamem/scr
 - `L1/shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
 - `L1/shared/operating-rules.md` or `notes/operating-rules.md` — stable operating defaults
 - `L1/shared/experience.md` — cross-role findings, corrections, and meta-knowledge loaded through the active profile
+- `L1/roles/<role>/index.md` — startup-loaded role entry point that routes to role shards
 - `L1/roles/<role>/experience.md` or `notes/experience.md` — role-scoped findings, corrections, and meta-knowledge
 - `L2/projects/<project-key>.md` or `notes/projects/<project-key>.md` — project-specific stable context
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` / `work-log.md` in CLI mode, with workspace `notes/current-task.md` / `notes/work-log.md` in Slock mode — runtime-local recovery and completion summaries

@@ -1,0 +1,13 @@
+# Wiki Index
+
+Startup-loaded entry point for the wiki role.
+
+Use this file as a thin router. Read only the role shards needed for the current task.
+
+## Role Shards
+- `experience.md` — durable curation findings, corrections, and knowledge-organization lessons.
+
+## Write Policy
+- Keep this index short.
+- Promote durable role findings into `experience.md` through pamem governance.
+

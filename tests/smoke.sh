@@ -59,6 +59,29 @@ if grep -Eq '^\[profiles\.(coder|reviewer|researcher|wiki)\]$' "$CONFIG"; then
   exit 1
 fi
 
+base_load_block="$(awk -v profile="onboarding" '
+  BEGIN { in_profile = 0; in_load = 0 }
+  $0 == "[profiles." profile "]" {
+    in_profile = 1
+    next
+  }
+  in_profile && /^[[:space:]]*load[[:space:]]*=[[:space:]]*\[/ {
+    in_load = 1
+    next
+  }
+  in_load {
+    if ($0 ~ /^[[:space:]]*\]/) {
+      exit
+    }
+    print
+  }
+' "$CONFIG")"
+printf '%s\n' "$base_load_block" | grep -Eq '"L1/roles/onboarding/index\.md"'
+if printf '%s\n' "$base_load_block" | grep -Eq '"L1/roles/onboarding/experience\.md"'; then
+  echo "base config load must route through role index instead of role experience" >&2
+  exit 1
+fi
+
 for profile in coder reviewer researcher wiki; do
   profile_template="$ROOT/assets/config-profiles/${profile}.toml.template"
   test -s "$profile_template"
@@ -69,6 +92,28 @@ for profile in coder reviewer researcher wiki; do
   grep -Eq '^[[:space:]]*command[[:space:]]*=[[:space:]]*\[\]' "$profile_template"
   grep -Eq '^[[:space:]]*path[[:space:]]*=[[:space:]]*"\$\{XDG_DATA_HOME:-\$HOME/\.local/share\}/pamem/memory"' "$profile_template"
   grep -Eq "^\[profiles\.${profile}\]$" "$profile_template"
+  load_block="$(awk -v profile="$profile" '
+    BEGIN { in_profile = 0; in_load = 0 }
+    $0 == "[profiles." profile "]" {
+      in_profile = 1
+      next
+    }
+    in_profile && /^[[:space:]]*load[[:space:]]*=[[:space:]]*\[/ {
+      in_load = 1
+      next
+    }
+    in_load {
+      if ($0 ~ /^[[:space:]]*\]/) {
+        exit
+      }
+      print
+    }
+  ' "$profile_template")"
+  printf '%s\n' "$load_block" | grep -Eq "\"L1/roles/${profile}/index\\.md\""
+  if printf '%s\n' "$load_block" | grep -Eq "\"L1/roles/${profile}/experience\\.md\""; then
+    echo "profile load must route through role index instead of role experience: $profile_template" >&2
+    exit 1
+  fi
   if grep -Eq 'L2/active|L3/work-log|current-tasks' "$profile_template"; then
     echo "profile template must not use shared active/work-log paths: $profile_template" >&2
     exit 1
@@ -84,10 +129,15 @@ for file in \
   "$ROOT/assets/notes/work-log.md.template" \
   "$ROOT/assets/shared/L0/constitution.md.template" \
   "$ROOT/assets/shared/L1/shared/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/onboarding/index.md.template" \
   "$ROOT/assets/shared/L1/roles/onboarding/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/coder/index.md.template" \
   "$ROOT/assets/shared/L1/roles/coder/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/reviewer/index.md.template" \
   "$ROOT/assets/shared/L1/roles/reviewer/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/researcher/index.md.template" \
   "$ROOT/assets/shared/L1/roles/researcher/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/wiki/index.md.template" \
   "$ROOT/assets/shared/L1/roles/wiki/experience.md.template" \
   "$ROOT/assets/config-profiles/coder.toml.template" \
   "$ROOT/assets/config-profiles/reviewer.toml.template" \
@@ -216,7 +266,12 @@ for file in \
   "$DEFAULT_MEMORY_REPO/L1/shared/preferences.md" \
   "$DEFAULT_MEMORY_REPO/L1/shared/operating-rules.md" \
   "$DEFAULT_MEMORY_REPO/L1/shared/experience.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/onboarding/index.md" \
   "$DEFAULT_MEMORY_REPO/L1/roles/onboarding/experience.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/coder/index.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/reviewer/index.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/researcher/index.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/wiki/index.md" \
   "$DEFAULT_MEMORY_REPO/L1/roles/wiki/experience.md" \
   "$WORKSPACE/MEMORY.md" \
   "$WORKSPACE/notes/operating-rules.md" \
@@ -407,7 +462,7 @@ printf '%s' "$GLOBAL_C_START" | grep -Fq "PAMEM_CURRENT_TASK="
 GLOBAL_C_CONTEXT="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" context --agent-id wiki-agent)"
 grep -Fq "Persistent memory source:" <<< "$GLOBAL_C_CONTEXT"
 grep -Fq "Shared Experience" <<< "$GLOBAL_C_CONTEXT"
-grep -Fq "Wiki Experience" <<< "$GLOBAL_C_CONTEXT"
+grep -Fq "Wiki Index" <<< "$GLOBAL_C_CONTEXT"
 grep -Fq "CLI runtime current task source: \`$WIKI_AGENT_HOME/current-task.md\`" <<< "$GLOBAL_C_CONTEXT"
 SHARED_C_LINT="$(XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/pamem" lint --agent-id wiki-agent --json)"
 printf '%s' "$SHARED_C_LINT" | jq -e '.status == "ok" and .config.default_profile == "wiki" and .config_scope == "agent-local"' >/dev/null
@@ -447,7 +502,7 @@ test ! -e "$SLOCK_WORKSPACE/notes/projects"
 SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SLOCK_SESSION_OUTPUT" | jq -e '
   .hookSpecificOutput.hookEventName == "SessionStart" and
-  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("Runtime anchor:") and contains("runtime=slock") and contains("/pamem/memory") and contains("Loaded profile memory for `coder`:") and contains("Shared Experience") and contains("Coder Experience") and contains("Slock runtime current task source:") and contains("Slock runtime work log source:"))
+  (.hookSpecificOutput.additionalContext | contains("Persistent memory source:") and contains("Runtime anchor:") and contains("runtime=slock") and contains("/pamem/memory") and contains("Loaded profile memory for `coder`:") and contains("Shared Experience") and contains("Coder Index") and contains("Slock runtime current task source:") and contains("Slock runtime work log source:"))
 ' >/dev/null
 
 rm -f "$SLOCK_WORKSPACE/notes/current-task.md"

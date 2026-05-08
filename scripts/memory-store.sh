@@ -432,6 +432,7 @@ pamem_ensure_memory_repo_skeleton() {
 
   for role in onboarding coder reviewer researcher wiki; do
     mkdir -p "$repo_root/L1/roles/$role"
+    pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/index.md.template" "$repo_root/L1/roles/$role/index.md"
     pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/experience.md.template" "$repo_root/L1/roles/$role/experience.md"
   done
 }
