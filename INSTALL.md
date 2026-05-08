@@ -226,7 +226,7 @@ The Codex bootstrap creates or repairs:
 - `.pamem/`
 - `.pamem/config.toml`
 - the configured shared memory repo root
-- `L1/shared/experience.md` and `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
+- `L1/shared/experience.md`, `L1/roles/<role>/index.md`, and `L1/roles/<role>/experience.md` inside the configured shared memory repo, without root-level role placeholder files
 - `L2/projects/` inside the configured shared memory repo
 
 Within `.pamem/`, the managed `scripts/` and `assets/` entries are symlinks to
@@ -248,6 +248,7 @@ After installation, check:
 - `.codex/hooks.json` does not contain a `PreCompact` hook
 - `.codex/skills/memory-rule`, `.codex/skills/sync-request`, and `.codex/skills/memory-lint` resolve to the installed plugin
 - startup loads the memory index
+- startup loads the selected role index rather than the full role experience shard
 - `.pamem/config.toml` exists and points to the shared memory repo root
 - `.pamem/config.toml` sets `[runtime].mode` to `cli` or `slock`
 - `default_profile` was selected during onboarding and is not changed by startup hooks

@@ -49,9 +49,10 @@ Examples:
 - `notes/experience.md`
 - `L1/shared/*`
 - `L1/shared/experience.md`
+- `L1/roles/<role>/index.md`
 - `L1/roles/<role>/experience.md`
 
-Shared cross-role experience belongs in `L1/shared/experience.md`; role-specific experience belongs in `L1/roles/<role>/experience.md`, with `notes/experience.md` as the compatibility surface for role experience. `notes/projects/<project-key>.md` is the CLI compatibility surface for `L2/projects/<project-key>.md`. These are loaded through profile overlays and do not outrank project-specific memory.
+Shared cross-role experience belongs in `L1/shared/experience.md`; role-specific entry points belong in `L1/roles/<role>/index.md`, which can route to role shards such as `experience.md`. `notes/experience.md` remains the CLI compatibility surface for role experience. `notes/projects/<project-key>.md` is the CLI compatibility surface for `L2/projects/<project-key>.md`. These are loaded through profile overlays and do not outrank project-specific memory.
 
 ### Layer 2: Project Memory
 
@@ -135,6 +136,7 @@ small runtime-local recovery notes:
 - `MEMORY.md`
 - `L1/shared/*`
 - `L1/shared/experience.md`
+- `L1/roles/<role>/index.md`
 - `L1/roles/<role>/experience.md`
 - `L2/projects/*`
 - `notes/user-preferences.md` as a local compatibility copy in CLI mode
@@ -213,7 +215,8 @@ role, shared, or constitution memory.
 
 In practice, an agent home or workspace should activate one `default_profile` at
 a time. The templates in `assets/config-profiles/` are standalone starters for
-alternate defaults, not simultaneous runtime roles.
+alternate defaults, not simultaneous runtime roles. Each profile loads the role
+index first and leaves deeper role shards for on-demand reading.
 
 Profile selection belongs to onboarding. `pamem init` writes the selected
 `config.toml` before runtime hooks start reading it; startup hooks must treat the

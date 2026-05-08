@@ -55,7 +55,7 @@ load = [
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
   "L1/shared/experience.md",
-  "L1/roles/reviewer/experience.md",
+  "L1/roles/reviewer/index.md",
   "L2/projects/<project-key>.md"
 ]
 write = [
@@ -63,5 +63,6 @@ write = [
   "requests/inbox/"
 ]
 guarded_write = [
+  "L1/roles/reviewer/index.md",
   "L1/roles/reviewer/experience.md"
 ]
