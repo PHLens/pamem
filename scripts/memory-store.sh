@@ -299,6 +299,38 @@ pamem_runtime_mode() {
   pamem_config_value_or_default "$config_path" 'runtime' 'mode' 'cli'
 }
 
+pamem_default_profile() {
+  local workspace="$1"
+  local config_path
+
+  config_path="$(pamem_config_path "$workspace")"
+  pamem_config_value_or_default "$config_path" '' 'default_profile' 'onboarding'
+}
+
+pamem_active_role() {
+  local workspace="$1"
+  local config_path
+  local profile
+  local role
+
+  config_path="$(pamem_config_path "$workspace")"
+  profile="$(pamem_default_profile "$workspace")"
+  role="$(pamem_toml_get_value "$config_path" "profiles.$profile" 'role' || true)"
+  if [ -n "$role" ]; then
+    printf '%s' "$role"
+  else
+    printf '%s' "$profile"
+  fi
+}
+
+pamem_role_experience_path() {
+  local workspace="$1"
+  local role
+
+  role="$(pamem_active_role "$workspace")"
+  printf '%s/L1/roles/%s/experience.md' "$(pamem_memory_repo_root "$workspace")" "$role"
+}
+
 pamem_agent_id() {
   local workspace="$1"
   local config_path
@@ -389,6 +421,7 @@ pamem_write_if_missing() {
 pamem_ensure_memory_repo_skeleton() {
   local repo_root="$1"
   local assets_dir="$2"
+  local role
 
   mkdir -p \
     "$repo_root/L0" \
@@ -403,10 +436,9 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/shared/L0/constitution.md.template" "$repo_root/L0/constitution.md"
   pamem_copy_if_missing "$assets_dir/notes/user-preferences.md.template" "$repo_root/L1/shared/preferences.md"
   pamem_copy_legacy_or_template_if_missing "$repo_root/L1/shared/workflow.md" "$assets_dir/notes/operating-rules.md.template" "$repo_root/L1/shared/operating-rules.md"
-  pamem_copy_if_missing "$assets_dir/notes/experience.md.template" "$repo_root/L1/shared/experience.md"
-  pamem_copy_if_missing "$assets_dir/shared/L1/roles/onboarding.md.template" "$repo_root/L1/roles/onboarding.md"
-  pamem_copy_if_missing "$assets_dir/shared/L1/roles/coder.md.template" "$repo_root/L1/roles/coder.md"
-  pamem_copy_if_missing "$assets_dir/shared/L1/roles/reviewer.md.template" "$repo_root/L1/roles/reviewer.md"
-  pamem_copy_if_missing "$assets_dir/shared/L1/roles/researcher.md.template" "$repo_root/L1/roles/researcher.md"
-  pamem_copy_if_missing "$assets_dir/shared/L1/roles/wiki.md.template" "$repo_root/L1/roles/wiki.md"
+
+  for role in onboarding human coder reviewer researcher wiki; do
+    mkdir -p "$repo_root/L1/roles/$role"
+    pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/experience.md.template" "$repo_root/L1/roles/$role/experience.md"
+  done
 }

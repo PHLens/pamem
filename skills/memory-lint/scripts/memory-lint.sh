@@ -352,9 +352,15 @@ if [ "$RUNTIME_MODE" = "slock" ]; then
 
   check_workspace_symlink \
     "$WORKSPACE/notes/experience.md" \
-    "$MEMORY_ROOT/L1/shared/experience.md" \
-    "Slock workspace experience should link to shared memory" \
+    "$(pamem_role_experience_path "$WORKSPACE")" \
+    "Slock workspace experience should link to active role experience" \
     "notes/experience.md"
+
+  check_workspace_symlink \
+    "$WORKSPACE/notes/projects" \
+    "$MEMORY_ROOT/L2/projects" \
+    "Slock workspace projects should link to shared project memory" \
+    "notes/projects"
 fi
 
 ENTRY_PATH=""
@@ -408,7 +414,7 @@ for required in \
   "L0/constitution.md" \
   "L1/shared/preferences.md" \
   "L1/shared/operating-rules.md" \
-  "L1/shared/experience.md" \
+  "L1/roles/" \
   "L2/projects/" \
   "requests/inbox/"
 do

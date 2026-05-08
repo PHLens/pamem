@@ -65,13 +65,19 @@ memory/
     shared/
       preferences.md
       operating-rules.md
-      experience.md
     roles/
-      coder.md
-      reviewer.md
-      researcher.md
-      onboarding.md
-      wiki.md
+      human/
+        experience.md
+      coder/
+        experience.md
+      reviewer/
+        experience.md
+      researcher/
+        experience.md
+      onboarding/
+        experience.md
+      wiki/
+        experience.md
   L2/
     projects/
       <project-key>.md
@@ -99,8 +105,9 @@ memory/
 
 Map fallback files to the same layers:
 
-- `notes/user-preferences.md`, `notes/operating-rules.md`, and `notes/experience.md` are L1.
-- `notes/projects/<project-key>.md` is L2.
+- `notes/user-preferences.md` and `notes/operating-rules.md` are L1 shared memory surfaces.
+- `notes/experience.md` is the compatibility surface for active role experience in `L1/roles/<role>/experience.md`.
+- `notes/projects/<project-key>.md` is L2 and may be a Slock workspace symlink to `L2/projects/`.
 - XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
 - `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
 
@@ -138,9 +145,9 @@ Examples:
 - durable corrections and prohibitions
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
-- role-shared memory such as `L1/roles/coder.md`, `L1/roles/reviewer.md`, and `L1/roles/wiki.md`
+- role-scoped experience such as `L1/roles/coder/experience.md`, `L1/roles/reviewer/experience.md`, `L1/roles/wiki/experience.md`, `L1/roles/human/experience.md`, and `L1/roles/onboarding/experience.md`
 
-Role memory belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
+Role experience belongs in L1 because it is stable shared experience for a role. It is loaded through a profile overlay and does not outrank project-specific rules.
 
 ### Layer 2: Project Memory
 
@@ -206,8 +213,7 @@ load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
-  "L1/roles/coder.md",
+  "L1/roles/coder/experience.md",
   "L2/projects/pamem.md"
 ]
 write = [
@@ -215,7 +221,7 @@ write = [
   "requests/inbox/"
 ]
 guarded_write = [
-  "L1/roles/coder.md"
+  "L1/roles/coder/experience.md"
 ]
 ```
 
@@ -296,10 +302,10 @@ If the answer is no to long-term value, do not write it to stable memory.
 |---|---|---|---|
 | Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
-| Role-shared experience | `L1/roles/<role>.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
-| Error corrections and prohibitions | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
-| Reusable technical findings | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
-| Methodological meta-knowledge | `L1/shared/experience.md` or `L1/roles/<role>.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
+| Role-scoped experience | `L1/roles/<role>/experience.md` | `notes/experience.md` with role scope | Reusable role memory such as coder/reviewer/wiki habits |
+| Error corrections and prohibitions | `L1/roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
+| Reusable technical findings | `L1/roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
+| Methodological meta-knowledge | `L1/roles/<role>/experience.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
 | Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict |
 | CLI current-task recovery | n/a | XDG data `pamem/agents/<agent-id>/current-task.md`, fallback `notes/current-task.md` | Runtime-local, startup-safe summary only |
 | CLI work-log summary | n/a | XDG data `pamem/agents/<agent-id>/work-log.md`, fallback `notes/work-log.md` | Runtime-local summary only |
@@ -627,7 +633,7 @@ When new memory conflicts with existing memory:
 | Archive is loaded by default | Remove it from startup path |
 | Placeholder text remains | Fill it in or remove it |
 | Project-specific content appears in L1 role/shared memory | Move it to L2 project memory |
-| Role-shared experience is scattered across task files | Promote or request promotion into L1 role memory |
+| Role-scoped experience is scattered across task files | Promote or request promotion into L1 role memory |
 | Sync request is used for project delivery | Cancel and use normal project workflow |
 
 ## Anti-Patterns

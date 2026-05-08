@@ -83,11 +83,12 @@ for file in \
   "$ROOT/assets/notes/current-task.md.template" \
   "$ROOT/assets/notes/work-log.md.template" \
   "$ROOT/assets/shared/L0/constitution.md.template" \
-  "$ROOT/assets/shared/L1/roles/onboarding.md.template" \
-  "$ROOT/assets/shared/L1/roles/coder.md.template" \
-  "$ROOT/assets/shared/L1/roles/reviewer.md.template" \
-  "$ROOT/assets/shared/L1/roles/researcher.md.template" \
-  "$ROOT/assets/shared/L1/roles/wiki.md.template" \
+  "$ROOT/assets/shared/L1/roles/onboarding/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/human/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/coder/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/reviewer/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/researcher/experience.md.template" \
+  "$ROOT/assets/shared/L1/roles/wiki/experience.md.template" \
   "$ROOT/assets/config-profiles/human.toml.template" \
   "$ROOT/assets/config-profiles/coder.toml.template" \
   "$ROOT/assets/config-profiles/reviewer.toml.template" \
@@ -215,8 +216,9 @@ for file in \
   "$DEFAULT_MEMORY_REPO/L0/constitution.md" \
   "$DEFAULT_MEMORY_REPO/L1/shared/preferences.md" \
   "$DEFAULT_MEMORY_REPO/L1/shared/operating-rules.md" \
-  "$DEFAULT_MEMORY_REPO/L1/roles/onboarding.md" \
-  "$DEFAULT_MEMORY_REPO/L1/roles/wiki.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/human/experience.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/onboarding/experience.md" \
+  "$DEFAULT_MEMORY_REPO/L1/roles/wiki/experience.md" \
   "$WORKSPACE/MEMORY.md" \
   "$WORKSPACE/notes/operating-rules.md" \
   "$WORKSPACE/notes/current-task.md" \
@@ -233,6 +235,8 @@ fi
 test -d "$DEFAULT_MEMORY_REPO/L2/projects"
 test ! -e "$DEFAULT_MEMORY_REPO/L2/active"
 test ! -e "$DEFAULT_MEMORY_REPO/L3/work-log.md"
+test ! -e "$DEFAULT_MEMORY_REPO/L1/shared/experience.md"
+test ! -e "$DEFAULT_MEMORY_REPO/L1/roles/onboarding.md"
 
 if [ -e "$DEFAULT_MEMORY_REPO/L1/shared/workflow.md" ] || [ -e "$WORKSPACE/notes/agent-workflow.md" ]; then
   echo "legacy shared workflow file names should not be generated" >&2
@@ -358,7 +362,7 @@ grep -Fq 'backend = "webdav"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'remote = "example:Memory"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 grep -Fq 'executor = "sync-executor"' "$ONBOARD_WORKSPACE/.pamem/config.toml"
 test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/MEMORY.md"
-test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/L1/roles/reviewer.md"
+test -s "$ONBOARD_WORKSPACE/.pamem/reviewer-memory/L1/roles/reviewer/experience.md"
 
 XDG_DATA_HOME="$ONBOARD_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE/shared-a" \
   --profile coder >/dev/null
@@ -374,9 +378,9 @@ grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$ONBOARD_
 grep -Fq 'path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"' "$WIKI_AGENT_HOME/config.toml"
 grep -Fq 'agent_id = "wiki-agent"' "$WIKI_AGENT_HOME/config.toml"
 test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/MEMORY.md"
-test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/coder.md"
-test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/reviewer.md"
-test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/wiki.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/coder/experience.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/reviewer/experience.md"
+test -s "$ONBOARD_XDG_DATA_ROOT/pamem/memory/L1/roles/wiki/experience.md"
 test -s "$WIKI_AGENT_HOME/current-task.md"
 test -s "$WIKI_AGENT_HOME/work-log.md"
 test ! -e "$WIKI_AGENT_HOME/.pamem"
@@ -417,7 +421,7 @@ bash "$ROOT/scripts/onboard-pamem.sh" "$WIKI_WORKSPACE" \
 grep -Fq 'default_profile = "wiki"' "$WIKI_WORKSPACE/.pamem/config.toml"
 grep -Fq 'path = ".pamem/wiki-memory"' "$WIKI_WORKSPACE/.pamem/config.toml"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/MEMORY.md"
-test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/wiki.md"
+test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/wiki/experience.md"
 
 XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_WORKSPACE" \
   --profile coder \
@@ -434,9 +438,11 @@ test -s "$SLOCK_WORKSPACE/notes/work-log.md"
 test -L "$SLOCK_WORKSPACE/notes/user-preferences.md"
 test -L "$SLOCK_WORKSPACE/notes/operating-rules.md"
 test -L "$SLOCK_WORKSPACE/notes/experience.md"
+test -L "$SLOCK_WORKSPACE/notes/projects"
 test "$(readlink -f "$SLOCK_WORKSPACE/notes/user-preferences.md")" = "$SLOCK_XDG_DATA_ROOT/pamem/memory/L1/shared/preferences.md"
 test "$(readlink -f "$SLOCK_WORKSPACE/notes/operating-rules.md")" = "$SLOCK_XDG_DATA_ROOT/pamem/memory/L1/shared/operating-rules.md"
-test "$(readlink -f "$SLOCK_WORKSPACE/notes/experience.md")" = "$SLOCK_XDG_DATA_ROOT/pamem/memory/L1/shared/experience.md"
+test "$(readlink -f "$SLOCK_WORKSPACE/notes/experience.md")" = "$SLOCK_XDG_DATA_ROOT/pamem/memory/L1/roles/coder/experience.md"
+test "$(readlink -f "$SLOCK_WORKSPACE/notes/projects")" = "$SLOCK_XDG_DATA_ROOT/pamem/memory/L2/projects"
 
 SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SLOCK_SESSION_OUTPUT" | jq -e '

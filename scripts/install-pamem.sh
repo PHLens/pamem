@@ -58,7 +58,7 @@ else
   CURRENT_TASK_PATH="$NOTES_DIR/current-task.md"
   WORK_LOG_PATH="$NOTES_DIR/work-log.md"
   SESSION_CMD='.pamem/scripts/memory-session-start.sh'
-  mkdir -p "$NOTES_DIR/projects" "$FOUNDATION_DIR"
+  mkdir -p "$NOTES_DIR" "$FOUNDATION_DIR"
 fi
 
 mkdir -p "$CODEX_DIR"
@@ -119,7 +119,14 @@ ensure_workspace_link() {
     return 0
   fi
 
-  if [ -e "$dst" ] && [ ! -L "$dst" ]; then
+  if [ -d "$dst" ] && [ ! -L "$dst" ]; then
+    if find "$dst" -mindepth 1 -print -quit | grep -q .; then
+      echo "pamem workspace target exists and is not an empty directory or symlink: $dst" >&2
+      echo "move its contents into shared memory, remove or rename it, then rerun pamem install/repair" >&2
+      exit 1
+    fi
+    rmdir "$dst"
+  elif [ -e "$dst" ] && [ ! -L "$dst" ]; then
     echo "pamem workspace target exists and is not a symlink: $dst" >&2
     echo "remove or rename it, then rerun pamem install/repair" >&2
     exit 1
@@ -187,6 +194,7 @@ pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
 if [ "$AGENT_HOME_MODE" -ne 1 ]; then
   case "$RUNTIME_MODE" in
     cli)
+      mkdir -p "$NOTES_DIR/projects"
       copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
       copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
       copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
@@ -194,7 +202,8 @@ if [ "$AGENT_HOME_MODE" -ne 1 ]; then
     slock)
       ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/preferences.md" "$NOTES_DIR/user-preferences.md"
       ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/operating-rules.md" "$NOTES_DIR/operating-rules.md"
-      ensure_workspace_link "$MEMORY_REPO_ROOT/L1/shared/experience.md" "$NOTES_DIR/experience.md"
+      ensure_workspace_link "$(pamem_role_experience_path "$WORKSPACE")" "$NOTES_DIR/experience.md"
+      ensure_workspace_link "$MEMORY_REPO_ROOT/L2/projects" "$NOTES_DIR/projects"
       ;;
   esac
 fi

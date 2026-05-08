@@ -54,21 +54,21 @@ load = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
+  "L1/roles/human/experience.md",
   "L2/projects/<project-key>.md"
 ]
 write = [
   "config.toml",
   ".pamem/config.toml",
   "requests/inbox/",
-  "L1/shared/experience.md",
-  "L1/roles/onboarding.md"
+  "L1/roles/human/experience.md",
+  "L1/roles/onboarding/experience.md"
 ]
 guarded_write = [
   "L0/constitution.md",
   "L1/shared/preferences.md",
   "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
+  "L1/roles/human/experience.md",
   "L2/projects/<project-key>.md",
-  "L1/roles/onboarding.md"
+  "L1/roles/onboarding/experience.md"
 ]
