@@ -130,13 +130,6 @@ case "$BACKEND" in
     printf 'local-only: no remote sync ran for %s\n' "$REPO_ROOT"
     ;;
   git)
-    if [ "$DRY_RUN" -eq 1 ]; then
-      print_command git -C "$REPO_ROOT" add .
-      print_command git -C "$REPO_ROOT" commit -m "$MESSAGE"
-      print_command git -C "$REPO_ROOT" push "${REMOTE:-origin}" "$REF"
-      exit 0
-    fi
-
     if ! command -v git >/dev/null 2>&1; then
       echo "git backend requires git" >&2
       exit 1
@@ -144,6 +137,31 @@ case "$BACKEND" in
 
     if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       echo "git backend requires the memory repo to be a git work tree: $REPO_ROOT" >&2
+      echo "Run pamem install/repair to initialize it, then configure a git remote repo for updates." >&2
+      exit 1
+    fi
+
+    GIT_REMOTE="${REMOTE:-origin}"
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+      if ! git -C "$REPO_ROOT" remote get-url "$GIT_REMOTE" >/dev/null 2>&1; then
+        echo "git backend requires a configured remote repository." >&2
+        echo "Memory repo: $REPO_ROOT" >&2
+        echo "Configure it with: git -C \"$REPO_ROOT\" remote add $GIT_REMOTE <url>" >&2
+        echo "Or set memory_repo.sync.remote in config.toml." >&2
+        exit 0
+      fi
+      print_command git -C "$REPO_ROOT" add .
+      print_command git -C "$REPO_ROOT" commit -m "$MESSAGE"
+      print_command git -C "$REPO_ROOT" push "$GIT_REMOTE" "$REF"
+      exit 0
+    fi
+
+    if ! git -C "$REPO_ROOT" remote get-url "$GIT_REMOTE" >/dev/null 2>&1; then
+      echo "git backend requires a configured remote repository." >&2
+      echo "Memory repo: $REPO_ROOT" >&2
+      echo "Configure it with: git -C \"$REPO_ROOT\" remote add $GIT_REMOTE <url>" >&2
+      echo "Or set memory_repo.sync.remote in config.toml." >&2
       exit 1
     fi
 
@@ -154,7 +172,7 @@ case "$BACKEND" in
 
     git -C "$REPO_ROOT" add .
     git -C "$REPO_ROOT" commit -m "$MESSAGE"
-    git -C "$REPO_ROOT" push "${REMOTE:-origin}" "$REF"
+    git -C "$REPO_ROOT" push "$GIT_REMOTE" "$REF"
     ;;
   webdav)
     if [ -z "$REMOTE" ]; then

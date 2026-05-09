@@ -17,13 +17,13 @@ agent_id = ""
 command = []
 
 [memory_repo]
-# Default is a machine-level shared memory repo. Relative paths are resolved from the agent home or legacy workspace when an override is needed.
+# Default is a machine-level shared memory repo. Bootstrap initializes this path as a git repository. Relative paths are resolved from the agent home or legacy workspace when an override is needed.
 path = "${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory"
 sharing = "shared"
 entry_file = "MEMORY.md"
 
 [memory_repo.sync]
-# local = no remote sync; git = private git repo; webdav = rclone remote:path
+# local = no remote sync; git = commit/push the bootstrap git repo after a remote is configured; webdav = rclone remote:path
 backend = "local"
 remote = ""
 ref = "main"

@@ -6,7 +6,7 @@ It provides:
 
 - memory governance and startup loading
 - CLI and Slock task-state boundaries
-- shared memory repo bootstrap and config templates
+- git-backed shared memory repo bootstrap and config templates
 - a packaged sync executor agent definition
 - sync request handoff and sync helper entry points
 

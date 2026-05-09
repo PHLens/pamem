@@ -181,6 +181,7 @@ RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
 MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
 
 pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
+pamem_ensure_memory_repo_git "$MEMORY_REPO_ROOT"
 
 if [ "$AGENT_HOME_MODE" -ne 1 ]; then
   case "$RUNTIME_MODE" in
