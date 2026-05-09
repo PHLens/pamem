@@ -142,20 +142,6 @@ printf '%s' "$CLI_LINT" | jq -e '
   .config.default_profile == "wiki"
 ' >/dev/null
 
-# Sync is executor-owned, but the public helper should still expose clear
-# git-only dry-run behavior.
-set +e
-GIT_SYNC_NO_REMOTE="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --dry-run 2>&1)"
-GIT_SYNC_NO_REMOTE_STATUS=$?
-set -e
-[ "$GIT_SYNC_NO_REMOTE_STATUS" -ne 0 ] || fail "git sync without remote must fail with setup guidance"
-grep -Fq "Memory repo: $MEMORY_ROOT" <<<"$GIT_SYNC_NO_REMOTE"
-grep -Fq "git -C \"$MEMORY_ROOT\" remote add origin <url>" <<<"$GIT_SYNC_NO_REMOTE"
-
-git -C "$MEMORY_ROOT" remote add origin https://example.invalid/pamem-memory.git
-GIT_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --remote origin --dry-run)"
-[[ "$GIT_SYNC" == git\ -C\ * ]] || fail "git sync dry-run did not print git commands"
-
 # Slock mode keeps task state in the Slock workspace and loads shared memory
 # through the selected profile.
 cat > "$SLOCK_WORKSPACE/MEMORY.md" <<'EOF'

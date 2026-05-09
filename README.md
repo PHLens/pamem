@@ -8,7 +8,7 @@ It provides:
 - CLI and Slock task-state boundaries
 - git-backed shared memory repo bootstrap and config templates
 - a packaged sync executor agent definition
-- sync request handoff and sync helper entry points
+- sync request handoff and executor policy
 
 ## Install
 
@@ -38,7 +38,6 @@ pamem start --agent-id coder-local -- codex
 pamem resume --agent-id coder-local
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
-pamem sync --agent-id coder-local --dry-run
 ```
 
 For Slock workspaces, use the workspace anchor explicitly:
@@ -63,5 +62,4 @@ its own current task and work log; only durable memory is shared.
 - `scripts/pamem`: human-facing CLI
 - `scripts/onboard-pamem.sh`: onboarding helper
 - `scripts/pamem-cli.sh`: CLI runtime helper
-- `scripts/memory-sync.sh`: memory repo sync helper
 - `skills/memory-lint/scripts/memory-lint.sh`: read-only lint helper

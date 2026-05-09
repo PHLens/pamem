@@ -29,20 +29,13 @@ The executor may:
 - validate and deduplicate requests
 - run `memory-lint`
 - merge or reject durable memory changes
-- call `scripts/memory-sync.sh` when repo propagation is required
+- propagate the configured memory repo with git when policy says to do so
 
 The executor must not be treated as a general task agent.
 
-## Memory Sync Helper
-
-`scripts/memory-sync.sh` is the repo-level sync helper. Installed workspaces
-call it through `.pamem/scripts/memory-sync.sh`.
-
 The shared memory repo is initialized as a git repository during bootstrap. If
-no git remote is configured, the helper reports the repo path and tells you to
-add a git remote for that repo before syncing.
-
-Use `--dry-run` to print the git commands that would run.
+no git remote is configured, the executor reports the repo path and tells you to
+add a git remote for that repo before propagation.
 
 ## When To Use Requests
 
