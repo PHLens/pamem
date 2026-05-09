@@ -5,3 +5,4 @@
 - `MEMORY.md` stays a thin index, not a transcript.
 - Runtime startup hooks are read-only loaders; they do not repair or sync shared memory.
 - Sync for the memory repo is handled only by an assigned executor through `.pamem/scripts/memory-sync.sh` or external sync tooling.
+- The packaged sync executor agent lives in the pamem plugin `agents/` directory, not in shared memory.

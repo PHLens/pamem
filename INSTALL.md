@@ -57,6 +57,10 @@ Useful options:
 --sync-executor <name>
 ```
 
+The plugin ships `agents/sync-executor.md` as the packaged sync executor agent
+definition. That file belongs to the plugin package, not the shared memory repo
+and not a pamem profile.
+
 Default CLI mode uses an agent home at
 `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`. Legacy or Slock
 workspaces may still contain `.pamem/config.toml`. Neither location is the

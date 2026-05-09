@@ -122,6 +122,7 @@ flowchart TD
 - default memory skeleton and read-only startup behavior
 - optional profile/load policy through `config.toml` or `.pamem/config.toml`
 - shared memory repo bootstrap and sync helper entry points
+- plugin-side agent definitions such as `agents/sync-executor.md`
 
 If `memory-rule` or `sync-request` is missing during a runtime session, treat
 that as an incomplete pamem plugin/bootstrap installation. Until onboarding or a
@@ -150,6 +151,10 @@ small runtime-local recovery notes:
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem start` or `resume` is used
 
 But it does not decide the actual contents of those files for a specific agent.
+
+Packaged agents live in the plugin repo, not in the shared memory repo. The
+sync executor definition is shipped as `agents/sync-executor.md`; it is not a
+profile and must not be seeded into `L1/`.
 
 ## Design Philosophy
 
@@ -225,6 +230,11 @@ Profile selection belongs to onboarding. `pamem init` writes the selected
 `config.toml` before runtime hooks start reading it; startup hooks must treat the
 selected profile as read-only policy. Explicit workspace onboarding still writes
 `.pamem/config.toml` for compatibility.
+
+Ordinary task profiles are intentionally narrow write surfaces. They load
+shared, role, and project memory, but their default write target is the
+promotion request inbox. Durable shared-memory changes should be proposed
+through PRs or requests and reviewed by the packaged sync executor.
 
 ### Config Ownership
 
@@ -320,5 +330,5 @@ memory repo, backend, remote, profile, write targets, or executor. Treat config
 changes as onboarding/config-owner work.
 
 A sync request is lower risk than direct sync because it only writes or hands
-off a pending request, but it can trigger an external executor. Use it only when
+off a pending request, but it can trigger an assigned executor. Use it only when
 the user explicitly asks or workspace policy requires retention.
