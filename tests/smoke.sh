@@ -66,6 +66,7 @@ assert_link_target "$WORKSPACE/.pamem/scripts" "$ROOT/scripts"
 assert_link_target "$WORKSPACE/.pamem/assets" "$ROOT/assets"
 grep -Fq 'default_profile = "onboarding"' "$WORKSPACE/.pamem/config.toml"
 grep -Fq 'mode = "cli"' "$WORKSPACE/.pamem/config.toml"
+assert_no_match "$WORKSPACE/.pamem/config.toml" 'backend[[:space:]]*='
 
 for skill in memory-rule sync-request memory-lint; do
   assert_link_target "$WORKSPACE/.codex/skills/$skill" "$ROOT/skills/$skill"
@@ -106,6 +107,7 @@ assert_file "$AGENT_HOME/current-task.md"
 assert_file "$AGENT_HOME/work-log.md"
 grep -Fq 'default_profile = "wiki"' "$AGENT_HOME/config.toml"
 grep -Fq 'mode = "cli"' "$AGENT_HOME/config.toml"
+assert_no_match "$AGENT_HOME/config.toml" 'backend[[:space:]]*='
 
 SESSION_TEST='test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi'
 XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" start \
@@ -141,33 +143,18 @@ printf '%s' "$CLI_LINT" | jq -e '
 ' >/dev/null
 
 # Sync is executor-owned, but the public helper should still expose clear
-# dry-run behavior for each configured backend.
-LOCAL_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --dry-run)"
-[[ "$LOCAL_SYNC" == local-only:* ]] || fail "local sync dry-run did not report local-only behavior"
-
-GIT_SYNC_NO_REMOTE="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --backend git --dry-run 2>&1)"
+# git-only dry-run behavior.
+set +e
+GIT_SYNC_NO_REMOTE="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --dry-run 2>&1)"
+GIT_SYNC_NO_REMOTE_STATUS=$?
+set -e
+[ "$GIT_SYNC_NO_REMOTE_STATUS" -ne 0 ] || fail "git sync without remote must fail with setup guidance"
 grep -Fq "Memory repo: $MEMORY_ROOT" <<<"$GIT_SYNC_NO_REMOTE"
 grep -Fq "git -C \"$MEMORY_ROOT\" remote add origin <url>" <<<"$GIT_SYNC_NO_REMOTE"
 
 git -C "$MEMORY_ROOT" remote add origin https://example.invalid/pamem-memory.git
-GIT_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --backend git --remote origin --dry-run)"
+GIT_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --remote origin --dry-run)"
 [[ "$GIT_SYNC" == git\ -C\ * ]] || fail "git sync dry-run did not print git commands"
-
-if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync \
-  --agent-id "$AGENT_ID" \
-  --backend webdav \
-  --remote example:Memory \
-  --dry-run >/dev/null 2>&1; then
-  fail "webdav sync must require --resync until sync_bootstrapped=true"
-fi
-
-WEBDAV_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync \
-  --agent-id "$AGENT_ID" \
-  --backend webdav \
-  --remote example:Memory \
-  --resync \
-  --dry-run)"
-[[ "$WEBDAV_SYNC" == rclone\ bisync\ * ]] || fail "webdav sync dry-run did not print rclone bisync"
 
 # Slock mode keeps task state in the Slock workspace and loads shared memory
 # through the selected profile.
@@ -198,6 +185,7 @@ assert_file "$SLOCK_WORKSPACE/notes/current-task.md"
 assert_file "$SLOCK_WORKSPACE/notes/work-log.md"
 grep -Fq 'default_profile = "coder"' "$SLOCK_WORKSPACE/.pamem/config.toml"
 grep -Fq 'mode = "slock"' "$SLOCK_WORKSPACE/.pamem/config.toml"
+assert_no_match "$SLOCK_WORKSPACE/.pamem/config.toml" 'backend[[:space:]]*='
 grep -Fq '# Existing Slock Agent' "$SLOCK_WORKSPACE/MEMORY.md"
 grep -Fq 'existing workspace note' "$SLOCK_WORKSPACE/MEMORY.md"
 assert_no_match "$SLOCK_WORKSPACE/MEMORY.md" '^## (Memory Governance|Sync Trigger)$|old workspace governance block|old workspace sync block'

@@ -22,7 +22,7 @@ If durable local memory or managed workspace config changes need cross-device re
 Do not run sync directly from this agent; the sync executor may call `.pamem/scripts/memory-sync.sh` when policy says to propagate the configured memory repo.
 
 ## Key Knowledge
-- `config.toml` or `.pamem/config.toml` — memory repo path, sharing mode, sync backend, and profile policy
+- `config.toml` or `.pamem/config.toml` — memory repo path, sharing mode, git sync remote/ref, and profile policy
 - `L1/shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
 - `L1/shared/operating-rules.md` or `notes/operating-rules.md` — stable operating defaults
 - `L1/shared/experience.md` — cross-role findings, corrections, and meta-knowledge loaded through the active profile
