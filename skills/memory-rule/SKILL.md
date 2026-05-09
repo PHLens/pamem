@@ -240,6 +240,7 @@ Rules:
 - Role-specific indexes are profile overlays loaded from L1; deeper role shards are read on demand.
 - Project memory is loaded from L2 and wins over role memory on conflict.
 - Ordinary task agents should write promotion requests or open PRs, not directly make effective shared-memory writes.
+- Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
 - `guarded_write` is empty for ordinary bundled profiles. If a local policy adds guarded targets, treat them as PR/request candidates unless explicit executor/config-owner responsibility is assigned.
 - The packaged sync executor agent lives in the pamem plugin at `agents/sync-executor.md`; it is not a memory profile and must not be copied into shared memory.
 - Config changes that alter ownership, precedence, or sync policy should be treated as governance changes and reviewed by the config owner or onboarding profile.
