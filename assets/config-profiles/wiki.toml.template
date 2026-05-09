@@ -13,7 +13,7 @@ agent_id = ""
 
 [runtime.resume]
 # Optional runtime-native resume launcher, e.g. ["codex", "resume"].
-# Empty means pamem resume falls back to the launcher recorded by pamem start.
+# Empty means pamem launch --resume falls back to the launcher recorded by pamem launch.
 command = []
 
 [memory_repo]
