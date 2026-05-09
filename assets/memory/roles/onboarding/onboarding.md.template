@@ -1,0 +1,13 @@
+# Onboarding
+
+Startup-loaded entry point for the onboarding role.
+
+Use this file as a short role guide. Read only the role files needed for the current task.
+
+## Role Files
+- `experience.md` — durable onboarding findings, corrections, and workflow lessons.
+- Additional role-local docs may live beside this file; read them only when the task needs that detail.
+
+## Write Policy
+- Keep this role file short.
+- Promote durable role findings into `experience.md` through pamem governance.

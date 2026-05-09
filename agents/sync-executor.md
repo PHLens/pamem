@@ -33,7 +33,7 @@ promotion requests, but they do not decide when those changes become effective.
 1. Resolve the workspace config and configured shared memory repo.
 2. Confirm the effective source is protected `main` or an approved snapshot.
 3. For a memory PR, inspect the diff and run `memory-lint`.
-4. Require extra review for `MEMORY.md`, `L0/`, `L1/shared/`, profile config, sync config, and executor policy changes.
+4. Require extra review for `MEMORY.md`, `governance/`, `shared/`, `roles/`, profile config, sync config, and executor policy changes.
 5. Merge only when the change is durable, scoped, lint-clean, and aligned with pamem governance.
 6. After merge, run repo sync only when policy says the approved memory repo should be propagated.
 

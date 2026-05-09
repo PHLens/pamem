@@ -1,13 +1,12 @@
-# Researcher Index
+# Researcher
 
 Startup-loaded entry point for the researcher role.
 
-Use this file as a thin router. Read only the role shards needed for the current task.
+Use this file as a short role guide. Read only the role files needed for the current task.
 
-## Role Shards
+## Role Files
 - `experience.md` — durable research findings, corrections, and retrieval lessons.
 
 ## Write Policy
-- Keep this index short.
+- Keep this role file short.
 - Promote durable role findings into `experience.md` through pamem governance.
-

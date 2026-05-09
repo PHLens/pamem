@@ -327,7 +327,7 @@ else
     if ! pointer_path="$(resolve_repo_path "$pointer")"; then
       add_finding "error" "ML006" "$(repo_display_path "$ENTRY_PATH")" "$line" \
         "Memory index pointer escapes the memory repo" \
-        "Pointers from the entry file to L0/L1/L2/L3 memory should stay inside the configured repo." \
+        "Pointers from the entry file to shared memory should stay inside the configured repo." \
         "$pointer" \
         "fix-pointer"
       continue
@@ -339,16 +339,16 @@ else
         "$pointer" \
         "fix-pointer"
     fi
-  done < <(grep -Eno '((L0|L1|L2|L3|requests)/[A-Za-z0-9._<>/\-]+\.md)' "$ENTRY_PATH" || true)
+  done < <(grep -Eno '((governance|shared|roles|projects|archive|requests)/[A-Za-z0-9._<>/\-]+\.md)' "$ENTRY_PATH" || true)
 fi
 
 for required in \
-  "L0/constitution.md" \
-  "L1/shared/preferences.md" \
-  "L1/shared/operating-rules.md" \
-  "L1/shared/experience.md" \
-  "L1/roles/" \
-  "L2/projects/" \
+  "governance/constitution.md" \
+  "shared/preferences.md" \
+  "shared/operating-rules.md" \
+  "shared/experience.md" \
+  "roles/" \
+  "projects/" \
   "requests/inbox/"
 do
   check_repo_target "$required" "error" "ML004" "required skeleton"

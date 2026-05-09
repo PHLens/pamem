@@ -382,24 +382,25 @@ pamem_ensure_memory_repo_skeleton() {
   local role
 
   mkdir -p \
-    "$repo_root/L0" \
-    "$repo_root/L1/shared" \
-    "$repo_root/L1/roles" \
-    "$repo_root/L2/projects" \
+    "$repo_root/governance" \
+    "$repo_root/shared" \
+    "$repo_root/roles" \
+    "$repo_root/projects" \
+    "$repo_root/archive" \
     "$repo_root/requests/inbox" \
     "$repo_root/requests/promoted" \
     "$repo_root/requests/rejected"
 
   pamem_copy_if_missing "$assets_dir/MEMORY.md.template" "$repo_root/MEMORY.md"
-  pamem_copy_if_missing "$assets_dir/shared/L0/constitution.md.template" "$repo_root/L0/constitution.md"
-  pamem_copy_if_missing "$assets_dir/notes/user-preferences.md.template" "$repo_root/L1/shared/preferences.md"
-  pamem_copy_legacy_or_template_if_missing "$repo_root/L1/shared/workflow.md" "$assets_dir/notes/operating-rules.md.template" "$repo_root/L1/shared/operating-rules.md"
-  pamem_copy_if_missing "$assets_dir/shared/L1/shared/experience.md.template" "$repo_root/L1/shared/experience.md"
+  pamem_copy_if_missing "$assets_dir/memory/governance/constitution.md.template" "$repo_root/governance/constitution.md"
+  pamem_copy_if_missing "$assets_dir/notes/user-preferences.md.template" "$repo_root/shared/preferences.md"
+  pamem_copy_if_missing "$assets_dir/notes/operating-rules.md.template" "$repo_root/shared/operating-rules.md"
+  pamem_copy_if_missing "$assets_dir/memory/shared/experience.md.template" "$repo_root/shared/experience.md"
 
   for role in onboarding coder reviewer researcher wiki; do
-    mkdir -p "$repo_root/L1/roles/$role"
-    pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/index.md.template" "$repo_root/L1/roles/$role/index.md"
-    pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/experience.md.template" "$repo_root/L1/roles/$role/experience.md"
+    mkdir -p "$repo_root/roles/$role"
+    pamem_copy_if_missing "$assets_dir/memory/roles/$role/$role.md.template" "$repo_root/roles/$role/$role.md"
+    pamem_copy_if_missing "$assets_dir/memory/roles/$role/experience.md.template" "$repo_root/roles/$role/experience.md"
   done
 }
 
