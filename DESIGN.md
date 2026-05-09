@@ -175,8 +175,8 @@ small runtime-local recovery notes:
 - `notes/current-task.md` in CLI and Slock runtime modes
 - `notes/work-log.md` in CLI and Slock runtime modes
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/config.toml` for default CLI agent-home config
-- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` when `pamem start` or `resume` is used
-- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem start` or `resume` is used
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` when `pamem launch` starts or resumes a CLI session
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem launch` starts or resumes a CLI session
 
 But it does not decide the actual contents of those files for a specific agent.
 Agents may later add role-local topic files through memory promotion when a
@@ -227,10 +227,10 @@ that home’s `config.toml`, and keeps CLI task recovery there rather than insid
 the shared memory repo. Use a different `--agent-id` for each concurrent role
 instance. The runtime source can be a plugin, source checkout, or future
 standalone install; the agent home does not copy scripts or assets.
-`start -- <launcher>` records the launcher command in the local agent home so
-`resume` can reuse it. Runtime-native resume can be expressed with
-`[runtime.resume].command`; if neither exists, `resume` fails rather than
-silently starting a new session.
+`pamem launch --role <role> -- <launcher>` records the launcher command in the
+local agent home so `--resume` can reuse it. Runtime-native resume can be
+expressed with `[runtime.resume].command`; if neither exists, `launch --resume`
+fails rather than silently starting a new session.
 Runtimes that cannot load pamem as a plugin or hook can still use
 `pamem context --agent-id <agent-id>` as a source-agnostic adapter and inject the
 printed startup context through their own prompt/context mechanism.
@@ -263,10 +263,10 @@ alternate defaults, not simultaneous runtime roles. Each profile loads shared
 experience and the role guide; the role guide leaves deeper role experience or
 topic files for on-demand reading.
 
-Profile selection belongs to onboarding. `pamem init` writes the selected
-`config.toml` before runtime hooks start reading it; startup hooks must treat the
-selected profile as read-only policy. Explicit workspace onboarding still writes
-`.pamem/config.toml` for compatibility.
+Role selection belongs to launch and onboarding. `pamem launch` writes the
+selected `config.toml` before runtime hooks start reading it; startup hooks must
+treat the selected role policy as read-only. Explicit workspace onboarding
+still writes `.pamem/config.toml` for compatibility.
 
 Ordinary task profiles are intentionally narrow write surfaces. They load
 shared, role, and project memory, but their default write target is the

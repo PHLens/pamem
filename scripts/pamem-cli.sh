@@ -328,7 +328,7 @@ fi
 
 if [ ! -s "$(pamem_config_path "$WORKSPACE")" ]; then
   echo "pamem config not found for root: $WORKSPACE" >&2
-  echo "Run 'pamem init --agent-id <id>' or pass --workspace for an existing pamem workspace." >&2
+  echo "Run 'pamem launch --role <role> --agent-id <id>' or pass --workspace for an existing pamem workspace." >&2
   exit 1
 fi
 
@@ -379,7 +379,7 @@ case "$COMMAND" in
 
       if [ "${#RESUME_ARGS[@]}" -eq 0 ]; then
         echo "no resumable session found for agent_id=$AGENT_ID" >&2
-        echo "Run 'pamem start --agent-id $AGENT_ID -- <launcher>' first, configure [runtime.resume].command, or pass an explicit resume command after --." >&2
+        echo "Run 'pamem launch --role <role> --agent-id $AGENT_ID -- <launcher>' first, configure [runtime.resume].command, or pass an explicit resume command after --." >&2
         exit 1
       fi
 

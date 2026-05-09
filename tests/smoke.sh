@@ -114,9 +114,9 @@ for skill in memory-rule sync-request memory-lint; do
   [ ! -e "$REMOVE_WORKSPACE/.codex/skills/$skill" ] || fail "remove-pamem.sh must remove managed skill link: $skill"
 done
 
-# Agent-home init and CLI lifecycle.
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" init \
-  --profile wiki \
+# Agent-home launch and CLI lifecycle.
+XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+  --role wiki \
   --agent-id "$AGENT_ID" >/dev/null
 
 assert_file "$AGENT_HOME/config.toml"
@@ -127,12 +127,22 @@ grep -Fq 'mode = "cli"' "$AGENT_HOME/config.toml"
 assert_no_match "$AGENT_HOME/config.toml" 'backend[[:space:]]*='
 
 SESSION_TEST='test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi'
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" start \
+XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+  --role wiki \
   --agent-id "$AGENT_ID" \
   -- sh -c "$SESSION_TEST"
 assert_file "$AGENT_HOME/start-marker"
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" resume --agent-id "$AGENT_ID"
+XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+  --role wiki \
+  --agent-id "$AGENT_ID" \
+  --resume
 assert_file "$AGENT_HOME/resume-marker"
+
+if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+  --role coder \
+  --agent-id "$AGENT_ID" >/dev/null 2>&1; then
+  fail "pamem launch must reject a role mismatch for an existing agent home"
+fi
 
 CLI_STATUS="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" status --agent-id "$AGENT_ID")"
 grep -Fq "root=$AGENT_HOME" <<<"$CLI_STATUS"
@@ -178,10 +188,10 @@ old workspace sync block
 - existing workspace note
 EOF
 
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" init \
-  --workspace "$SLOCK_WORKSPACE" \
-  --profile coder \
-  --runtime slock >/dev/null
+XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+  --runtime slock \
+  --role coder \
+  --workspace "$SLOCK_WORKSPACE" >/dev/null
 
 assert_file "$SLOCK_WORKSPACE/.pamem/config.toml"
 assert_file "$SLOCK_WORKSPACE/MEMORY.md"
@@ -256,6 +266,13 @@ git -C "$MEMORY_ROOT" checkout main >/dev/null 2>&1
 
 if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
   fail "pamem start must reject runtime.mode=slock"
+fi
+
+if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+  --runtime cli \
+  --role coder \
+  --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
+  fail "pamem launch must reject runtime mismatches for Slock workspaces"
 fi
 
 # A missing shared memory entry is reported, not silently recreated at startup.

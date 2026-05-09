@@ -11,16 +11,17 @@ For the model and boundaries, see [DESIGN.md](DESIGN.md) and [SYNC.md](SYNC.md).
 - `git`
 - GNU `realpath`
 
-## Initialize An Agent
+## Launch An Agent
 
-Use `pamem init` once per agent or Slock workspace. It chooses the profile,
-writes config, exposes packaged skills, and seeds the configured memory repo.
+Use `pamem launch` once per agent or Slock workspace. It chooses the role,
+writes config if needed, exposes packaged skills, and seeds the configured
+memory repo.
 
 ```bash
-pamem init --agent-id coder-local --profile coder
+pamem launch --role coder --agent-id coder-local -- codex
 ```
 
-Supported profiles:
+Supported roles:
 
 - `onboarding`
 - `coder`
@@ -31,6 +32,7 @@ Supported profiles:
 Useful options:
 
 ```bash
+--role <name>
 --runtime <cli|slock>
 --agent-id <id>
 --workspace <path>
@@ -40,8 +42,9 @@ Useful options:
 --sync-executor <name>
 ```
 
-If config already exists, init refuses to replace it unless `--force` is passed.
-Profile changes should be deliberate re-onboarding.
+If config already exists, launch refuses to bind a different role. Profile
+changes should be deliberate re-onboarding through the internal onboarding
+helper.
 
 ## CLI Runtime
 
@@ -72,11 +75,11 @@ another location, configure a git remote for that repo path and set
 Start and resume:
 
 ```bash
-pamem start --agent-id coder-local -- codex
-pamem resume --agent-id coder-local
+pamem launch --role coder --agent-id coder-local -- codex
+pamem launch --role coder --agent-id coder-local --resume
 ```
 
-Without a launcher, `start`, `status`, `hook-json`, and `context` are useful for
+Without a launcher, `status`, `hook-json`, and `context` are useful for
 wrappers and debugging:
 
 ```bash
@@ -90,8 +93,11 @@ pamem context --agent-id coder-local
 Slock mode uses the Slock-generated workspace as the runtime anchor:
 
 ```bash
-pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --runtime slock
+pamem launch --runtime slock --role coder --workspace /root/.slock/agents/<slock-agent-id>
 ```
+
+`pamem launch` binds or repairs the workspace; the Slock runtime process itself
+still starts through Slock.
 
 The workspace owns local task state:
 

@@ -6,9 +6,7 @@ usage() {
 Usage: pamem <command> [options]
 
 Commands:
-  init [agent-home]      First-time setup for a local agent home.
-  start                  Start a CLI runtime session for an initialized agent.
-  resume                 Resume a CLI runtime session for an initialized agent.
+  launch                 Initialize/bind a role, then start or resume a runtime.
   status                 Print resolved agent home, memory repo, and runtime state.
   hook-json              Print SessionStart hook input JSON for the agent.
   context                Print startup memory context for runtimes without hooks.
@@ -19,9 +17,9 @@ Commands:
   remove [workspace]     Remove managed hook entries.
 
 Examples:
-  pamem init --profile coder --runtime cli --agent-id coder-local
-  pamem start --agent-id coder-local -- codex
-  pamem resume --agent-id coder-local -- codex
+  pamem launch --role coder --agent-id coder-local -- codex
+  pamem launch --role coder --agent-id coder-local --resume
+  pamem launch --runtime slock --role coder --workspace ~/.slock/agents/<agent-id>
   pamem status --agent-id coder-local
   pamem context --agent-id coder-local
   pamem lint --agent-id coder-local --json
@@ -44,93 +42,228 @@ fi
 # shellcheck source=memory-store.sh
 source "$SCRIPT_DIR/memory-store.sh"
 
-default_agent_home_for_args() {
-  local args=("$@")
-  local agent_id=""
+SUPPORTED_ROLES=(onboarding coder reviewer researcher wiki)
 
-  while [ "${#args[@]}" -gt 0 ]; do
-    case "${args[0]}" in
-      --)
-        break
-        ;;
-      --agent-id)
-        [ "${#args[@]}" -ge 2 ] || { echo "missing value for --agent-id" >&2; exit 2; }
-        agent_id="${args[1]}"
-        args=("${args[@]:2}")
-        ;;
-      --agent-id=*)
-        agent_id="${args[0]#*=}"
-        args=("${args[@]:1}")
-        ;;
-      *)
-        args=("${args[@]:1}")
-        ;;
-    esac
-  done
-
-  if [ -z "$agent_id" ]; then
-    return 1
-  fi
-
-  pamem_agent_home_path "$agent_id"
+supported_role_list() {
+  local IFS='|'
+  printf '%s' "${SUPPORTED_ROLES[*]}"
 }
 
-run_init() {
-  local target_root=""
-  local target_mode="agent-home"
-  local args=()
+require_supported_role() {
+  local requested="$1"
+  local role
 
-  if [ "$#" -gt 0 ] && [[ "$1" != -* ]]; then
-    target_root="$1"
-    shift
+  for role in "${SUPPORTED_ROLES[@]}"; do
+    if [ "$role" = "$requested" ]; then
+      return 0
+    fi
+  done
+
+  echo "unsupported role: $requested (supported: $(supported_role_list))" >&2
+  exit 2
+}
+
+require_role_match() {
+  local root="$1"
+  local requested_role="$2"
+  local existing_role
+
+  existing_role="$(pamem_default_profile "$root")"
+  if [ "$existing_role" != "$requested_role" ]; then
+    echo "pamem config at $root is already bound to role=$existing_role; choose a different --agent-id/--workspace or re-onboard deliberately" >&2
+    exit 2
   fi
+}
+
+require_runtime_match() {
+  local root="$1"
+  local requested_runtime="$2"
+  local existing_runtime
+
+  existing_runtime="$(pamem_runtime_mode "$root")"
+  if [ "$existing_runtime" != "$requested_runtime" ]; then
+    echo "pamem config at $root is runtime=$existing_runtime, not $requested_runtime" >&2
+    exit 2
+  fi
+}
+
+run_launch() {
+  local role=""
+  local runtime="cli"
+  local agent_id=""
+  local workspace=""
+  local resume=0
+  local print_env=0
+  local onboard_args=()
+  local launch_args=()
+  local init_args=()
+  local cli_args=()
 
   while [ "$#" -gt 0 ]; do
     case "$1" in
+      --)
+        shift
+        launch_args=("$@")
+        break
+        ;;
+      --role)
+        [ "$#" -ge 2 ] || { echo "missing value for --role" >&2; exit 2; }
+        role="$2"
+        shift 2
+        ;;
+      --role=*)
+        role="${1#*=}"
+        shift
+        ;;
+      --runtime)
+        [ "$#" -ge 2 ] || { echo "missing value for --runtime" >&2; exit 2; }
+        runtime="$2"
+        shift 2
+        ;;
+      --runtime=*)
+        runtime="${1#*=}"
+        shift
+        ;;
+      --agent-id)
+        [ "$#" -ge 2 ] || { echo "missing value for --agent-id" >&2; exit 2; }
+        agent_id="$2"
+        shift 2
+        ;;
+      --agent-id=*)
+        agent_id="${1#*=}"
+        shift
+        ;;
       --workspace)
         [ "$#" -ge 2 ] || { echo "missing value for --workspace" >&2; exit 2; }
-        target_root="$2"
-        target_mode="workspace"
+        workspace="$2"
         shift 2
         ;;
       --workspace=*)
-        target_root="${1#*=}"
-        target_mode="workspace"
+        workspace="${1#*=}"
         shift
         ;;
-      --agent-home)
-        [ "$#" -ge 2 ] || { echo "missing value for --agent-home" >&2; exit 2; }
-        target_root="$2"
-        target_mode="agent-home"
+      --memory-repo|--sync-remote|--sync-ref|--sync-executor)
+        [ "$#" -ge 2 ] || { echo "missing value for $1" >&2; exit 2; }
+        onboard_args+=("$1" "$2")
         shift 2
         ;;
-      --agent-home=*)
-        target_root="${1#*=}"
-        target_mode="agent-home"
+      --memory-repo=*|--sync-remote=*|--sync-ref=*|--sync-executor=*)
+        onboard_args+=("${1%%=*}" "${1#*=}")
         shift
         ;;
-      *)
-        args+=("$1")
+      --resume)
+        resume=1
         shift
+        ;;
+      --print-env)
+        print_env=1
+        shift
+        ;;
+      -h|--help)
+        cat <<'EOF'
+Usage: pamem launch --role <role> [--runtime cli|slock] [--agent-id <id>] [--workspace <path>] [--resume] [--print-env] [-- <command> [args...]]
+
+CLI runtime:
+  pamem launch --role coder --agent-id coder-local -- codex
+  pamem launch --role coder --agent-id coder-local --resume
+
+Slock runtime:
+  pamem launch --runtime slock --role coder --workspace ~/.slock/agents/<agent-id>
+
+Role selection is the public startup contract. The config still stores the
+selected role in the internal default_profile field.
+EOF
+        exit 0
+        ;;
+      *)
+        echo "unknown launch argument: $1" >&2
+        exit 2
         ;;
     esac
   done
 
-  if [ -z "$target_root" ]; then
-    target_root="$(default_agent_home_for_args "${args[@]}" || true)"
-    target_mode="agent-home"
+  if [ -z "$role" ]; then
+    echo "pamem launch requires --role" >&2
+    exit 2
+  fi
+  require_supported_role "$role"
+
+  case "$runtime" in
+    cli|slock)
+      ;;
+    *)
+      echo "unsupported runtime: $runtime" >&2
+      exit 2
+      ;;
+  esac
+
+  if [ "$runtime" = "cli" ]; then
+    if [ -z "$workspace" ]; then
+      if [ -z "$agent_id" ]; then
+        echo "pamem launch --runtime cli requires --agent-id when --workspace is not provided" >&2
+        exit 2
+      fi
+      workspace="$(pamem_agent_home_path "$agent_id")"
+    fi
+
+    if pamem_has_config "$workspace"; then
+      require_role_match "$workspace" "$role"
+      require_runtime_match "$workspace" "cli"
+    else
+      init_args=("$workspace" "--agent-home" "--profile" "$role" "--runtime" "cli" "${onboard_args[@]}")
+      if [ -n "$agent_id" ]; then
+        init_args+=("--agent-id" "$agent_id")
+      fi
+      "$SCRIPT_DIR/onboard-pamem.sh" "${init_args[@]}" >&2
+    fi
+
+    cli_args=("--workspace" "$workspace")
+    if [ -n "$agent_id" ]; then
+      cli_args+=("--agent-id" "$agent_id")
+    fi
+    if [ "$print_env" -eq 1 ]; then
+      cli_args+=("--print-env")
+    fi
+    if [ "${#launch_args[@]}" -gt 0 ]; then
+      cli_args+=("--" "${launch_args[@]}")
+    fi
+
+    if [ "$resume" -eq 1 ]; then
+      exec "$SCRIPT_DIR/pamem-cli.sh" resume "${cli_args[@]}"
+    fi
+    exec "$SCRIPT_DIR/pamem-cli.sh" start "${cli_args[@]}"
   fi
 
-  if [ -z "$target_root" ]; then
-    echo "pamem init requires --agent-id when no agent home is provided" >&2
+  if [ -z "$workspace" ]; then
+    echo "pamem launch --runtime slock requires --workspace" >&2
+    exit 2
+  fi
+  if [ "$resume" -eq 1 ]; then
+    echo "pamem launch --runtime slock binds/repairs an existing Slock workspace; resume is handled by Slock" >&2
+    exit 2
+  fi
+  if [ "$print_env" -eq 1 ]; then
+    echo "pamem launch --runtime slock does not emit CLI launcher environment" >&2
+    exit 2
+  fi
+  if [ "${#launch_args[@]}" -gt 0 ]; then
+    echo "pamem launch --runtime slock does not start a process; start the agent through Slock" >&2
     exit 2
   fi
 
-  if [ "$target_mode" = "agent-home" ]; then
-    "$SCRIPT_DIR/onboard-pamem.sh" "$target_root" --agent-home "${args[@]}"
+  if pamem_has_config "$workspace"; then
+    require_role_match "$workspace" "$role"
+    require_runtime_match "$workspace" "slock"
+    "$SCRIPT_DIR/repair-pamem.sh" "$workspace" >&2
   else
-    "$SCRIPT_DIR/onboard-pamem.sh" "$target_root" "${args[@]}"
+    init_args=("$workspace" "--profile" "$role" "--runtime" "slock" "${onboard_args[@]}")
+    if [ -n "$agent_id" ]; then
+      init_args+=("--agent-id" "$agent_id")
+    fi
+    "$SCRIPT_DIR/onboard-pamem.sh" "${init_args[@]}" >&2
   fi
+
+  exec "$SCRIPT_DIR/pamem-cli.sh" status --workspace "$workspace"
 }
 
 command_workspace_args() {
@@ -310,10 +443,10 @@ COMMAND="$1"
 shift
 
 case "$COMMAND" in
-  init|onboard)
-    run_init "$@"
+  launch)
+    run_launch "$@"
     ;;
-  start|resume|status|hook-json|context)
+  status|hook-json|context)
     run_cli_command "$COMMAND" "$@"
     ;;
   lint)
