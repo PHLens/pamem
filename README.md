@@ -49,7 +49,10 @@ pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --ru
 
 In Slock mode, `MEMORY.md` stays a thin router. Shared memory is loaded from
 the configured repo through the active profile, while `notes/current-task.md`
-and `notes/work-log.md` stay workspace-local.
+and `notes/work-log.md` stay workspace-local. `current-task.md` is the active
+recovery pointer; `work-log.md` records completed summaries and verification
+results. For multiple role instances, each agent home or Slock workspace keeps
+its own current task and work log; only durable memory is shared.
 
 ## Docs
 
