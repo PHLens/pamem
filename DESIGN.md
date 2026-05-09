@@ -4,27 +4,26 @@ This document explains the memory model behind `pamem`, what each layer means, a
 
 ## Memory Model
 
-The model has 4 layers.
-
-The layer names are logical contracts, not a requirement that every runtime or
-every storage backend must mirror the same folder names. The current shared-repo
-layout uses directories like `L0/`, `L1/`, and `L2/` because they are easy to
-bootstrap and lint, but the meaning comes from the layer contract, not the
-path shape.
+The shared memory repo uses self-describing top-level directories. A user should
+be able to understand the repo shape without reading the design doc first.
 
 ```mermaid
 flowchart TD
-    L0["Layer 0: Constitution<br/>Shared runtime rules, startup loading, precedence, write gates"]
-    L1["Layer 1: Stable Shared Memory<br/>Shared preferences, role memory, findings, corrections, meta-knowledge"]
-    L2["Layer 2: Project Memory<br/>Project context, durable project pointers, stable project rules"]
-    L3["Layer 3: Archive<br/>CLI-local summaries not loaded by default"]
+    G["governance/<br/>Shared runtime rules, startup loading, precedence, write gates"]
+    S["shared/<br/>Cross-role preferences, operating rules, reusable experience"]
+    R["roles/<br/>Role guides and role-specific experience"]
+    P["projects/<br/>Project context and durable project pointers"]
+    A["archive/<br/>Summaries not loaded by default"]
+    Q["requests/<br/>Reviewable promotion requests"]
 
-    L0 --> L1
-    L1 --> L2
-    L2 --> L3
+    G --> S
+    S --> R
+    R --> P
+    P --> A
+    R --> Q
 ```
 
-### Layer 0: Constitution
+### Governance
 
 This is the memory operating model.
 
@@ -36,36 +35,47 @@ It defines:
 - what can enter durable memory
 - what must stay out of long-term memory
 
-Layer 0 is not a fact store. It is the governance layer.
+The main shared file is `governance/constitution.md`. It is not a fact store.
 
-### Layer 1: Stable Shared Memory
+### Shared Memory
 
-This is durable memory that should survive across tasks and be reusable by multiple sessions or agents.
+This is durable cross-role memory that should survive across tasks and be
+reusable by multiple sessions or agents.
 
 Examples:
 
 - `notes/user-preferences.md`
 - `notes/operating-rules.md`
 - `notes/experience.md`
-- `L1/shared/*`
-- `L1/shared/experience.md`
-- `L1/roles/<role>/index.md`
-- `L1/roles/<role>/experience.md`
+- `shared/*`
+- `shared/experience.md`
 
-Shared cross-role experience belongs in `L1/shared/experience.md`; role-specific entry points belong in `L1/roles/<role>/index.md`, which can route to role shards such as `experience.md`. `notes/experience.md` remains the CLI compatibility surface for role experience. `notes/projects/<project-key>.md` is the CLI compatibility surface for `L2/projects/<project-key>.md`. These are loaded through profile overlays and do not outrank project-specific memory.
+Shared preferences live in `shared/preferences.md`, stable operating defaults
+live in `shared/operating-rules.md`, and cross-role experience lives in
+`shared/experience.md`.
 
-### Layer 2: Project Memory
+### Role Memory
+
+Role-specific entry points live in `roles/<role>/<role>.md`; reusable role
+experience lives in `roles/<role>/experience.md`. `notes/experience.md`
+remains the CLI compatibility surface for role experience.
+
+### Project Memory
 
 This is durable project context that should be reusable across sessions.
 
 Examples:
 
-- `L2/projects/<project-key>.md`
+- `projects/<project-key>.md`
 - `notes/projects/<project-key>.md`
 
-Project-specific memory belongs in L2, not L1. It should be more specific than role memory and should win over role defaults on conflict.
+Project-specific memory belongs in `projects/`. It should be more specific
+than role memory and should win over role defaults on conflict.
 
-`projects/` is a namespace inside L2, not another layer.
+### Archive
+
+`archive/` is for history that should be preserved without polluting startup
+context. It stores summaries, not transcripts. It is not loaded by default.
 
 Runtime-local task state is not part of the shared memory repo. CLI mode keeps
 local recovery notes in the XDG data agent home or compatibility files such as
@@ -83,47 +93,40 @@ Both files are scoped to one runtime instance. Multiple role instances may share
 the same memory repo and project memory, but each instance needs its own agent
 home or Slock workspace so active task state does not collide across roles.
 
-### Layer 3: Archive
-
-This is history that should be preserved without polluting startup context.
-
-Examples:
-
-- `notes/work-log.md`
-
-It stores summaries, not transcripts. It is runtime-local, not a shared memory
-repo surface. In CLI mode it lives in the agent home or compatibility workspace
-notes; in Slock mode it lives in the Slock workspace. Durable, reusable findings
-should be promoted to L1 or L2 project memory instead of being left only in a
-work log.
-
 ## What Pamem Manages
 
-`pamem` does not own all 4 layers equally.
+`pamem` creates the shared repo skeleton and owns the runtime loading contract,
+but agents and humans own the contents.
 
 ```mermaid
 flowchart TD
     P["pamem"]
-    L0["Layer 0<br/>Directly managed"]
-    L1["Layer 1<br/>Skeleton only"]
-    L2["Layer 2<br/>Skeleton only"]
-    L3["Layer 3<br/>Runtime-local summaries"]
+    G["governance/<br/>Directly managed rules"]
+    S["shared/<br/>Skeleton only"]
+    R["roles/<br/>Skeleton only"]
+    PR["projects/<br/>Skeleton only"]
+    A["archive/<br/>Optional summaries"]
+    Q["requests/<br/>Promotion queue"]
     CLI["CLI/Slock runtime mode<br/>local task recovery"]
     C["Agent-local content<br/>Not managed by pamem"]
 
-    P --> L0
-    P --> L1
-    P --> L2
+    P --> G
+    P --> S
+    P --> R
+    P --> PR
+    P --> A
+    P --> Q
     P --> CLI
-    CLI --> L3
-    L1 --> C
-    L2 --> C
-    L3 --> C
+    CLI --> C
+    S --> C
+    R --> C
+    PR --> C
+    A --> C
 ```
 
 ### Directly Managed By Pamem
 
-`pamem` directly manages Layer 0 by shipping:
+`pamem` directly manages the runtime contract by shipping:
 
 - `memory-rule`, `sync-request`, and `memory-lint` plugin skills
 - bootstrap/repair behavior that exposes those skills to supported runtimes
@@ -145,11 +148,11 @@ shared memory, local memory config, sync policy, or run repo sync.
 small runtime-local recovery notes:
 
 - `MEMORY.md`
-- `L1/shared/*`
-- `L1/shared/experience.md`
-- `L1/roles/<role>/index.md`
-- `L1/roles/<role>/experience.md`
-- `L2/projects/*`
+- `shared/*`
+- `shared/experience.md`
+- `roles/<role>/<role>.md`
+- `roles/<role>/experience.md`
+- `projects/*`
 - `notes/user-preferences.md` as a local compatibility copy in CLI mode
 - `notes/operating-rules.md` as a local compatibility copy in CLI mode
 - `notes/experience.md` as a local compatibility copy in CLI mode for role experience
@@ -164,7 +167,7 @@ But it does not decide the actual contents of those files for a specific agent.
 
 Packaged agents live in the plugin repo, not in the shared memory repo. The
 sync executor definition is shipped as `agents/sync-executor.md`; it is not a
-profile and must not be seeded into `L1/`.
+profile and must not be seeded into `roles/`.
 
 ## Design Philosophy
 
@@ -185,7 +188,7 @@ The workspace `MEMORY.md` stays a thin router/intro only; Memory Governance and
 sync trigger instructions live in the shared repo's top-level `MEMORY.md`.
 Slock workspaces keep `notes/current-task.md` and `notes/work-log.md` for
 runtime-local state, and profile loading reads shared/role memory directly from
-the configured memory repo rather than mirroring L1 files into the workspace.
+the configured memory repo rather than mirroring shared or role files into the workspace.
 The Slock task board and threads remain primary; `current-task.md` is a thin
 cache for the active pointer, and `work-log.md` is local completed-work history.
 Multiple Slock agents naturally get separate copies under
@@ -222,14 +225,14 @@ printed startup context through their own prompt/context mechanism.
 
 Only durable rules, preferences, corrections, reusable findings, and meta-knowledge should move into stable memory.
 
-Project-specific context should remain in L2 unless it becomes a reusable cross-project rule or role finding.
+Project-specific context should remain in `projects/` unless it becomes a reusable cross-project rule or role finding.
 
 ### Profile Overlays
 
 Profiles choose which shared, role, and project memory to load. The profile itself does not create precedence. The default memory precedence is:
 
 ```text
-L0 constitution > L1 shared > L2 project > L1 role > CLI-local recovery > L3 archive
+governance > shared > projects > roles > CLI-local recovery > archive
 ```
 
 This keeps shared and role memory useful as experience while allowing project-specific constraints to win.
@@ -239,7 +242,7 @@ role, shared, or constitution memory.
 In practice, an agent home or workspace should activate one `default_profile` at
 a time. The templates in `assets/config-profiles/` are standalone starters for
 alternate defaults, not simultaneous runtime roles. Each profile loads the role
-index first and leaves deeper role shards for on-demand reading.
+file and leaves deeper role files for on-demand reading.
 
 Profile selection belongs to onboarding. `pamem init` writes the selected
 `config.toml` before runtime hooks start reading it; startup hooks must treat the
@@ -285,8 +288,8 @@ for current-task state; it must not write the shared memory repo.
 ### Instance Isolation
 
 Multiple agent instances may share the same memory repo, but they must not share
-mutable task state through that repo. The shared repo is for durable L0/L1/L2
-project memory and promotion requests. Runtime state is owned by the runtime:
+mutable task state through that repo. The shared repo is for durable governance,
+shared, role, project memory, and promotion requests. Runtime state is owned by the runtime:
 CLI mode keeps local recovery notes in the XDG data agent home or compatibility
 workspace notes, while Slock mode uses workspace `notes/current-task.md`,
 workspace `notes/work-log.md`, the Slock task board, and task threads.

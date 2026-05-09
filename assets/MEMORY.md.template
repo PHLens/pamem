@@ -6,13 +6,13 @@ Before any persistent memory write, compression, archive, promotion, or config/s
 Use pamem governance when:
 - updating `MEMORY.md`
 - editing `config.toml` or `.pamem/config.toml` for memory repo location, sharing, or sync policy
-- writing to `L1/`, `L2/`, `L3/`, or fallback `notes/`
+- writing to `governance/`, `shared/`, `roles/`, `projects/`, `archive/`, or fallback `notes/`
 - promoting task facts into durable memory
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
 `MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while runtime-local task state stays outside shared memory. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
-When local config points at a shared memory repo, durable project memory belongs in `L2/projects/`; runtime-local work state remains outside the shared repo.
+When local config points at a shared memory repo, durable project memory belongs in `projects/`; runtime-local work state remains outside the shared repo.
 Runtime startup hooks are read-only loaders. If the configured memory entry is missing, treat it as an onboarding/repair issue rather than creating shared memory during task execution.
 Ordinary task agents should propose durable shared-memory changes through PRs or `requests/inbox/`; the packaged sync executor agent in the pamem plugin reviews, lints, and decides whether those changes become effective memory.
 Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
@@ -23,12 +23,12 @@ Do not run sync directly from this agent; the sync executor handles git propagat
 
 ## Key Knowledge
 - `config.toml` or `.pamem/config.toml` — memory repo path, sharing mode, git sync remote/ref, and profile policy
-- `L1/shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
-- `L1/shared/operating-rules.md` or `notes/operating-rules.md` — stable operating defaults
-- `L1/shared/experience.md` — cross-role findings, corrections, and meta-knowledge loaded through the active profile
-- `L1/roles/<role>/index.md` — startup-loaded role entry point that routes to role shards
-- `L1/roles/<role>/experience.md` or `notes/experience.md` — role-scoped findings, corrections, and meta-knowledge
-- `L2/projects/<project-key>.md` or `notes/projects/<project-key>.md` — project-specific stable context
+- `shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
+- `shared/operating-rules.md` or `notes/operating-rules.md` — stable operating defaults
+- `shared/experience.md` — cross-role findings, corrections, and meta-knowledge loaded through the active profile
+- `roles/<role>/<role>.md` — startup-loaded role file
+- `roles/<role>/experience.md` or `notes/experience.md` — role-scoped findings, corrections, and meta-knowledge
+- `projects/<project-key>.md` or `notes/projects/<project-key>.md` — project-specific stable context
 
 ## Active Context
 - No active context recorded yet.

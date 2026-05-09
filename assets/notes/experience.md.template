@@ -1,7 +1,7 @@
 # Experience
 
 Compatibility surface for role-scoped experience. Shared experience lives in
-`L1/shared/experience.md`; in Slock mode the active profile loads
-`L1/roles/<role>/index.md` as the role entry point.
+`shared/experience.md`; in Slock mode the active profile loads
+`roles/<role>/<role>.md` as the role entry point.
 
 - No local compatibility experience recorded yet.

@@ -1,4 +1,4 @@
-# Constitution
+# Governance
 
 - Shared memory is the durable store when `memory_repo.path` is configured.
 - Local `config.toml` or workspace `.pamem/config.toml` owns repo location, sharing mode, and sync behavior.

@@ -36,9 +36,9 @@ requires_review_for = [
   "memory_repo.sync",
   "config.toml",
   ".pamem/config.toml",
-  "L0/**",
-  "L1/shared/**",
-  "L1/roles/**"
+  "governance/**",
+  "shared/**",
+  "roles/**"
 ]
 
 [sync]
@@ -50,20 +50,20 @@ policy = "explicit_request_or_workspace_policy"
 role = "onboarding"
 description = "Onboarding profile for seeding shared memory and creating new agents."
 load = [
-  "L0/constitution.md",
-  "L1/shared/preferences.md",
-  "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
-  "L1/roles/onboarding/index.md",
-  "L2/projects/<project-key>.md"
+  "governance/constitution.md",
+  "shared/preferences.md",
+  "shared/operating-rules.md",
+  "shared/experience.md",
+  "roles/onboarding/onboarding.md",
+  "projects/<project-key>.md"
 ]
 write = [
-  "L2/projects/<project-key>.md",
+  "projects/<project-key>.md",
   "requests/inbox/"
 ]
 guarded_write = [
   "config.toml",
   ".pamem/config.toml",
-  "L1/roles/onboarding/index.md",
-  "L1/roles/onboarding/experience.md"
+  "roles/onboarding/onboarding.md",
+  "roles/onboarding/experience.md"
 ]

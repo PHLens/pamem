@@ -73,14 +73,20 @@ for skill in memory-rule sync-request memory-lint; do
 done
 
 assert_file "$MEMORY_ROOT/MEMORY.md"
-assert_file "$MEMORY_ROOT/L0/constitution.md"
-assert_file "$MEMORY_ROOT/L1/shared/experience.md"
+assert_file "$MEMORY_ROOT/governance/constitution.md"
+assert_file "$MEMORY_ROOT/shared/preferences.md"
+assert_file "$MEMORY_ROOT/shared/operating-rules.md"
+assert_file "$MEMORY_ROOT/shared/experience.md"
 git -C "$MEMORY_ROOT" rev-parse --is-inside-work-tree >/dev/null
 for role in onboarding coder reviewer researcher wiki; do
-  assert_file "$MEMORY_ROOT/L1/roles/$role/index.md"
+  assert_file "$MEMORY_ROOT/roles/$role/$role.md"
+  assert_file "$MEMORY_ROOT/roles/$role/experience.md"
 done
 
-[ ! -e "$MEMORY_ROOT/L1/agents" ] || fail "shared memory must not contain plugin-owned agents"
+[ ! -e "$MEMORY_ROOT/agents" ] || fail "shared memory must not contain plugin-owned agents"
+for layer in L0 L1 L2 L3; do
+  [ ! -e "$MEMORY_ROOT/$layer" ] || fail "shared memory must use semantic paths, not $layer"
+done
 if jq -e '.hooks | has("PreCompact")' "$WORKSPACE/.codex/hooks.json" >/dev/null; then
   fail "bootstrap must not install an automatic PreCompact hook"
 fi
@@ -131,7 +137,7 @@ printf '%s' "$CLI_HOOK_JSON" | jq -e \
 
 CLI_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --agent-id "$AGENT_ID")"
 grep -Fq "Persistent memory source:" <<<"$CLI_CONTEXT"
-grep -Fq 'Source: `L1/roles/wiki/index.md`' <<<"$CLI_CONTEXT"
+grep -Fq 'Source: `roles/wiki/wiki.md`' <<<"$CLI_CONTEXT"
 grep -Fq "CLI runtime current task source:" <<<"$CLI_CONTEXT"
 
 CLI_LINT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" lint --agent-id "$AGENT_ID" --json)"
@@ -178,7 +184,7 @@ assert_no_match "$SLOCK_WORKSPACE/MEMORY.md" '^## (Memory Governance|Sync Trigge
 
 SLOCK_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --workspace "$SLOCK_WORKSPACE")"
 grep -Fq "runtime=slock" <<<"$SLOCK_CONTEXT"
-grep -Fq 'Source: `L1/roles/coder/index.md`' <<<"$SLOCK_CONTEXT"
+grep -Fq 'Source: `roles/coder/coder.md`' <<<"$SLOCK_CONTEXT"
 grep -Fq "Slock runtime current task source:" <<<"$SLOCK_CONTEXT"
 grep -Fq "Slock runtime work log source:" <<<"$SLOCK_CONTEXT"
 

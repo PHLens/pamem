@@ -4,12 +4,12 @@ Before any persistent memory write, compression, archive, promotion, or config/s
 Use pamem governance when:
 - updating `MEMORY.md`
 - editing `config.toml` or `.pamem/config.toml` for memory repo location, sharing, or sync policy
-- writing to `L1/`, `L2/`, `L3/`, or fallback `notes/`
+- writing to `governance/`, `shared/`, `roles/`, `projects/`, `archive/`, or fallback `notes/`
 - promoting task facts into durable memory
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
 `MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while runtime-local task state stays outside shared memory. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
-When local config points at a shared memory repo, durable project memory belongs in `L2/projects/`; runtime-local work state remains outside the shared repo.
+When local config points at a shared memory repo, durable project memory belongs in `projects/`; runtime-local work state remains outside the shared repo.
 Runtime startup hooks are read-only loaders. If the configured memory entry is missing, treat it as an onboarding/repair issue rather than creating shared memory during task execution.
 Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.

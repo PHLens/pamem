@@ -1,6 +1,6 @@
 ---
 name: memory-rule
-description: Governs profile-based agent memory loading, L0/L1/L2/L3 writes, promotion, compression, sync-request handoff, conflict repair, and archiving. Use when maintaining MEMORY.md, notes/, shared memory repos, or any persistent memory so agents keep stable behavior without turning memory into an unstructured log.
+description: Governs profile-based agent memory loading, semantic shared-memory paths, promotion, compression, sync-request handoff, conflict repair, and archiving. Use when maintaining MEMORY.md, notes/, shared memory repos, or any persistent memory so agents keep stable behavior without turning memory into an unstructured log.
 ---
 
 # Memory Rule
@@ -23,10 +23,11 @@ This plugin skill governs how persistent agent memory is structured, loaded, upd
 ```text
 MEMORY.md          = human-readable startup index and pointers
 config.toml or .pamem/config.toml = machine-readable profile, runtime, memory repo location, load, write, and sync policy when present
-L0/ or this skill   = constitution and governance
-L1/ or notes/       = stable shared, role, preference, and experience memory
-L2/ or notes/       = project memory
-L3/ or notes/       = archive summaries not loaded by default, usually CLI-local
+governance/ or this skill = constitution and governance
+shared/ or notes/         = stable shared preferences, rules, and cross-role experience
+roles/                    = role guides and role-scoped experience
+projects/ or notes/       = project memory
+archive/ or notes/        = archive summaries not loaded by default, usually CLI-local
 requests/           = reviewable memory-promotion requests
 XDG data agent home = CLI runtime-local config and task recovery by agent id
 git push / repo propagation = executor-only write path for the configured memory repo
@@ -49,9 +50,12 @@ ${XDG_DATA_HOME:-~/.local/share}/pamem/
     work-log.md
   memory/
     MEMORY.md
-    L0/
-    L1/
-    L2/
+    governance/
+    shared/
+    roles/
+    projects/
+    archive/
+    requests/
 
 <legacy-or-slock-workspace>/
   .pamem/
@@ -59,32 +63,31 @@ ${XDG_DATA_HOME:-~/.local/share}/pamem/
 
 memory/
   MEMORY.md
-  L0/
+  governance/
     constitution.md
-  L1/
-    shared/
-      preferences.md
-      operating-rules.md
+  shared/
+    preferences.md
+    operating-rules.md
+    experience.md
+  roles/
+    coder/
+      coder.md
       experience.md
-    roles/
-      coder/
-        index.md
-        experience.md
-      reviewer/
-        index.md
-        experience.md
-      researcher/
-        index.md
-        experience.md
-      onboarding/
-        index.md
-        experience.md
-      wiki/
-        index.md
-        experience.md
-  L2/
-    projects/
-      <project-key>.md
+    reviewer/
+      reviewer.md
+      experience.md
+    researcher/
+      researcher.md
+      experience.md
+    onboarding/
+      onboarding.md
+      experience.md
+    wiki/
+      wiki.md
+      experience.md
+  projects/
+    <project-key>.md
+  archive/
   requests/
     inbox/
     promoted/
@@ -107,23 +110,23 @@ memory/
 
 ```
 
-Map fallback files to the same layers:
+Map fallback files to the same semantic surfaces:
 
-- `notes/user-preferences.md` and `notes/operating-rules.md` are L1 shared memory surfaces.
-- `L1/shared/experience.md` is the cross-role shared experience surface loaded by profile overlays.
-- `L1/roles/<role>/index.md` is the startup-loaded role entry point and should stay a thin router.
-- `notes/experience.md` is the compatibility surface for active role experience in `L1/roles/<role>/experience.md`.
-- `notes/projects/<project-key>.md` is CLI-local compatibility for `L2/projects/<project-key>.md`.
+- `notes/user-preferences.md` and `notes/operating-rules.md` are compatibility surfaces for `shared/`.
+- `shared/experience.md` is the cross-role shared experience surface loaded by profile overlays.
+- `roles/<role>/<role>.md` is the startup-loaded role guide and should stay short.
+- `notes/experience.md` is the compatibility surface for active role experience in `roles/<role>/experience.md`.
+- `notes/projects/<project-key>.md` is CLI-local compatibility for `projects/<project-key>.md`.
 - XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
 - `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
 
-## Memory Layers
+## Memory Surfaces
 
-### Layer 0: Constitution
+### Governance
 
-Layer 0 defines the memory operating model:
+Governance defines the memory operating model:
 
-- structure and layer semantics
+- structure and path semantics
 - startup load rules
 - profile selection
 - precedence and conflict rules
@@ -131,18 +134,18 @@ Layer 0 defines the memory operating model:
 - promotion and archival lifecycle
 - sync-request handoff boundary
 
-Layer 0 includes this skill, non-editable startup rules, and `L0/constitution.md` when a shared memory repo provides one. It must not be auto-mutated by ordinary task agents.
+Governance includes this skill, non-editable startup rules, and `governance/constitution.md` when a shared memory repo provides one. It must not be auto-mutated by ordinary task agents.
 
-The following communication rules are also treated as Layer 0 shared rules:
+The following communication rules are also treated as governance rules:
 
 - Private or DM-scoped content is private by default; do not forward or restate it outside the intended audience unless explicitly asked.
 - Reply in the same conversation or thread by default; do not reroute the discussion unless explicitly requested.
 - Treat `@someone` as the intended actor by default; do not take over instructions aimed at another person unless explicitly delegated.
 - Visible replies should add new information; avoid empty acknowledgments or status noise.
 
-### Layer 1: Stable Shared Memory
+### Shared Memory
 
-Layer 1 contains durable memory that should survive across tasks and be reusable by multiple sessions or agents.
+`shared/` contains durable memory that should survive across tasks and be reusable by multiple sessions or agents.
 
 Examples:
 
@@ -151,31 +154,40 @@ Examples:
 - durable corrections and prohibitions
 - reusable technical findings with future decision value
 - methodological experience and meta-knowledge
-- shared cross-role experience such as `L1/shared/experience.md`
-- role-specific entry indexes such as `L1/roles/coder/index.md`, `L1/roles/reviewer/index.md`, `L1/roles/wiki/index.md`, and `L1/roles/onboarding/index.md`
-- role-specific experience such as `L1/roles/coder/experience.md`, `L1/roles/reviewer/experience.md`, `L1/roles/wiki/experience.md`, and `L1/roles/onboarding/experience.md`
+- shared cross-role experience such as `shared/experience.md`
 
-Shared and role experience belongs in L1 because it is stable shared experience for the active profile. Shared experience is loaded through the active profile overlay; role indexes are loaded as thin routers, and deeper role shards are read on demand. These overlays do not outrank project-specific rules.
+Shared experience is loaded through the active profile overlay. It does not outrank project-specific rules.
 
-### Layer 2: Project Memory
+### Role Memory
 
-Layer 2 contains specific project context.
+`roles/<role>/` contains durable role guidance and role-scoped experience.
 
 Examples:
 
-- `L2/projects/<project-key>.md`
+- role guides such as `roles/coder/coder.md`, `roles/reviewer/reviewer.md`, `roles/wiki/wiki.md`, and `roles/onboarding/onboarding.md`
+- role-specific experience such as `roles/coder/experience.md`, `roles/reviewer/experience.md`, `roles/wiki/experience.md`, and `roles/onboarding/experience.md`
+
+The role guide should stay short. Put reusable role lessons in `experience.md` and add role-local shards only when they remove real startup noise.
+
+### Project Memory
+
+`projects/` contains specific project context.
+
+Examples:
+
+- `projects/<project-key>.md`
 - `notes/projects/<project-key>.md`
 
-Project-specific memory belongs in L2, not L1. Project context usually changes faster than role experience and should not pollute global stable memory.
+Project-specific memory belongs in `projects/`, not `shared/` or role guides. Project context usually changes faster than role experience and should not pollute global stable memory.
 Runtime task state is handled outside the shared memory repo.
 
-### Layer 3: Archive
+### Archive
 
-Layer 3 preserves closed-task summaries and historical context that should not be loaded by default.
+`archive/` preserves closed-task summaries and historical context that should not be loaded by default.
 
 Examples:
 
-- `L3/archive/<date-or-task>.md`
+- `archive/<date-or-task>.md`
 - `notes/work-log.md` in CLI runtime mode
 
 Archive stores summaries, not transcripts or raw evidence chains.
@@ -216,12 +228,12 @@ Example shape:
 [profiles.coder]
 role = "coder"
 load = [
-  "L0/constitution.md",
-  "L1/shared/preferences.md",
-  "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
-  "L1/roles/coder/index.md",
-  "L2/projects/pamem.md"
+  "governance/constitution.md",
+  "shared/preferences.md",
+  "shared/operating-rules.md",
+  "shared/experience.md",
+  "roles/coder/coder.md",
+  "projects/pamem.md"
 ]
 write = [
   "requests/inbox/"
@@ -234,9 +246,9 @@ Rules:
 - Profiles describe what to load; they do not create new precedence.
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
 - `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise `pamem resume` may reuse the last launcher recorded by `pamem start -- <launcher>`.
-- Shared experience is a profile overlay loaded from L1.
-- Role-specific indexes are profile overlays loaded from L1; deeper role shards are read on demand.
-- Project memory is loaded from L2 and wins over role memory on conflict.
+- Shared experience is a profile overlay loaded from `shared/experience.md`.
+- Role guides and role experience are profile overlays loaded from `roles/<role>/`.
+- Project memory is loaded from `projects/` and wins over role memory on conflict.
 - Ordinary task agents should write promotion requests or open PRs, not directly make effective shared-memory writes.
 - Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
 - `guarded_write` is empty for ordinary bundled profiles. If a local policy adds guarded targets, treat them as PR/request candidates unless explicit executor/config-owner responsibility is assigned.
@@ -251,13 +263,12 @@ On wake-up:
 1. Read `MEMORY.md`.
 2. If present, read local `config.toml` or `.pamem/config.toml`, resolve `memory_repo.path`, and select the requested or default profile.
 3. Load the repo entry file from `memory_repo.entry_file`; default is `MEMORY.md`.
-4. Load L0 constitution sources for that profile.
-5. Load L1 shared memory.
-6. Load the L1 shared experience overlay for the profile.
-7. Load the L1 role index overlay for the profile.
-8. Load L2 project memory for the active project.
+4. Load governance sources for that profile.
+5. Load shared memory for that profile.
+6. Load the role guide and role experience for that profile.
+7. Load project memory for the active project.
 9. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
-10. Do not load L3 archive or `requests/` by default.
+10. Do not load `archive/` or `requests/` by default.
 11. If runtime mode is `slock`, treat Slock task state and workspace files as the source of truth for active work.
 
 Fallback load order when local config is absent:
@@ -274,11 +285,11 @@ Fallback load order when local config is absent:
 
 Current system, developer, and explicit user instructions outrank memory. Within memory, higher precedence wins:
 
-1. L0 constitution
-2. L1 shared memory
-3. L2 project memory
-4. L1 role memory loaded through the active profile
-5. L3 archive
+1. Governance
+2. Shared memory
+3. Project memory
+4. Role memory loaded through the active profile
+5. Archive
 
 Lower-precedence memory may extend but must not override higher-precedence memory.
 Runtime-local task files are outside this precedence list.
@@ -298,7 +309,7 @@ Before writing any memory, classify it:
 - Will it affect future decisions or behavior?
 - Is it a rule, preference, correction, reusable finding, project fact, or runtime-local task state?
 - Is it a summary rather than raw evidence?
-- Which layer owns it?
+- Which memory surface owns it?
 - Does an existing entry already cover it?
 - Is direct write allowed by the active profile or local policy?
 
@@ -308,25 +319,25 @@ If the answer is no to long-term value, do not write it to stable memory.
 
 | Type | Shared layout | Fallback layout | Notes |
 |---|---|---|---|
-| Global collaboration preferences | `L1/shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
-| Shared operating rules | `L1/shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override L0 |
-| Cross-role shared experience | `L1/shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
-| Role startup index | `L1/roles/<role>/index.md` | n/a | Thin role router loaded through the active profile; point to shards instead of embedding them |
-| Role-scoped experience | `L1/roles/<role>/experience.md` | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
-| Error corrections and prohibitions | `L1/roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
-| Reusable technical findings | `L1/roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
-| Methodological meta-knowledge | `L1/roles/<role>/experience.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
-| Project-specific rules and facts | `L2/projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict; CLI-local compatibility only |
+| Global collaboration preferences | `shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
+| Shared operating rules | `shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override governance |
+| Cross-role shared experience | `shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
+| Role guide | `roles/<role>/<role>.md` | n/a | Short role entry loaded through the active profile |
+| Role-scoped experience | `roles/<role>/experience.md` | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
+| Error corrections and prohibitions | `roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
+| Reusable technical findings | `roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
+| Methodological meta-knowledge | `roles/<role>/experience.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
+| Project-specific rules and facts | `projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict; CLI-local compatibility only |
 | CLI current-task recovery | n/a | XDG data `pamem/agents/<agent-id>/current-task.md`, fallback `notes/current-task.md` | Runtime-local, startup-safe summary only |
 | CLI work-log summary | n/a | XDG data `pamem/agents/<agent-id>/work-log.md`, fallback `notes/work-log.md` | Runtime-local summary only |
 | Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
-| Closed task summary | `L3/archive/` | `notes/work-log.md` in CLI runtime mode | Newest first; summaries only |
+| Closed task summary | `archive/` | `notes/work-log.md` in CLI runtime mode | Newest first; summaries only |
 
 ## Promotion Policy
 
 Stable shared memory should change by promotion, not by casual append.
 
-Promote to L1 only when:
+Promote to shared or role memory only when:
 
 - explicitly requested by the user,
 - clearly durable across tasks,
@@ -336,7 +347,7 @@ Promote to L1 only when:
 
 Use `requests/inbox/` for proposed promotions when direct write is not authorized. A promotion request should include:
 
-- target layer and file
+- target memory surface and file
 - proposed change
 - source context or task pointer
 - reason it is durable
@@ -348,10 +359,10 @@ Promotion decisions:
 - rejected changes move to `requests/rejected/` with a short reason.
 - ordinary task agents must not silently promote contentious or cross-scope rules.
 
-Keep in L2 when the content is:
+Keep in `projects/` when the content is:
 
 - project-specific and still changing, or
-- useful as durable project context but not stable enough for L1.
+- useful as durable project context but not stable enough for shared or role memory.
 
 Keep runtime task state out of the shared memory repo. In CLI mode, use local
 recovery notes or task-local planning files. In Slock mode, use Slock task
@@ -362,7 +373,7 @@ In Slock runtime mode, the Slock-generated agent workspace may contain
 normally remain the machine-level shared memory repo so Slock and CLI agents can
 share durable memory.
 
-Archive to CLI-local work log or optional L3 archive when:
+Archive to CLI-local work log or optional `archive/` when:
 
 - the task is closed,
 - a concise summary is enough for future recall, or
@@ -424,7 +435,7 @@ When multiple agent instances run concurrently, shared memory files become write
 
 ### Principles
 
-- L0 and L1 shared files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
+- Governance, shared, and role files are read-only during ordinary task execution unless the active profile explicitly permits guarded write.
 - `MEMORY.md` is a shared index, not an isolation boundary.
 - The shared memory repo must not contain mutable active rosters or per-task runtime state.
 - CLI runtime state belongs in the XDG data agent home, workspace-local compatibility notes, or task-local planning files.
@@ -460,7 +471,7 @@ If last-write-wins occurs on a shared durable memory file:
 
 1. Task start: update only the runtime-owned task surface, not the shared memory repo.
 2. Task execution: keep task state in CLI local notes/planning files or in Slock task threads and workspace files.
-3. Task completion: promote durable findings to L2 project memory or `requests/inbox/`; in CLI mode optionally add a concise local work-log summary; in Slock mode leave ordinary work logs in Slock.
+3. Task completion: promote durable findings to `projects/` or `requests/inbox/`; in CLI mode optionally add a concise local work-log summary; in Slock mode leave ordinary work logs in Slock.
 
 ## Current Task Vs Planning Files
 
@@ -516,11 +527,11 @@ If complexity was underestimated, upgrade in place:
 - items that would block or materially affect next wake-up,
 - pointers to authoritative detailed files.
 
-Compress immediately if `Active Context` grows beyond 3 items, mixes closed work, or repeats detail that already lives in L1, L2, or L3.
+Compress immediately if `Active Context` grows beyond 3 items, mixes closed work, or repeats detail that already lives in shared, role, project, or archive memory.
 
 ## Work Log Order
 
-CLI-local work logs and optional L3 archives must be maintained in reverse-chronological order.
+CLI-local work logs and optional `archive/` entries must be maintained in reverse-chronological order.
 
 - Newest date sections go at the top.
 - Newest entries inside a date section go above older entries when practical.
@@ -530,11 +541,11 @@ CLI-local work logs and optional L3 archives must be maintained in reverse-chron
 
 | Do not write | Why | Where instead |
 |---|---|---|
-| Closed task details | Clutters index | CLI-local work log, optional L3 archive, or Slock thread |
-| Evidence chains | Linear narrative, not reusable | L1 experience outcomes only |
+| Closed task details | Clutters index | CLI-local work log, optional `archive/`, or Slock thread |
+| Evidence chains | Linear narrative, not reusable | `shared/experience.md` or `roles/<role>/experience.md` |
 | Session transcripts | Historical, not actionable | Do not save |
 | Raw command outputs | Transient data | Do not save |
-| Long explanations | Index should be pointers | L1/L2/L3 files |
+| Long explanations | Index should be pointers | `shared/`, `roles/`, `projects/`, or `archive/` files |
 | Profile load lists | Duplicates config | `config.toml` or `.pamem/config.toml` |
 
 ## Entry Discipline
@@ -565,16 +576,16 @@ Agent memory is the schema layer for the agent's broader knowledge system. Its p
 
 ### Meta Vs Domain Boundary
 
-- Meta-knowledge belongs in L1 experience memory: methodology, principles, tool tips, workflow rules, corrected assumptions, and knowing where to look.
+- Meta-knowledge belongs in shared or role experience memory: methodology, principles, tool tips, workflow rules, corrected assumptions, and knowing where to look.
 - Domain knowledge belongs in an external wiki, vault, project repo, or other source of truth: concepts, facts, analyses, source material, and long-form research.
 
 When an interaction produces a durable insight, classify it:
 
 | Classification | Destination | Examples |
 |---|---|---|
-| Meta: how to work better | L1 experience with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
-| Meta: corrected assumption | L1 experience with `type: correction` | "WeChat mobile UA does not bypass captcha" |
-| Meta: reusable decision | L1 experience with `type: finding` | "For Chinese sites, browser path > requests" |
+| Meta: how to work better | `shared/experience.md` or `roles/<role>/experience.md` with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
+| Meta: corrected assumption | `shared/experience.md` or `roles/<role>/experience.md` with `type: correction` | "WeChat mobile UA does not bypass captcha" |
+| Meta: reusable decision | `shared/experience.md` or `roles/<role>/experience.md` with `type: finding` | "For Chinese sites, browser path > requests" |
 | Domain: concept or fact | External wiki/vault/project source | Technical concepts, source summaries, MOCs |
 
 ### Finding Writeback
@@ -616,8 +627,8 @@ When explicitly requested or during memory review, perform a quick health check 
 | Empty note | File has only heading or template placeholder | Remove from startup load order until populated |
 | Conflicting entries | Two entries in same scope contradict each other | Flag for conflict repair |
 | Orphan pointer | `MEMORY.md` or config references a note that does not exist | Remove or repair the pointer |
-| Layer mismatch | Project content appears in L1, or role content appears only in runtime-local task state | Move or request promotion to the correct layer |
-| Direct stable write | Ordinary task work changed L0/L1 without policy support | Convert to promotion request or ask for review |
+| Scope mismatch | Project content appears in shared/role memory, or role content appears only in runtime-local task state | Move or request promotion to the correct memory surface |
+| Direct stable write | Ordinary task work changed governance/shared/role memory without policy support | Convert to promotion request or ask for review |
 
 Memory lint is informational by default. Conflicts and stale entries should be resolved by supersession, not silent deletion.
 
@@ -641,17 +652,17 @@ When new memory conflicts with existing memory:
 | Contradictory rules exist | Repair conflict by supersession |
 | Archive is loaded by default | Remove it from startup path |
 | Placeholder text remains | Fill it in or remove it |
-| Project-specific content appears in L1 role/shared memory | Move it to L2 project memory |
-| Role-scoped experience is scattered across task files | Promote or request promotion into L1 role memory |
+| Project-specific content appears in shared or role memory | Move it to `projects/` |
+| Role-scoped experience is scattered across task files | Promote or request promotion into `roles/<role>/experience.md` |
 | Sync request is used for project delivery | Cancel and use normal project workflow |
 
 ## Anti-Patterns
 
 | Do not | Do instead |
 |---|---|
-| Stuff everything in `MEMORY.md` | Organize in L1/L2/L3 and keep pointers in `MEMORY.md` |
-| Keep closed work in Active Context | Move a concise summary to L3 |
-| Put project-specific rules in L1 role memory | Put them in L2 project memory |
+| Stuff everything in `MEMORY.md` | Organize in `shared/`, `roles/`, `projects/`, and `archive/`, then keep pointers in `MEMORY.md` |
+| Keep closed work in Active Context | Move a concise summary to `archive/` or a work log |
+| Put project-specific rules in role memory | Put them in `projects/` |
 | Treat role overlay as higher priority than project rules | Let project memory override role memory |
 | Repeat corrections in multiple places | Keep one authoritative entry with `type: correction` and supersession |
 | Write evidence chains | Record outcome or lesson only |

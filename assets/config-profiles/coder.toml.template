@@ -35,9 +35,9 @@ requires_review_for = [
   "memory_repo.sync",
   "config.toml",
   ".pamem/config.toml",
-  "L0/**",
-  "L1/shared/**",
-  "L1/roles/**"
+  "governance/**",
+  "shared/**",
+  "roles/**"
 ]
 
 [sync]
@@ -49,12 +49,12 @@ policy = "explicit_request_or_workspace_policy"
 role = "coder"
 description = "Implementation profile for code changes and task execution."
 load = [
-  "L0/constitution.md",
-  "L1/shared/preferences.md",
-  "L1/shared/operating-rules.md",
-  "L1/shared/experience.md",
-  "L1/roles/coder/index.md",
-  "L2/projects/<project-key>.md"
+  "governance/constitution.md",
+  "shared/preferences.md",
+  "shared/operating-rules.md",
+  "shared/experience.md",
+  "roles/coder/coder.md",
+  "projects/<project-key>.md"
 ]
 write = [
   "requests/inbox/"
