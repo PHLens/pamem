@@ -34,6 +34,7 @@ In short:
 `pamem` ships a sync executor agent definition at `agents/sync-executor.md`.
 That agent is packaged with the plugin; it is not a memory profile and is not
 seeded into the shared memory repo.
+Ordinary agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
 
 `pamem` still does not include:
 
