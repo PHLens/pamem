@@ -8,6 +8,7 @@ For the model and boundaries, see [DESIGN.md](DESIGN.md) and [SYNC.md](SYNC.md).
 
 - `bash`
 - `jq`
+- `git`
 - GNU `realpath`
 
 ## Initialize An Agent
@@ -64,6 +65,10 @@ The shared memory repo defaults to:
 ```text
 ${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory
 ```
+
+Bootstrap initializes that path as a git repository. If you want to sync it to
+another location, configure a git remote for that repo path and set
+`memory_repo.sync.remote` when needed.
 
 Start and resume:
 

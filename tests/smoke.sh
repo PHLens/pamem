@@ -74,6 +74,7 @@ done
 assert_file "$MEMORY_ROOT/MEMORY.md"
 assert_file "$MEMORY_ROOT/L0/constitution.md"
 assert_file "$MEMORY_ROOT/L1/shared/experience.md"
+git -C "$MEMORY_ROOT" rev-parse --is-inside-work-tree >/dev/null
 for role in onboarding coder reviewer researcher wiki; do
   assert_file "$MEMORY_ROOT/L1/roles/$role/index.md"
 done
@@ -144,6 +145,11 @@ printf '%s' "$CLI_LINT" | jq -e '
 LOCAL_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --dry-run)"
 [[ "$LOCAL_SYNC" == local-only:* ]] || fail "local sync dry-run did not report local-only behavior"
 
+GIT_SYNC_NO_REMOTE="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --backend git --dry-run 2>&1)"
+grep -Fq "Memory repo: $MEMORY_ROOT" <<<"$GIT_SYNC_NO_REMOTE"
+grep -Fq "git -C \"$MEMORY_ROOT\" remote add origin <url>" <<<"$GIT_SYNC_NO_REMOTE"
+
+git -C "$MEMORY_ROOT" remote add origin https://example.invalid/pamem-memory.git
 GIT_SYNC="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" sync --agent-id "$AGENT_ID" --backend git --remote origin --dry-run)"
 [[ "$GIT_SYNC" == git\ -C\ * ]] || fail "git sync dry-run did not print git commands"
 

@@ -39,6 +39,10 @@ The executor must not be treated as a general task agent.
 `scripts/memory-sync.sh` is the repo-level sync helper. Installed workspaces
 call it through `.pamem/scripts/memory-sync.sh`.
 
+The shared memory repo is initialized as a git repository during bootstrap. If
+the git backend is selected but no remote is configured, the helper reports the
+repo path and tells you to add a git remote for that repo before syncing.
+
 Supported backends:
 
 - `local`: no remote sync

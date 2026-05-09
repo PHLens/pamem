@@ -432,3 +432,20 @@ pamem_ensure_memory_repo_skeleton() {
     pamem_copy_if_missing "$assets_dir/shared/L1/roles/$role/experience.md.template" "$repo_root/L1/roles/$role/experience.md"
   done
 }
+
+pamem_ensure_memory_repo_git() {
+  local repo_root="$1"
+
+  if [ -e "$repo_root/.git" ]; then
+    return 0
+  fi
+
+  pamem_require_command git "pamem install requires git to initialize the shared memory repo."
+
+  if git init -b main "$repo_root" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  git -C "$repo_root" init >/dev/null
+  git -C "$repo_root" symbolic-ref HEAD refs/heads/main >/dev/null 2>&1 || true
+}
