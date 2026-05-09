@@ -10,7 +10,8 @@
     "agent-memory",
     "hooks",
     "bootstrap",
-    "sync"
+    "sync",
+    "agents"
   ],
   "skills": "./skills/",
   "interface": {

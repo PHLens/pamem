@@ -118,9 +118,48 @@ for profile in coder reviewer researcher wiki; do
     echo "profile template must not use shared active/work-log paths: $profile_template" >&2
     exit 1
   fi
+  write_block="$(awk -v key="write" '
+    $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+      in_array = 1
+      print
+      if ($0 ~ /\]/) {
+        exit
+      }
+      next
+    }
+    in_array {
+      print
+      if ($0 ~ /\]/) {
+        exit
+      }
+    }
+  ' "$profile_template")"
+  guarded_block="$(awk -v key="guarded_write" '
+    $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+      in_array = 1
+      print
+      if ($0 ~ /\]/) {
+        exit
+      }
+      next
+    }
+    in_array {
+      print
+      if ($0 ~ /\]/) {
+        exit
+      }
+    }
+  ' "$profile_template")"
+  printf '%s\n' "$write_block" | grep -Eq '"requests/inbox/"'
+  grep -Eq '^[[:space:]]*guarded_write[[:space:]]*=[[:space:]]*\[\]' "$profile_template"
+  if printf '%s\n%s\n' "$write_block" "$guarded_block" | grep -Eq '"L[0-3]/'; then
+    echo "ordinary profile write policy must stay limited to promotion requests: $profile_template" >&2
+    exit 1
+  fi
 done
 
 for file in \
+  "$ROOT/agents/sync-executor.md" \
   "$ROOT/assets/MEMORY.md.template" \
   "$ROOT/assets/memory-governance.md.fragment" \
   "$ROOT/assets/sync-trigger.md.fragment" \
@@ -291,6 +330,7 @@ fi
 test -d "$DEFAULT_MEMORY_REPO/L2/projects"
 test ! -e "$DEFAULT_MEMORY_REPO/L2/active"
 test ! -e "$DEFAULT_MEMORY_REPO/L3/work-log.md"
+test ! -e "$DEFAULT_MEMORY_REPO/L1/agents"
 test ! -e "$DEFAULT_MEMORY_REPO/L1/roles/common"
 test ! -e "$DEFAULT_MEMORY_REPO/L1/roles/onboarding.md"
 
@@ -574,6 +614,11 @@ fi
 
 if bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE" --profile coder >/dev/null 2>&1; then
   echo "onboarding must not overwrite an existing config without --force" >&2
+  exit 1
+fi
+
+if bash "$ROOT/scripts/onboard-pamem.sh" "$ONBOARD_WORKSPACE/sync-executor-profile" --profile sync-executor >/dev/null 2>&1; then
+  echo "sync-executor must be a packaged plugin agent, not an onboardable memory profile" >&2
   exit 1
 fi
 

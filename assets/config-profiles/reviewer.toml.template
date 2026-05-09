@@ -59,10 +59,6 @@ load = [
   "L2/projects/<project-key>.md"
 ]
 write = [
-  "L2/projects/<project-key>.md",
   "requests/inbox/"
 ]
-guarded_write = [
-  "L1/roles/reviewer/index.md",
-  "L1/roles/reviewer/experience.md"
-]
+guarded_write = []

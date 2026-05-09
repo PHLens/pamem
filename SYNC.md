@@ -1,8 +1,10 @@
 # Sync
 
-This document explains how `pamem` fits with sync request handoff and the standalone memory repo sync helper.
+This document explains how `pamem` fits with sync request handoff, the packaged
+sync executor agent definition, and the standalone memory repo sync helper.
 
-It intentionally describes the **protocol and boundaries**, not a concrete sync executor implementation.
+It describes the **protocol and boundaries**. The packaged sync executor is an
+agent definition, not an always-running daemon, scheduler, or credential store.
 
 ## Purpose
 
@@ -24,14 +26,16 @@ In short:
 
 - `pamem` manages local memory runtime
 - sync request handoff creates structured requests for external sync
-- an external executor consumes those requests
+- the packaged sync executor or another assigned executor consumes those requests
 - a sync executor may call `scripts/memory-sync.sh` when it is time to propagate the configured memory repo
 
 ## Boundary
 
-`pamem` does **not** ship a sync executor.
+`pamem` ships a sync executor agent definition at `agents/sync-executor.md`.
+That agent is packaged with the plugin; it is not a memory profile and is not
+seeded into the shared memory repo.
 
-It does not include:
+`pamem` still does not include:
 
 - sync scheduling or queue processing
 - backend-selection policy
@@ -42,7 +46,7 @@ It does not include:
 - branch or PR transport
 - review-state propagation for project work
 
-That part is intentionally left external.
+Those parts remain environment-specific executor responsibilities.
 
 ## Risk Surface
 
@@ -60,8 +64,10 @@ memory, but they have different risk levels.
 | `memory-pre-compact.sh` | Low | Explicit CLI-local helper only; not installed as an automatic hook and must not write the shared memory repo. |
 | `requests/inbox/` | Medium | Reviewable promotion queue for durable memory, not a sync or task queue. |
 
-Ordinary task agents should not run propagation or repair paths unless that
-executor/config-owner responsibility was explicitly assigned.
+Ordinary task agents should not run propagation, merge, or repair paths unless
+that executor/config-owner responsibility was explicitly assigned. Their default
+write path is a memory PR or promotion request, not direct effective writes to
+the shared repo.
 
 Missing `memory-rule` or `sync-request` skills are setup failures, not fallback
 authorization. Before repair, ordinary agents may read injected context but must
@@ -74,7 +80,7 @@ flowchart LR
     A["Agent workspace<br/>pamem runtime"] --> B["Durable local change"]
     B --> C["sync request"]
     C --> D["<sync-queue-root>/pending/*.json"]
-    D --> E["External executor"]
+    D --> E["Sync executor"]
     E --> G["memory-sync.sh<br/>optional repo propagation"]
     G --> F["done / rejected / propagated state"]
 ```
@@ -132,7 +138,8 @@ The queue is defined by the active sync configuration. A typical shape is:
 
 Sync request helpers only create or refresh files in `pending/`.
 
-An external executor is responsible for moving requests through the lifecycle.
+The packaged sync executor, or another assigned executor, is responsible for
+moving requests through the lifecycle.
 
 ## Request Lifecycle
 
@@ -175,9 +182,9 @@ The workspace agent must not:
 - mutate `processing`, `done`, or `rejected`
 - directly execute environment-specific sync logic under the sync request contract
 
-### External Executor
+### Sync Executor
 
-The external executor may:
+The packaged sync executor, or another assigned executor, may:
 
 - read `pending/`
 - validate requests
