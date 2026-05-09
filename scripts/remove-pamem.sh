@@ -11,15 +11,15 @@ PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TARGET_INPUT="$1"
 WORKSPACE="$(cd "$TARGET_INPUT" && pwd)"
 
+# shellcheck source=memory-store.sh
+source "$SCRIPT_DIR/memory-store.sh"
+
 CODEX_HOOKS="$WORKSPACE/.codex/hooks.json"
 CODEX_SKILLS_DIR="$WORKSPACE/.codex/skills"
 
 SESSION_CMD='.pamem/scripts/memory-session-start.sh'
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "pamem requires jq; install jq and rerun." >&2
-  exit 1
-fi
+pamem_require_jq
 
 if [ -s "$CODEX_HOOKS" ]; then
   tmp_file="$(mktemp)"

@@ -88,10 +88,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if ! command -v realpath >/dev/null 2>&1; then
-  echo "pamem requires GNU realpath; install coreutils and rerun." >&2
-  exit 1
-fi
+pamem_require_realpath
 
 ROOT="$(pamem_expand_path "$PWD" "$ROOT")"
 

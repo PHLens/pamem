@@ -8,15 +8,8 @@ ASSETS_DIR="$PLUGIN_ROOT/assets"
 # shellcheck source=memory-store.sh
 source "$SCRIPT_DIR/memory-store.sh"
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "pamem requires jq; install jq and rerun." >&2
-  exit 1
-fi
-
-if ! command -v realpath >/dev/null 2>&1; then
-  echo "pamem requires GNU realpath; install coreutils and rerun." >&2
-  exit 1
-fi
+pamem_require_jq
+pamem_require_realpath
 
 CURRENT_TASK_TEMPLATE="$(cat "$ASSETS_DIR/notes/current-task.md.template")"
 

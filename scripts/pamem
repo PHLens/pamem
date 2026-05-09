@@ -43,19 +43,6 @@ fi
 # shellcheck source=memory-store.sh
 source "$SCRIPT_DIR/memory-store.sh"
 
-installed_workspace_root() {
-  local candidate
-
-  if [ "$(basename "$PLUGIN_ROOT")" != ".pamem" ] || [ ! -s "$PLUGIN_ROOT/config.toml" ]; then
-    return 0
-  fi
-
-  candidate="$(dirname "$PLUGIN_ROOT")"
-  if [ -s "$candidate/.pamem/config.toml" ]; then
-    printf '%s' "$candidate"
-  fi
-}
-
 default_agent_home_for_args() {
   local args=("$@")
   local agent_id=""
@@ -196,7 +183,7 @@ command_workspace_args() {
   done
 
   if [ "$saw_workspace" -eq 0 ]; then
-    workspace="$(installed_workspace_root)"
+    workspace="$(pamem_installed_workspace_root "$PLUGIN_ROOT")"
     if [ -z "$workspace" ] && [ -n "$agent_id" ]; then
       workspace="$(pamem_agent_home_path "$agent_id")"
     fi
@@ -269,7 +256,7 @@ workspace_default_args() {
   done
 
   if [ "$saw_root" -eq 0 ]; then
-    workspace="$(installed_workspace_root)"
+    workspace="$(pamem_installed_workspace_root "$PLUGIN_ROOT")"
     if [ -z "$workspace" ] && [ -n "$agent_id" ]; then
       workspace="$(pamem_agent_home_path "$agent_id")"
     fi
@@ -304,7 +291,7 @@ run_workspace_script() {
     shift
   else
     local installed
-    installed="$(installed_workspace_root)"
+    installed="$(pamem_installed_workspace_root "$PLUGIN_ROOT")"
     if [ -n "$installed" ]; then
       workspace="$installed"
     fi

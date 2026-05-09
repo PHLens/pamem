@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pamem_trim() {
-  local value="$1"
-  value="${value#"${value%%[![:space:]]*}"}"
-  value="${value%"${value##*[![:space:]]}"}"
-  printf '%s' "$value"
+pamem_require_command() {
+  local command="$1"
+  local message="$2"
+
+  if ! command -v "$command" >/dev/null 2>&1; then
+    echo "$message" >&2
+    exit 1
+  fi
+}
+
+pamem_require_jq() {
+  local message="${1:-pamem requires jq; install jq and rerun.}"
+  pamem_require_command jq "$message"
+}
+
+pamem_require_realpath() {
+  local message="${1:-pamem requires GNU realpath; install coreutils and rerun.}"
+  pamem_require_command realpath "$message"
 }
 
 pamem_toml_get_value() {
@@ -134,9 +147,18 @@ pamem_workspace_has_config() {
   pamem_has_config "$workspace"
 }
 
-pamem_workspace_memory_root() {
-  local workspace="$1"
-  printf '%s' "$workspace"
+pamem_installed_workspace_root() {
+  local plugin_root="$1"
+  local candidate
+
+  if [ "$(basename "$plugin_root")" != ".pamem" ] || [ ! -s "$plugin_root/config.toml" ]; then
+    return 0
+  fi
+
+  candidate="$(dirname "$plugin_root")"
+  if [ -s "$(pamem_config_path "$candidate")" ]; then
+    printf '%s' "$candidate"
+  fi
 }
 
 pamem_config_value_or_default() {
@@ -307,22 +329,6 @@ pamem_default_profile() {
   pamem_config_value_or_default "$config_path" '' 'default_profile' 'onboarding'
 }
 
-pamem_active_role() {
-  local workspace="$1"
-  local config_path
-  local profile
-  local role
-
-  config_path="$(pamem_config_path "$workspace")"
-  profile="$(pamem_default_profile "$workspace")"
-  role="$(pamem_toml_get_value "$config_path" "profiles.$profile" 'role' || true)"
-  if [ -n "$role" ]; then
-    printf '%s' "$role"
-  else
-    printf '%s' "$profile"
-  fi
-}
-
 pamem_agent_id() {
   local workspace="$1"
   local config_path
@@ -397,16 +403,6 @@ pamem_copy_legacy_or_template_if_missing() {
     cp "$legacy" "$dst"
   else
     cp "$src" "$dst"
-  fi
-}
-
-pamem_write_if_missing() {
-  local dst="$1"
-  local content="$2"
-
-  if [ ! -s "$dst" ]; then
-    mkdir -p "$(dirname "$dst")"
-    printf '%s\n' "$content" > "$dst"
   fi
 }
 

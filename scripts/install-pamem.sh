@@ -26,15 +26,8 @@ fi
 # shellcheck source=memory-store.sh
 source "$SCRIPT_DIR/memory-store.sh"
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "pamem requires jq; install jq and rerun." >&2
-  exit 1
-fi
-
-if ! command -v realpath >/dev/null 2>&1; then
-  echo "pamem requires GNU realpath; install coreutils and rerun." >&2
-  exit 1
-fi
+pamem_require_jq
+pamem_require_realpath
 
 mkdir -p "$TARGET_INPUT"
 WORKSPACE="$(cd "$TARGET_INPUT" && pwd)"
@@ -107,35 +100,6 @@ ensure_skill_link() {
   ln -s "$rel_src" "$dst"
 }
 
-ensure_workspace_link() {
-  local src="$1"
-  local dst="$2"
-  local rel_src
-
-  rel_src="$(relative_link_target "$src" "$dst")"
-  mkdir -p "$(dirname "$dst")"
-
-  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$rel_src" ]; then
-    return 0
-  fi
-
-  if [ -d "$dst" ] && [ ! -L "$dst" ]; then
-    if find "$dst" -mindepth 1 -print -quit | grep -q .; then
-      echo "pamem workspace target exists and is not an empty directory or symlink: $dst" >&2
-      echo "move its contents into shared memory, remove or rename it, then rerun pamem install/repair" >&2
-      exit 1
-    fi
-    rmdir "$dst"
-  elif [ -e "$dst" ] && [ ! -L "$dst" ]; then
-    echo "pamem workspace target exists and is not a symlink: $dst" >&2
-    echo "remove or rename it, then rerun pamem install/repair" >&2
-    exit 1
-  fi
-
-  rm -f "$dst"
-  ln -s "$rel_src" "$dst"
-}
-
 ensure_codex_skill_links() {
   local skill_src
   local skill_name
@@ -157,32 +121,6 @@ if [ "$AGENT_HOME_MODE" -ne 1 ]; then
   ensure_runtime_link "$ASSETS_DIR" "$FOUNDATION_ASSETS_DIR"
 fi
 ensure_codex_skill_links
-
-copy_if_missing() {
-  local src="$1"
-  local dst="$2"
-  if [ ! -s "$dst" ]; then
-    mkdir -p "$(dirname "$dst")"
-    cp "$src" "$dst"
-  fi
-}
-
-copy_legacy_or_template_if_missing() {
-  local legacy="$1"
-  local src="$2"
-  local dst="$3"
-
-  if [ -s "$dst" ]; then
-    return 0
-  fi
-
-  mkdir -p "$(dirname "$dst")"
-  if [ -s "$legacy" ]; then
-    cp "$legacy" "$dst"
-  else
-    cp "$src" "$dst"
-  fi
-}
 
 ensure_slock_workspace_memory() {
   local file="$1"
@@ -237,7 +175,7 @@ ensure_append_block() {
   printf '\n%s\n' "$(cat "$block_file")" >> "$file"
 }
 
-copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
+pamem_copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
 
 RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
 MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
@@ -248,9 +186,9 @@ if [ "$AGENT_HOME_MODE" -ne 1 ]; then
   case "$RUNTIME_MODE" in
     cli)
       mkdir -p "$NOTES_DIR/projects"
-      copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
-      copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
-      copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
+      pamem_copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
+      pamem_copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
+      pamem_copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
       if [ ! -s "$MEMORY_PATH" ]; then
         cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"
       fi
@@ -264,8 +202,8 @@ if [ "$AGENT_HOME_MODE" -ne 1 ]; then
 fi
 
 if [ "$RUNTIME_MODE" = "cli" ] || [ "$RUNTIME_MODE" = "slock" ]; then
-  copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$CURRENT_TASK_PATH"
-  copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$WORK_LOG_PATH"
+  pamem_copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$CURRENT_TASK_PATH"
+  pamem_copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$WORK_LOG_PATH"
 fi
 
 ensure_json_file() {

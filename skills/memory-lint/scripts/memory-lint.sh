@@ -53,15 +53,8 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "memory-lint requires jq; install jq and rerun." >&2
-  exit 1
-fi
-
-if ! command -v realpath >/dev/null 2>&1; then
-  echo "memory-lint requires GNU realpath; install coreutils and rerun." >&2
-  exit 1
-fi
+pamem_require_jq "memory-lint requires jq; install jq and rerun."
+pamem_require_realpath "memory-lint requires GNU realpath; install coreutils and rerun."
 
 fail_input() {
   local message="$1"
