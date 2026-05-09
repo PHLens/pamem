@@ -131,7 +131,7 @@ flowchart TD
 - Codex bootstrap scripts
 - default memory skeleton and read-only startup behavior
 - optional profile/load policy through `config.toml` or `.pamem/config.toml`
-- shared memory repo bootstrap and sync helper entry points
+- shared memory repo bootstrap and executor policy entry points
 - plugin-side agent definitions such as `agents/sync-executor.md`
 
 If `memory-rule` or `sync-request` is missing during a runtime session, treat
@@ -336,7 +336,7 @@ is not a mechanism for project work, branches, PRs, or source-code delivery.
 ### Sync Risk Surface
 
 The highest-risk operation is actual propagation of the shared memory repo:
-`memory-sync.sh` can commit and push the configured git repo. It is executor-only unless a user explicitly assigns sync-executor responsibility.
+git push is executor-only unless a user explicitly assigns sync-executor responsibility.
 
 `config.toml` or `.pamem/config.toml` changes are also high risk because they can redirect the
 memory repo, remote, profile, write targets, or executor. Treat config

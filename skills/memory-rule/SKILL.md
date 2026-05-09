@@ -29,7 +29,7 @@ L2/ or notes/       = project memory
 L3/ or notes/       = archive summaries not loaded by default, usually CLI-local
 requests/           = reviewable memory-promotion requests
 XDG data agent home = CLI runtime-local config and task recovery by agent id
-.pamem/scripts/memory-sync.sh = repo-level git sync helper for the configured memory repo
+git push / repo propagation = executor-only write path for the configured memory repo
 sync-request        = separate request-generation skill for cross-device retention
 ```
 
@@ -396,7 +396,7 @@ Never use `sync-request` for:
 
 Do not use the sync queue as the memory promotion queue. Use `requests/inbox/` or a task thread for promotion review.
 
-`memory-sync.sh` is separate from `sync-request`: it is the repo-level helper a sync executor may call after policy decides the configured memory repo should be propagated. Ordinary task agents should not run it unless explicitly assigned executor responsibility.
+Repository propagation is separate from `sync-request`: it is executor-only git work after policy decides the configured memory repo should be propagated. Ordinary task agents should not run it unless explicitly assigned executor responsibility.
 
 ## Hook And Sync Risk Boundary
 
@@ -409,8 +409,8 @@ runtimes.
 - An automatic `PreCompact` hook is not part of the runtime contract. The
   `memory-pre-compact.sh` script may be used only as an explicit CLI-local
   helper for current-task state; it must not write the shared memory repo.
-- `memory-sync.sh` is executor-only unless the user explicitly assigns sync
-  executor responsibility. Treat git push as a propagation operation.
+- git push is executor-only unless the user explicitly assigns sync
+  executor responsibility.
 - `config.toml` or `.pamem/config.toml` changes are governance changes when they alter memory
   repo location, sharing mode, runtime mode, profile, write targets, sync
   remote, ref, or executor.

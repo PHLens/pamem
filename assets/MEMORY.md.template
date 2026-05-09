@@ -19,7 +19,7 @@ Ordinary task agents do not start or assign the sync executor during session sta
 
 ## Sync Trigger
 If durable local memory or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention, use the `sync-request` plugin skill to create or hand off a structured request through the configured queue. If `sync-request` is unavailable, pamem sync handoff is not fully installed or enabled for this runtime: do not invent ad hoc queue files, do not run direct sync, and ask onboarding or the sync executor to repair the plugin exposure.
-Do not run sync directly from this agent; the sync executor may call `.pamem/scripts/memory-sync.sh` when policy says to propagate the configured memory repo.
+Do not run sync directly from this agent; the sync executor handles git propagation when policy says to propagate the configured memory repo.
 
 ## Key Knowledge
 - `config.toml` or `.pamem/config.toml` — memory repo path, sharing mode, git sync remote/ref, and profile policy
