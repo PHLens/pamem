@@ -1,0 +1,15 @@
+# Workspace Memory Router
+
+This Slock workspace keeps runtime-local task state only.
+Durable memory is loaded from the configured pamem shared memory repo.
+
+## Memory Routing
+- `.pamem/config.toml` selects the active profile and shared memory repo.
+- The durable startup memory index lives in the shared repo `MEMORY.md`.
+- The active role entry lives in `L1/roles/<role>/index.md`.
+- `notes/current-task.md` is the active task summary.
+- `notes/work-log.md` is the runtime-local completion summary.
+
+## Active Context
+- No active context recorded yet.
+

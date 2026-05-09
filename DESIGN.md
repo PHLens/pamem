@@ -166,8 +166,11 @@ In Slock runtime mode, the Slock-generated agent workspace is the config, hook,
 and task-recovery anchor, not the memory repo. Its `.pamem/config.toml` should
 normally point to the same machine-level shared memory repo so multiple Slock
 and CLI agents can reuse durable memory while Slock continues to own task state.
-Workspace L1 note files are symlinks into the shared memory repo and should be
-treated as governed shared memory, not independent local files.
+The workspace `MEMORY.md` stays a thin router/intro only; Memory Governance and
+sync trigger instructions live in the shared repo's top-level `MEMORY.md`.
+Slock workspaces keep `notes/current-task.md` and `notes/work-log.md` for
+runtime-local state, and profile loading reads shared/role memory directly from
+the configured memory repo rather than mirroring L1 files into the workspace.
 
 ### Local Convenience, Shared Infrastructure
 

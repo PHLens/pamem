@@ -74,7 +74,9 @@ pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --ru
 This writes `.pamem/config.toml`, hook/runtime links, and workspace task files
 into the Slock workspace, but `[memory_repo].path` still defaults to the
 machine-level shared memory repo. The Slock workspace owns task state; it is
-not the shared memory repo.
+not the shared memory repo. Its workspace `MEMORY.md` is a thin router/intro;
+Memory Governance and sync trigger instructions live in the shared repo's
+top-level `MEMORY.md`.
 
 Use `--runtime cli` when the agent should keep CLI-local recovery state for
 current-task and work-log summaries. `pamem start` stores that state in the XDG
@@ -210,7 +212,7 @@ This removal path removes the Codex `SessionStart` hook entry added by the boots
 
 The Codex bootstrap creates or repairs:
 
-- `MEMORY.md`
+- `MEMORY.md` as a CLI compatibility index or Slock workspace router
 - `notes/user-preferences.md` as a local compatibility copy in CLI mode
 - `notes/operating-rules.md` as a local compatibility copy in CLI mode
 - `notes/experience.md` as a local compatibility copy in CLI mode
@@ -242,6 +244,7 @@ After installation, check:
 - `notes/current-task.md` exists in CLI and Slock runtime modes
 - `notes/work-log.md` exists in CLI and Slock runtime modes
 - in Slock runtime mode, `notes/user-preferences.md`, `notes/operating-rules.md`, `notes/experience.md`, and `notes/projects/` are not mirrored into the workspace
+- in Slock runtime mode, workspace `MEMORY.md` does not contain `Memory Governance` or `Sync Trigger` sections
 - `.pamem/` exists
 - `.codex/config.toml` enables `codex_hooks = true`
 - `.codex/hooks.json` contains the `SessionStart` hook for `.pamem/scripts/memory-session-start.sh`

@@ -184,37 +184,32 @@ copy_legacy_or_template_if_missing() {
   fi
 }
 
-copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
+ensure_slock_workspace_memory() {
+  local file="$1"
+  local tmp_file
 
-RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
-MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
-
-pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
-
-if [ "$AGENT_HOME_MODE" -ne 1 ]; then
-  case "$RUNTIME_MODE" in
-    cli)
-      mkdir -p "$NOTES_DIR/projects"
-      copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
-      copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
-      copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
-      ;;
-    slock)
-      :
-      ;;
-  esac
-fi
-
-if [ "$RUNTIME_MODE" = "cli" ] || [ "$RUNTIME_MODE" = "slock" ]; then
-  copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$CURRENT_TASK_PATH"
-  copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$WORK_LOG_PATH"
-fi
-
-if [ "$AGENT_HOME_MODE" -ne 1 ]; then
-  if [ ! -s "$MEMORY_PATH" ]; then
-    cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"
+  if [ ! -s "$file" ]; then
+    mkdir -p "$(dirname "$file")"
+    cp "$ASSETS_DIR/slock/MEMORY.md.template" "$file"
+    return 0
   fi
-fi
+
+  tmp_file="$(mktemp)"
+  awk '
+    BEGIN { skip = 0 }
+    /^##[[:space:]]+Memory Governance$/ { skip = 1; next }
+    /^##[[:space:]]+Sync Trigger$/ { skip = 1; next }
+    skip && /^##[[:space:]]+/ { skip = 0 }
+    !skip { print }
+  ' "$file" > "$tmp_file"
+
+  if [ -s "$tmp_file" ]; then
+    mv "$tmp_file" "$file"
+  else
+    cp "$ASSETS_DIR/slock/MEMORY.md.template" "$file"
+    rm -f "$tmp_file"
+  fi
+}
 
 ensure_insert_after_title() {
   local file="$1"
@@ -242,9 +237,35 @@ ensure_append_block() {
   printf '\n%s\n' "$(cat "$block_file")" >> "$file"
 }
 
+copy_if_missing "$ASSETS_DIR/config.toml.template" "$CONFIG_PATH"
+
+RUNTIME_MODE="$(pamem_runtime_mode "$WORKSPACE")"
+MEMORY_REPO_ROOT="$(pamem_memory_repo_root "$WORKSPACE")"
+
+pamem_ensure_memory_repo_skeleton "$MEMORY_REPO_ROOT" "$ASSETS_DIR"
+
 if [ "$AGENT_HOME_MODE" -ne 1 ]; then
-  ensure_insert_after_title "$MEMORY_PATH" '## Memory Governance' "$ASSETS_DIR/memory-governance.md.fragment"
-  ensure_append_block "$MEMORY_PATH" '## Sync Trigger' "$ASSETS_DIR/sync-trigger.md.fragment"
+  case "$RUNTIME_MODE" in
+    cli)
+      mkdir -p "$NOTES_DIR/projects"
+      copy_if_missing "$ASSETS_DIR/notes/user-preferences.md.template" "$NOTES_DIR/user-preferences.md"
+      copy_legacy_or_template_if_missing "$NOTES_DIR/agent-workflow.md" "$ASSETS_DIR/notes/operating-rules.md.template" "$NOTES_DIR/operating-rules.md"
+      copy_if_missing "$ASSETS_DIR/notes/experience.md.template" "$NOTES_DIR/experience.md"
+      if [ ! -s "$MEMORY_PATH" ]; then
+        cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"
+      fi
+      ensure_insert_after_title "$MEMORY_PATH" '## Memory Governance' "$ASSETS_DIR/memory-governance.md.fragment"
+      ensure_append_block "$MEMORY_PATH" '## Sync Trigger' "$ASSETS_DIR/sync-trigger.md.fragment"
+      ;;
+    slock)
+      ensure_slock_workspace_memory "$MEMORY_PATH"
+      ;;
+  esac
+fi
+
+if [ "$RUNTIME_MODE" = "cli" ] || [ "$RUNTIME_MODE" = "slock" ]; then
+  copy_if_missing "$ASSETS_DIR/notes/current-task.md.template" "$CURRENT_TASK_PATH"
+  copy_if_missing "$ASSETS_DIR/notes/work-log.md.template" "$WORK_LOG_PATH"
 fi
 
 ensure_json_file() {
