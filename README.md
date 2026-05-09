@@ -117,9 +117,10 @@ pamem init --workspace /root/.slock/agents/<slock-agent-id> --profile coder --ru
 
 This writes `.pamem/config.toml` into the Slock workspace and leaves
 `[memory_repo].path` pointing at the machine-level shared memory repo by default.
-Stable shared notes are exposed in the workspace as symlinks; update shared
-memory through the governed request/sync flow, not by treating workspace links
-as independent local files.
+The workspace `MEMORY.md` stays a thin router/intro; Memory Governance and sync
+trigger instructions live in the shared repo's top-level `MEMORY.md`. Shared
+memory is loaded from the configured repo through the active profile, not
+mirrored into workspace note files.
 
 ### More
 

@@ -127,6 +127,7 @@ for file in \
   "$ROOT/assets/notes/operating-rules.md.template" \
   "$ROOT/assets/notes/current-task.md.template" \
   "$ROOT/assets/notes/work-log.md.template" \
+  "$ROOT/assets/slock/MEMORY.md.template" \
   "$ROOT/assets/shared/L0/constitution.md.template" \
   "$ROOT/assets/shared/L1/shared/experience.md.template" \
   "$ROOT/assets/shared/L1/roles/onboarding/index.md.template" \
@@ -219,11 +220,12 @@ ONBOARD_XDG_DATA_ROOT="$(mktemp -d)"
 WIKI_WORKSPACE="$(mktemp -d)"
 LEGACY_WORKSPACE="$(mktemp -d)"
 SLOCK_WORKSPACE="$(mktemp -d)"
+SLOCK_EMPTY_WORKSPACE="$(mktemp -d)"
 SLOCK_XDG_DATA_ROOT="$(mktemp -d)"
 INVALID_RUNTIME_WORKSPACE="$(mktemp -d)"
 REMOVE_WORKSPACE="$(mktemp -d)"
 cleanup() {
-  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$SLOCK_XDG_DATA_ROOT" "$INVALID_RUNTIME_WORKSPACE" "$REMOVE_WORKSPACE"
+  rm -rf "$WORKSPACE" "$SHARED_XDG_DATA_ROOT" "$ONBOARD_WORKSPACE" "$ONBOARD_XDG_DATA_ROOT" "$WIKI_WORKSPACE" "$LEGACY_WORKSPACE" "$SLOCK_WORKSPACE" "$SLOCK_EMPTY_WORKSPACE" "$SLOCK_XDG_DATA_ROOT" "$INVALID_RUNTIME_WORKSPACE" "$REMOVE_WORKSPACE"
 }
 trap cleanup EXIT
 
@@ -482,6 +484,22 @@ test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/MEMORY.md"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/shared/experience.md"
 test -s "$WIKI_WORKSPACE/.pamem/wiki-memory/L1/roles/wiki/experience.md"
 
+cat > "$SLOCK_WORKSPACE/MEMORY.md" <<'EOF'
+# Existing Slock Agent
+
+## Memory Governance
+old workspace governance block
+
+## Role
+coder
+
+## Sync Trigger
+old workspace sync block
+
+## Key Knowledge
+- existing workspace note
+EOF
+
 XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_WORKSPACE" \
   --profile coder \
   --runtime slock >/dev/null
@@ -493,11 +511,27 @@ test -s "$SLOCK_XDG_DATA_ROOT/pamem/memory/MEMORY.md"
 test ! -e "$SLOCK_WORKSPACE/.pamem/memory/MEMORY.md"
 test -s "$SLOCK_WORKSPACE/notes/current-task.md"
 test -s "$SLOCK_WORKSPACE/notes/work-log.md"
+test -s "$SLOCK_WORKSPACE/MEMORY.md"
+grep -Fq '# Existing Slock Agent' "$SLOCK_WORKSPACE/MEMORY.md"
+grep -Fq 'existing workspace note' "$SLOCK_WORKSPACE/MEMORY.md"
+if grep -Eq '^## (Memory Governance|Sync Trigger)$|old workspace governance block|old workspace sync block' "$SLOCK_WORKSPACE/MEMORY.md"; then
+  echo "Slock workspace MEMORY.md must stay a thin router without governance/sync fragments" >&2
+  exit 1
+fi
 
 test ! -e "$SLOCK_WORKSPACE/notes/user-preferences.md"
 test ! -e "$SLOCK_WORKSPACE/notes/operating-rules.md"
 test ! -e "$SLOCK_WORKSPACE/notes/experience.md"
 test ! -e "$SLOCK_WORKSPACE/notes/projects"
+
+XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/onboard-pamem.sh" "$SLOCK_EMPTY_WORKSPACE" \
+  --profile reviewer \
+  --runtime slock >/dev/null
+grep -Fq '# Workspace Memory Router' "$SLOCK_EMPTY_WORKSPACE/MEMORY.md"
+if grep -Eq '^## (Memory Governance|Sync Trigger)$' "$SLOCK_EMPTY_WORKSPACE/MEMORY.md"; then
+  echo "new Slock workspace MEMORY.md must not include governance/sync fragments" >&2
+  exit 1
+fi
 
 SLOCK_SESSION_OUTPUT="$(printf '{"cwd":"%s"}\n' "$SLOCK_WORKSPACE" | XDG_DATA_HOME="$SLOCK_XDG_DATA_ROOT" bash "$ROOT/scripts/memory-session-start.sh")"
 printf '%s' "$SLOCK_SESSION_OUTPUT" | jq -e '
