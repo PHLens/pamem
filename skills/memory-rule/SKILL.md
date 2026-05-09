@@ -29,7 +29,7 @@ L2/ or notes/       = project memory
 L3/ or notes/       = archive summaries not loaded by default, usually CLI-local
 requests/           = reviewable memory-promotion requests
 XDG data agent home = CLI runtime-local config and task recovery by agent id
-.pamem/scripts/memory-sync.sh = repo-level sync helper for the configured memory repo backend
+.pamem/scripts/memory-sync.sh = repo-level git sync helper for the configured memory repo
 sync-request        = separate request-generation skill for cross-device retention
 ```
 
@@ -184,7 +184,7 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 When local `config.toml` or `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
 
-For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, sync backend, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
+For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, git remote, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
 The wiki profile stores curation workflow, knowledge pointers, and sync handoff memory; domain knowledge itself belongs in the external wiki.
 
@@ -206,10 +206,8 @@ mode = "cli"
 command = []
 
 [memory_repo.sync]
-backend = "local"
 remote = ""
 ref = "main"
-sync_bootstrapped = false
 ```
 
 Example shape:
@@ -412,11 +410,10 @@ runtimes.
   `memory-pre-compact.sh` script may be used only as an explicit CLI-local
   helper for current-task state; it must not write the shared memory repo.
 - `memory-sync.sh` is executor-only unless the user explicitly assigns sync
-  executor responsibility. Treat `git` push, WebDAV `bisync`, and WebDAV
-  `--resync` as propagation operations.
+  executor responsibility. Treat git push as a propagation operation.
 - `config.toml` or `.pamem/config.toml` changes are governance changes when they alter memory
   repo location, sharing mode, runtime mode, profile, write targets, sync
-  backend, remote, ref, or executor.
+  remote, ref, or executor.
 - Install, onboard, and repair scripts may create or restore skeleton files;
   use them for setup/repair, not ordinary task execution.
 - `requests/inbox/` is the memory promotion review queue, not a sync queue.

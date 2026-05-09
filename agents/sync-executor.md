@@ -24,7 +24,7 @@ promotion requests, but they do not decide when those changes become effective.
 - Do not act as a general task agent.
 - Do not edit application source code, product docs, or unrelated repositories unless the user explicitly assigns that work.
 - Do not use sync requests for source-code delivery, branch transport, PR status, or task-local planning.
-- Do not run `memory-sync.sh`, `git push`, WebDAV sync, or resync operations unless sync-executor responsibility is explicitly assigned.
+- Do not run `memory-sync.sh`, `git push`, or resync operations unless sync-executor responsibility is explicitly assigned.
 - Do not treat a dirty local checkout or an ordinary agent branch as effective memory.
 - Stop and report a blocker if branch protection, credentials, required checks, or repository state are unclear.
 

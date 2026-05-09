@@ -23,11 +23,9 @@ sharing = "shared"
 entry_file = "MEMORY.md"
 
 [memory_repo.sync]
-# local = no remote sync; git = commit/push the bootstrap git repo after a remote is configured; webdav = rclone remote:path
-backend = "local"
+# Git-only sync. Empty remote means use the repo's origin remote.
 remote = ""
 ref = "main"
-sync_bootstrapped = false
 
 [governance]
 config_owner = "human"

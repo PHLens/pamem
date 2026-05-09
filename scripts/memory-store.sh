@@ -267,42 +267,12 @@ pamem_memory_repo_entry_file() {
   pamem_config_value_or_default "$config_path" 'memory_repo' 'entry_file' 'MEMORY.md'
 }
 
-pamem_memory_repo_sync_backend() {
-  local workspace="$1"
-  local config_path
-
-  config_path="$(pamem_config_path "$workspace")"
-  pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'backend' 'local'
-}
-
 pamem_memory_repo_sync_remote() {
   local workspace="$1"
   local config_path
 
   config_path="$(pamem_config_path "$workspace")"
   pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'remote' ''
-}
-
-pamem_memory_repo_sync_bootstrapped() {
-  local workspace="$1"
-  local config_path
-  local value
-
-  config_path="$(pamem_config_path "$workspace")"
-  if [ ! -s "$config_path" ]; then
-    printf 'false'
-    return 0
-  fi
-
-  value="$(pamem_toml_get_value "$config_path" 'memory_repo.sync' 'sync_bootstrapped' || printf 'false')"
-  case "$value" in
-    true|false)
-      printf '%s' "$value"
-      ;;
-    *)
-      printf 'false'
-      ;;
-  esac
 }
 
 pamem_memory_repo_ref() {

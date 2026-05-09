@@ -13,7 +13,7 @@ Commands:
   hook-json              Print SessionStart hook input JSON for the agent.
   context                Print startup memory context for runtimes without hooks.
   lint                   Run read-only memory lint for the configured memory repo.
-  sync                   Run the configured memory sync helper.
+  sync                   Run the git sync helper.
   install [workspace]    Install/repair default pamem bootstrap files.
   repair [workspace]     Repair pamem bootstrap files.
   remove [workspace]     Remove managed hook entries.

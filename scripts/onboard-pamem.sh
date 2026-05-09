@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: onboard-pamem.sh <root> [--agent-home] [--profile <onboarding|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--agent-id <id>] [--memory-repo <path>] [--sync-backend <local|git|webdav>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
+Usage: onboard-pamem.sh <root> [--agent-home] [--profile <onboarding|coder|reviewer|researcher|wiki>] [--runtime <cli|slock>] [--agent-id <id>] [--memory-repo <path>] [--sync-remote <target>] [--sync-ref <ref>] [--sync-executor <name>] [--force]
 
 Create the pamem config during onboarding, then seed local files.
 
@@ -17,8 +17,7 @@ Options:
   --runtime <mode>       Runtime mode. Defaults to cli.
   --agent-id <id>        Stable CLI runtime id. Defaults to a workspace-derived id.
   --memory-repo <path>   Override memory_repo.path.
-  --sync-backend <name>  Override memory_repo.sync.backend.
-  --sync-remote <target> Override memory_repo.sync.remote.
+  --sync-remote <name>   Override memory_repo.sync.remote.
   --sync-ref <ref>       Override memory_repo.sync.ref.
   --sync-executor <name> Override sync.executor.
   --force                Replace an existing config.
@@ -50,7 +49,6 @@ PROFILE="onboarding"
 RUNTIME_MODE="cli"
 AGENT_ID=""
 MEMORY_REPO=""
-SYNC_BACKEND=""
 SYNC_REMOTE=""
 SYNC_REF=""
 SYNC_EXECUTOR=""
@@ -81,11 +79,6 @@ while [ "$#" -gt 0 ]; do
     --memory-repo)
       [ "$#" -ge 2 ] || { echo "missing value for --memory-repo" >&2; exit 2; }
       MEMORY_REPO="$2"
-      shift 2
-      ;;
-    --sync-backend)
-      [ "$#" -ge 2 ] || { echo "missing value for --sync-backend" >&2; exit 2; }
-      SYNC_BACKEND="$2"
       shift 2
       ;;
     --sync-remote)
@@ -124,15 +117,6 @@ case "$PROFILE" in
     ;;
   *)
     echo "unsupported profile: $PROFILE" >&2
-    exit 2
-    ;;
-esac
-
-case "$SYNC_BACKEND" in
-  ""|local|git|webdav)
-    ;;
-  *)
-    echo "unsupported sync backend: $SYNC_BACKEND" >&2
     exit 2
     ;;
 esac
@@ -240,10 +224,6 @@ set_toml_value "$CONFIG_PATH" "runtime" "mode" "$(toml_string "$RUNTIME_MODE")"
 
 if [ -n "$AGENT_ID" ]; then
   set_toml_value "$CONFIG_PATH" "runtime" "agent_id" "$(toml_string "$AGENT_ID")"
-fi
-
-if [ -n "$SYNC_BACKEND" ]; then
-  set_toml_value "$CONFIG_PATH" "memory_repo.sync" "backend" "$(toml_string "$SYNC_BACKEND")"
 fi
 
 if [ -n "$SYNC_REMOTE" ]; then

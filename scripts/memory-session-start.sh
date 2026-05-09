@@ -23,7 +23,6 @@ MEMORY_ROOT="$(pamem_memory_repo_root "$ROOT")"
 MEMORY_ENTRY_FILE="$(pamem_memory_repo_entry_file "$ROOT")"
 MEMORY_PATH="$MEMORY_ROOT/$MEMORY_ENTRY_FILE"
 MEMORY_SHARING="$(pamem_memory_repo_sharing "$ROOT")"
-MEMORY_SYNC_BACKEND="$(pamem_memory_repo_sync_backend "$ROOT")"
 RUNTIME_MODE="$(pamem_runtime_mode "$ROOT")"
 DEFAULT_PROFILE="$(pamem_default_profile "$ROOT")"
 MEMORY_TEXT=""
@@ -158,7 +157,7 @@ if [ "$RUNTIME_MODE" = "cli" ] || [ "$RUNTIME_MODE" = "slock" ]; then
 fi
 
 if pamem_workspace_has_config "$ROOT"; then
-  CONTEXT="Persistent memory source: \`${MEMORY_ROOT}\` (runtime=${RUNTIME_MODE}, sharing=${MEMORY_SHARING}, sync=${MEMORY_SYNC_BACKEND})."
+  CONTEXT="Persistent memory source: \`${MEMORY_ROOT}\` (runtime=${RUNTIME_MODE}, sharing=${MEMORY_SHARING})."
   CONTEXT="${CONTEXT}"$'\n'"Runtime anchor: \`${ROOT}\`."
 else
   CONTEXT="Persistent memory source: workspace fallback \`${ROOT}\` (runtime=${RUNTIME_MODE})."

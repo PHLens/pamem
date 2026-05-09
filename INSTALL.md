@@ -35,7 +35,6 @@ Useful options:
 --agent-id <id>
 --workspace <path>
 --memory-repo <path>
---sync-backend <local|git|webdav>
 --sync-remote <target>
 --sync-ref <ref>
 --sync-executor <name>

@@ -2,8 +2,7 @@
 
 This document defines the sync contract for `pamem`.
 
-`pamem` standardizes sync intent. The actual propagation backend remains
-environment-specific.
+`pamem` standardizes sync intent. The actual propagation path is git-only.
 
 ## Core Rule
 
@@ -40,17 +39,10 @@ The executor must not be treated as a general task agent.
 call it through `.pamem/scripts/memory-sync.sh`.
 
 The shared memory repo is initialized as a git repository during bootstrap. If
-the git backend is selected but no remote is configured, the helper reports the
-repo path and tells you to add a git remote for that repo before syncing.
+no git remote is configured, the helper reports the repo path and tells you to
+add a git remote for that repo before syncing.
 
-Supported backends:
-
-- `local`: no remote sync
-- `git`: commit and push the configured memory repo
-- `webdav`: `rclone bisync` against the configured remote
-
-Use `--dry-run` to print the resolved command. For WebDAV, `--resync` is
-required when the local repo should win.
+Use `--dry-run` to print the git commands that would run.
 
 ## When To Use Requests
 

@@ -174,7 +174,7 @@ The runtime should default to shared durable memory. A local CLI agent home is
 the runtime/config anchor; the default memory repo is machine-level shared state
 at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`. The repo location,
 sharing mode, and sync policy remain configurable for teams that need a separate
-repo or remote backend. Legacy or Slock workspaces may still use
+repo or git remote. Legacy or Slock workspaces may still use
 `.pamem/config.toml`.
 
 In Slock runtime mode, the Slock-generated agent workspace is the config, hook,
@@ -336,12 +336,10 @@ is not a mechanism for project work, branches, PRs, or source-code delivery.
 ### Sync Risk Surface
 
 The highest-risk operation is actual propagation of the shared memory repo:
-`memory-sync.sh` can commit and push for `git`, or run `rclone bisync` for
-`webdav`. It is executor-only unless a user explicitly assigns sync-executor
-responsibility.
+`memory-sync.sh` can commit and push the configured git repo. It is executor-only unless a user explicitly assigns sync-executor responsibility.
 
 `config.toml` or `.pamem/config.toml` changes are also high risk because they can redirect the
-memory repo, backend, remote, profile, write targets, or executor. Treat config
+memory repo, remote, profile, write targets, or executor. Treat config
 changes as onboarding/config-owner work.
 
 A sync request is lower risk than direct sync because it only writes or hands
