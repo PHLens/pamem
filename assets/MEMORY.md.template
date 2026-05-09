@@ -11,8 +11,8 @@ Use pamem governance when:
 - compressing or archiving completed work
 - resolving conflicting preferences, rules, or corrections
 
-`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while CLI runtime-local task state stays in the local agent home and Slock runtime-local task state stays in workspace notes. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
-When local config points at a shared memory repo, durable project memory belongs in `L2/projects/`; CLI runtime-local work memory belongs in the local agent home, while Slock runtime-local work memory belongs in workspace `notes/current-task.md` and `notes/work-log.md`.
+`MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while runtime-local task state stays outside shared memory. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
+When local config points at a shared memory repo, durable project memory belongs in `L2/projects/`; runtime-local work state remains outside the shared repo.
 Runtime startup hooks are read-only loaders. If the configured memory entry is missing, treat it as an onboarding/repair issue rather than creating shared memory during task execution.
 Ordinary task agents should propose durable shared-memory changes through PRs or `requests/inbox/`; the packaged sync executor agent in the pamem plugin reviews, lints, and decides whether those changes become effective memory.
 Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
@@ -29,7 +29,6 @@ Do not run sync directly from this agent; the sync executor may call `.pamem/scr
 - `L1/roles/<role>/index.md` — startup-loaded role entry point that routes to role shards
 - `L1/roles/<role>/experience.md` or `notes/experience.md` — role-scoped findings, corrections, and meta-knowledge
 - `L2/projects/<project-key>.md` or `notes/projects/<project-key>.md` — project-specific stable context
-- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` / `work-log.md` in CLI mode, with workspace `notes/current-task.md` / `notes/work-log.md` in Slock mode — runtime-local recovery and completion summaries
 
 ## Active Context
 - No active context recorded yet.

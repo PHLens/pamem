@@ -1,5 +1,7 @@
 # Current Task
 
+Keep this file as the active runtime recovery pointer only.
+
 ## Active Task
 - No active task recorded yet.
 
@@ -16,6 +18,7 @@
 - No next step recorded yet.
 
 ## Source of Truth
-- This file is the startup-safe runtime task summary.
-- Prefer the XDG data agent home via `pamem start` or `pamem-cli.sh` in CLI mode; workspace `notes/current-task.md` is the task-state file in Slock mode and the compatibility fallback elsewhere.
-- Remove completed tasks when they are done.
+- CLI mode: this is the primary startup recovery file; update it at task start, after major phase/blocker/next-step changes, and before handoff.
+- Slock mode: this is a thin workspace-local cache; Slock task board and task threads remain the primary task record.
+- Keep one current-task file per runtime instance. Do not share it across roles or agents.
+- Do not store closed-task history here. Move completed summaries and validation results to `work-log.md`.

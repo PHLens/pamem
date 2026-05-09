@@ -54,6 +54,11 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/
   work-log.md
 ```
 
+`current-task.md` is the primary recovery pointer in CLI mode. Keep it current
+for the active task, blocker, and next step. `work-log.md` records completed
+summaries and verification results. Multiple role instances should use distinct
+agent ids so each instance has its own current task and work log.
+
 The shared memory repo defaults to:
 
 ```text
@@ -93,7 +98,10 @@ notes/work-log.md
 
 The shared memory repo remains configured by `[memory_repo].path`. The workspace
 `MEMORY.md` is only a thin router; governance and sync trigger text live in the
-shared repo entry file.
+shared repo entry file. In Slock mode, `notes/current-task.md` is only a thin
+cache because the task board and threads remain primary; `notes/work-log.md`
+keeps runtime-local completed summaries. Each Slock agent workspace keeps its
+own copy.
 
 ## Bootstrap And Repair
 

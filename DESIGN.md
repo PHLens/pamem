@@ -73,6 +73,16 @@ local recovery notes in the XDG data agent home or compatibility files such as
 `notes/work-log.md` in the Slock workspace while the task board and threads
 remain the execution record.
 
+`current-task.md` and `work-log.md` are deliberately separate. `current-task.md`
+is the active recovery pointer: current task, phase, blocker, and next step. It
+is especially important in non-Slock runtimes because there may be no task board
+or thread history to recover from. `work-log.md` is completed-work history:
+short summaries, validation results, and handoff notes.
+
+Both files are scoped to one runtime instance. Multiple role instances may share
+the same memory repo and project memory, but each instance needs its own agent
+home or Slock workspace so active task state does not collide across roles.
+
 ### Layer 3: Archive
 
 This is history that should be preserved without polluting startup context.
@@ -176,6 +186,10 @@ sync trigger instructions live in the shared repo's top-level `MEMORY.md`.
 Slock workspaces keep `notes/current-task.md` and `notes/work-log.md` for
 runtime-local state, and profile loading reads shared/role memory directly from
 the configured memory repo rather than mirroring L1 files into the workspace.
+The Slock task board and threads remain primary; `current-task.md` is a thin
+cache for the active pointer, and `work-log.md` is local completed-work history.
+Multiple Slock agents naturally get separate copies under
+`~/.slock/agents/<agent-id>`.
 
 ### Local Convenience, Shared Infrastructure
 
@@ -189,8 +203,9 @@ Direct CLI sessions may start from different shell directories. `pamem`
 provides the stable runtime anchor: with `--agent-id`, it resolves the agent
 home at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/`, reads
 that home’s `config.toml`, and keeps CLI task recovery there rather than inside
-the shared memory repo. The runtime source can be a plugin, source checkout, or
-future standalone install; the agent home does not copy scripts or assets.
+the shared memory repo. Use a different `--agent-id` for each concurrent role
+instance. The runtime source can be a plugin, source checkout, or future
+standalone install; the agent home does not copy scripts or assets.
 `start -- <launcher>` records the launcher command in the local agent home so
 `resume` can reuse it. Runtime-native resume can be expressed with
 `[runtime.resume].command`; if neither exists, `resume` fails rather than
