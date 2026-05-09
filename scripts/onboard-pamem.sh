@@ -146,15 +146,8 @@ case "$RUNTIME_MODE" in
     ;;
 esac
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "pamem requires jq; install jq and rerun." >&2
-  exit 1
-fi
-
-if ! command -v realpath >/dev/null 2>&1; then
-  echo "pamem requires GNU realpath; install coreutils and rerun." >&2
-  exit 1
-fi
+pamem_require_jq
+pamem_require_realpath
 
 profile_template() {
   local profile="$1"

@@ -41,15 +41,8 @@ ASSETS_DIR="$PLUGIN_ROOT/assets"
 # shellcheck source=memory-store.sh
 source "$SCRIPT_DIR/memory-store.sh"
 
-if ! command -v jq >/dev/null 2>&1; then
-  echo "pamem cli requires jq; install jq and rerun." >&2
-  exit 1
-fi
-
-if ! command -v realpath >/dev/null 2>&1; then
-  echo "pamem cli requires GNU realpath; install coreutils and rerun." >&2
-  exit 1
-fi
+pamem_require_jq "pamem cli requires jq; install jq and rerun."
+pamem_require_realpath "pamem cli requires GNU realpath; install coreutils and rerun."
 
 COMMAND="$1"
 shift
@@ -110,19 +103,6 @@ find_workspace_root() {
   done
 
   pamem_expand_path "$PWD" "$start"
-}
-
-script_workspace_root() {
-  local candidate
-
-  if [ "$(basename "$PLUGIN_ROOT")" != ".pamem" ] || [ ! -s "$PLUGIN_ROOT/config.toml" ]; then
-    return 0
-  fi
-
-  candidate="$(dirname "$PLUGIN_ROOT")"
-  if [ -s "$(pamem_config_path "$candidate")" ]; then
-    printf '%s' "$candidate"
-  fi
 }
 
 shell_quote() {
@@ -339,7 +319,7 @@ elif [ -n "$AGENT_ID_OVERRIDE" ]; then
 else
   WORKSPACE="$(find_workspace_root "$PWD")"
   if [ ! -s "$(pamem_config_path "$WORKSPACE")" ]; then
-    SCRIPT_WORKSPACE="$(script_workspace_root)"
+    SCRIPT_WORKSPACE="$(pamem_installed_workspace_root "$PLUGIN_ROOT")"
     if [ -n "$SCRIPT_WORKSPACE" ]; then
       WORKSPACE="$SCRIPT_WORKSPACE"
     fi
