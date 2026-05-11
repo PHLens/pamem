@@ -115,7 +115,7 @@ Map fallback files to the same semantic surfaces:
 - `notes/user-preferences.md` and `notes/operating-rules.md` are compatibility surfaces for `shared/`.
 - `shared/experience.md` is the cross-role shared experience surface loaded by profile overlays.
 - `roles/<role>/<role>.md` is the startup-loaded role guide and should stay short.
-- `notes/experience.md` is the compatibility surface for active role experience in `roles/<role>/experience.md`.
+- `notes/experience.md` is the compatibility surface for active role experience in `roles/<role>/experience.md` or role-local topic files.
 - `notes/projects/<project-key>.md` is CLI-local compatibility for `projects/<project-key>.md`.
 - XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
 - `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
@@ -166,8 +166,13 @@ Examples:
 
 - role guides such as `roles/coder/coder.md`, `roles/reviewer/reviewer.md`, `roles/wiki/wiki.md`, and `roles/onboarding/onboarding.md`
 - role-specific experience such as `roles/coder/experience.md`, `roles/reviewer/experience.md`, `roles/wiki/experience.md`, and `roles/onboarding/experience.md`
+- role-local topic files for detailed on-demand workflow or findings
 
-The role guide should stay short. Put reusable role lessons in `experience.md` and add role-local shards only when they remove real startup noise.
+The role guide `roles/<role>/<role>.md` is the startup entry point for that
+role. Keep high-frequency operating workflow and pointers there. Put detailed
+lessons in `experience.md`, and split `experience.md` into smaller role-local
+topic files when it grows too long. Role-local topic files are read on demand,
+not by default.
 
 ### Project Memory
 
@@ -247,7 +252,9 @@ Rules:
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
 - `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise `pamem resume` may reuse the last launcher recorded by `pamem start -- <launcher>`.
 - Shared experience is a profile overlay loaded from `shared/experience.md`.
-- Role guides and role experience are profile overlays loaded from `roles/<role>/`.
+- Role guides are startup-loaded overlays from `roles/<role>/<role>.md`; role
+  experience and role-local topic files are read through the role guide when
+  task-relevant.
 - Project memory is loaded from `projects/` and wins over role memory on conflict.
 - Ordinary task agents should write promotion requests or open PRs, not directly make effective shared-memory writes.
 - Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
@@ -265,7 +272,8 @@ On wake-up:
 3. Load the repo entry file from `memory_repo.entry_file`; default is `MEMORY.md`.
 4. Load governance sources for that profile.
 5. Load shared memory for that profile.
-6. Load the role guide and role experience for that profile.
+6. Load the role guide for that profile; use it to decide which role experience
+   or role-local topic files are task-relevant.
 7. Load project memory for the active project.
 9. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
 10. Do not load `archive/` or `requests/` by default.
@@ -322,11 +330,11 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Global collaboration preferences | `shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared operating rules | `shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override governance |
 | Cross-role shared experience | `shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
-| Role guide | `roles/<role>/<role>.md` | n/a | Short role entry loaded through the active profile |
-| Role-scoped experience | `roles/<role>/experience.md` | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
-| Error corrections and prohibitions | `roles/<role>/experience.md` | `notes/experience.md` | Use `type: correction`; avoid duplicates |
-| Reusable technical findings | `roles/<role>/experience.md` | `notes/experience.md` | Outcomes only, never raw evidence chains |
-| Methodological meta-knowledge | `roles/<role>/experience.md` | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
+| Role guide | `roles/<role>/<role>.md` | n/a | Short startup guide for high-frequency role workflow and pointers |
+| Role-scoped experience | `roles/<role>/experience.md` or role-local topic files | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
+| Error corrections and prohibitions | `roles/<role>/experience.md` or a role-local topic file | `notes/experience.md` | Use `type: correction`; avoid duplicates |
+| Reusable technical findings | `roles/<role>/experience.md` or a role-local topic file | `notes/experience.md` | Outcomes only, never raw evidence chains |
+| Methodological meta-knowledge | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |
 | Project-specific rules and facts | `projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict; CLI-local compatibility only |
 | CLI current-task recovery | n/a | XDG data `pamem/agents/<agent-id>/current-task.md`, fallback `notes/current-task.md` | Runtime-local, startup-safe summary only |
 | CLI work-log summary | n/a | XDG data `pamem/agents/<agent-id>/work-log.md`, fallback `notes/work-log.md` | Runtime-local summary only |
@@ -344,6 +352,20 @@ Promote to shared or role memory only when:
 - repeated often enough to be reliable,
 - likely to affect future behavior, or
 - approved by a human or an onboarding profile responsible for memory curation.
+
+Choose the target surface before editing:
+
+- Put high-frequency role workflow that should be startup-visible in
+  `roles/<role>/<role>.md`.
+- Put reusable role lessons, corrections, and findings in
+  `roles/<role>/experience.md`.
+- Split long role experience into smaller role-local topic files when a topic
+  has enough detail to be useful on demand but too much detail for startup.
+- Put cross-role methods and corrections in `shared/experience.md`.
+- Put project-specific facts and rules in `projects/<project-key>.md`.
+- Keep Slock workspace `MEMORY.md` as a router to config, shared memory, and the
+  active role guide; do not promote durable role workflow into the workspace
+  router.
 
 Use `requests/inbox/` for proposed promotions when direct write is not authorized. A promotion request should include:
 
@@ -542,7 +564,7 @@ CLI-local work logs and optional `archive/` entries must be maintained in revers
 | Do not write | Why | Where instead |
 |---|---|---|
 | Closed task details | Clutters index | CLI-local work log, optional `archive/`, or Slock thread |
-| Evidence chains | Linear narrative, not reusable | `shared/experience.md` or `roles/<role>/experience.md` |
+| Evidence chains | Linear narrative, not reusable | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file |
 | Session transcripts | Historical, not actionable | Do not save |
 | Raw command outputs | Transient data | Do not save |
 | Long explanations | Index should be pointers | `shared/`, `roles/`, `projects/`, or `archive/` files |
@@ -576,16 +598,16 @@ Agent memory is the schema layer for the agent's broader knowledge system. Its p
 
 ### Meta Vs Domain Boundary
 
-- Meta-knowledge belongs in shared or role experience memory: methodology, principles, tool tips, workflow rules, corrected assumptions, and knowing where to look.
+- Meta-knowledge belongs in shared experience, role experience, or role-local topic memory: methodology, principles, tool tips, workflow rules, corrected assumptions, and knowing where to look.
 - Domain knowledge belongs in an external wiki, vault, project repo, or other source of truth: concepts, facts, analyses, source material, and long-form research.
 
 When an interaction produces a durable insight, classify it:
 
 | Classification | Destination | Examples |
 |---|---|---|
-| Meta: how to work better | `shared/experience.md` or `roles/<role>/experience.md` with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
-| Meta: corrected assumption | `shared/experience.md` or `roles/<role>/experience.md` with `type: correction` | "WeChat mobile UA does not bypass captcha" |
-| Meta: reusable decision | `shared/experience.md` or `roles/<role>/experience.md` with `type: finding` | "For Chinese sites, browser path > requests" |
+| Meta: how to work better | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file with `type: meta` | "use `rg --no-filename` not `rg -h`", "commit before amending" |
+| Meta: corrected assumption | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file with `type: correction` | "WeChat mobile UA does not bypass captcha" |
+| Meta: reusable decision | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file with `type: finding` | "For Chinese sites, browser path > requests" |
 | Domain: concept or fact | External wiki/vault/project source | Technical concepts, source summaries, MOCs |
 
 ### Finding Writeback
@@ -653,7 +675,7 @@ When new memory conflicts with existing memory:
 | Archive is loaded by default | Remove it from startup path |
 | Placeholder text remains | Fill it in or remove it |
 | Project-specific content appears in shared or role memory | Move it to `projects/` |
-| Role-scoped experience is scattered across task files | Promote or request promotion into `roles/<role>/experience.md` |
+| Role-scoped experience is scattered across task files | Promote or request promotion into the role guide, role experience, or a role-local topic file based on startup value |
 | Sync request is used for project delivery | Cancel and use normal project workflow |
 
 ## Anti-Patterns

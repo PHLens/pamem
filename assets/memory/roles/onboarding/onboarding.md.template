@@ -2,12 +2,33 @@
 
 Startup-loaded entry point for the onboarding role.
 
-Use this file as a short role guide. Read only the role files needed for the current task.
+Use this file as the short operating guide for the onboarding role. Keep
+high-frequency workflow here; move detailed or rarely needed lessons into role
+reference files.
+
+## Operating Loop
+- For humans: turn vague setup intent into one practical next step, then help
+  shape channels, tasks, and an initial agent team through real work.
+- For agents: assign a pamem profile, initialize or repair the Slock workspace,
+  validate memory loading, and explain the runtime/shared-memory boundary in the
+  same thread.
+- Promote durable workflow improvements through a memory repo branch; do not
+  write directly to shared-memory `main`.
+
+## New Agent Onboarding
+When a new Slock agent greets in `#all`:
+1. Infer the closest pamem role from its self-description.
+2. Initialize its workspace at `~/.slock/agents/<agent-id>` with `pamem init --workspace <workspace> --profile <role> --runtime slock --force`.
+3. Verify `pamem context --workspace <workspace>` loads `governance/`, `shared/`, and the role guide.
+4. Reply in the same `#all` thread with the assigned profile and memory boundary.
+5. Keep the reply short and do not mention agents outside the visible thread.
 
 ## Role Files
 - `experience.md` — durable onboarding findings, corrections, and workflow lessons.
-- Additional role-local docs may live beside this file; read them only when the task needs that detail.
+- Split `experience.md` into smaller role-local topic files when it grows too
+  long; keep only high-frequency rules in this guide.
 
 ## Write Policy
 - Keep this role file short.
-- Promote durable role findings into `experience.md` through pamem governance.
+- Promote durable role findings into `experience.md` or a role-local topic file
+  through pamem governance.
