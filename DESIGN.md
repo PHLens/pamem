@@ -4,17 +4,18 @@ This document explains the memory model behind `pamem`, what each layer means, a
 
 ## Memory Model
 
-The shared memory repo uses self-describing top-level directories. A user should
-be able to understand the repo shape without reading the design doc first.
+The design is layered. Each layer has a clear responsibility, and the concrete
+shared-memory repo uses self-describing directory names for those layers so a
+user can understand the repo shape without reading this design doc first.
 
 ```mermaid
 flowchart TD
-    G["governance/<br/>Shared runtime rules, startup loading, precedence, write gates"]
-    S["shared/<br/>Cross-role preferences, operating rules, reusable experience"]
-    R["roles/<br/>Role guides and role-specific experience"]
-    P["projects/<br/>Project context and durable project pointers"]
-    A["archive/<br/>Summaries not loaded by default"]
-    Q["requests/<br/>Reviewable promotion requests"]
+    G["Governance layer<br/>implemented as governance/"]
+    S["Shared layer<br/>implemented as shared/"]
+    R["Role layer<br/>implemented as roles/"]
+    P["Project layer<br/>implemented as projects/"]
+    A["Archive layer<br/>implemented as archive/"]
+    Q["Promotion queue<br/>implemented as requests/"]
 
     G --> S
     S --> R
@@ -23,7 +24,16 @@ flowchart TD
     R --> Q
 ```
 
-### Governance
+| Design layer | Responsibility | Implementation |
+|---|---|---|
+| Governance | Runtime rules, startup loading, precedence, write gates | `governance/`, plus shipped `memory-rule` |
+| Shared | Cross-role preferences, operating rules, reusable experience | `shared/` |
+| Role | Role guides and role-specific experience | `roles/<role>/` |
+| Project | Durable project context and pointers | `projects/` |
+| Archive | Historical summaries not loaded by default | `archive/` |
+| Promotion queue | Reviewable proposed memory changes | `requests/` |
+
+### Governance Layer
 
 This is the memory operating model.
 
@@ -37,7 +47,7 @@ It defines:
 
 The main shared file is `governance/constitution.md`. It is not a fact store.
 
-### Shared Memory
+### Shared Layer
 
 This is durable cross-role memory that should survive across tasks and be
 reusable by multiple sessions or agents.
@@ -54,13 +64,13 @@ Shared preferences live in `shared/preferences.md`, stable operating defaults
 live in `shared/operating-rules.md`, and cross-role experience lives in
 `shared/experience.md`.
 
-### Role Memory
+### Role Layer
 
 Role-specific entry points live in `roles/<role>/<role>.md`; reusable role
 experience lives in `roles/<role>/experience.md`. `notes/experience.md`
 remains the CLI compatibility surface for role experience.
 
-### Project Memory
+### Project Layer
 
 This is durable project context that should be reusable across sessions.
 
@@ -72,7 +82,7 @@ Examples:
 Project-specific memory belongs in `projects/`. It should be more specific
 than role memory and should win over role defaults on conflict.
 
-### Archive
+### Archive Layer
 
 `archive/` is for history that should be preserved without polluting startup
 context. It stores summaries, not transcripts. It is not loaded by default.
