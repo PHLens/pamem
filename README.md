@@ -38,6 +38,7 @@ pamem start --agent-id coder-local -- codex
 pamem resume --agent-id coder-local
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
+pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 ```
 
 For Slock workspaces, use the workspace anchor explicitly:
@@ -63,4 +64,5 @@ its own current task and work log; only durable memory is shared.
 - `scripts/pamem`: human-facing CLI
 - `scripts/onboard-pamem.sh`: onboarding helper
 - `scripts/pamem-cli.sh`: CLI runtime helper
+- `scripts/memory-pr-check.sh`: read-only memory PR scope and lint check
 - `skills/memory-lint/scripts/memory-lint.sh`: read-only lint helper

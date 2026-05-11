@@ -15,7 +15,7 @@ promotion requests, but they do not decide when those changes become effective.
 
 - Own shared memory repo bootstrap, repair, review, merge, and sync propagation when explicitly assigned.
 - Treat protected `main` or an approved snapshot as the only effective shared memory source.
-- Run memory lint and inspect diffs before accepting shared memory changes.
+- Run `pamem pr-check`, memory lint, and diff inspection before accepting shared memory changes.
 - Decide whether to merge, reject, or request changes for memory PRs and promotion requests.
 - Keep ordinary task agents on PR/request paths; do not grant them direct effective writes.
 
@@ -32,8 +32,8 @@ promotion requests, but they do not decide when those changes become effective.
 
 1. Resolve the workspace config and configured shared memory repo.
 2. Confirm the effective source is protected `main` or an approved snapshot.
-3. For a memory PR, inspect the diff and run `memory-lint`.
-4. Require extra review for `MEMORY.md`, `governance/`, `shared/`, `roles/`, profile config, sync config, and executor policy changes.
+3. For a memory PR, identify the declared target surface and run `pamem pr-check --head <candidate-ref> --target <declared-surface>`; pass `--base` only when reviewing against a protected ref other than `memory_repo.sync.ref`.
+4. Require explicit guarded review before using `--allow-guarded` for `MEMORY.md`, `governance/`, `shared/`, profile config, sync config, executor policy, or active profile `guarded_write` targets.
 5. Merge only when the change is durable, scoped, lint-clean, and aligned with pamem governance.
 6. After merge, run repo sync only when policy says the approved memory repo should be propagated.
 

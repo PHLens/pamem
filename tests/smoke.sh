@@ -83,6 +83,15 @@ for role in onboarding coder reviewer researcher wiki; do
   assert_file "$MEMORY_ROOT/roles/$role/experience.md"
 done
 
+git -C "$MEMORY_ROOT" config user.email "pamem-smoke@example.invalid"
+git -C "$MEMORY_ROOT" config user.name "pamem smoke"
+git -C "$MEMORY_ROOT" add .
+if ! git -C "$MEMORY_ROOT" diff --cached --quiet; then
+  git -C "$MEMORY_ROOT" commit -m "Initial smoke memory" >/dev/null
+elif ! git -C "$MEMORY_ROOT" rev-parse --verify HEAD >/dev/null 2>&1; then
+  fail "shared memory repo needs an initial commit for pr-check smoke"
+fi
+
 [ ! -e "$MEMORY_ROOT/agents" ] || fail "shared memory must not contain plugin-owned agents"
 for layer in L0 L1 L2 L3; do
   [ ! -e "$MEMORY_ROOT/$layer" ] || fail "shared memory must use semantic paths, not $layer"
@@ -194,6 +203,52 @@ printf '%s' "$SLOCK_LINT" | jq -e '
   .summary.error_count == 0 and
   .config.runtime_mode == "slock"
 ' >/dev/null
+
+git -C "$MEMORY_ROOT" checkout -b smoke-memory-pr >/dev/null 2>&1
+printf '\n## Smoke finding\n' >> "$MEMORY_ROOT/roles/coder/experience.md"
+git -C "$MEMORY_ROOT" add roles/coder/experience.md
+git -C "$MEMORY_ROOT" commit -m "Smoke role memory PR" >/dev/null
+
+PR_CHECK_OK="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" pr-check \
+  --workspace "$SLOCK_WORKSPACE" \
+  --head HEAD \
+  --target roles/coder/ \
+  --json)"
+printf '%s' "$PR_CHECK_OK" | jq -e '
+  .status == "ok" and
+  .summary.error_count == 0 and
+  (.diff.changed_files | index("roles/coder/experience.md"))
+' >/dev/null
+
+printf '\n- Smoke guarded change\n' >> "$MEMORY_ROOT/shared/preferences.md"
+git -C "$MEMORY_ROOT" add shared/preferences.md
+git -C "$MEMORY_ROOT" commit -m "Smoke guarded memory PR" >/dev/null
+
+PR_CHECK_FAIL_JSON="$TMP_ROOT/pr-check-fail.json"
+if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" pr-check \
+  --workspace "$SLOCK_WORKSPACE" \
+  --head HEAD \
+  --target roles/coder/ \
+  --json > "$PR_CHECK_FAIL_JSON"; then
+  fail "pamem pr-check must reject guarded or out-of-target memory PRs"
+fi
+jq -e '
+  .status == "error" and
+  any(.findings[]; .rule == "MP002" and .path == "shared/preferences.md")
+' "$PR_CHECK_FAIL_JSON" >/dev/null
+
+PR_CHECK_GUARDED_OK="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" pr-check \
+  --workspace "$SLOCK_WORKSPACE" \
+  --head HEAD \
+  --target roles/coder/ \
+  --target shared/ \
+  --allow-guarded \
+  --json)"
+printf '%s' "$PR_CHECK_GUARDED_OK" | jq -e '
+  .status == "ok" and
+  .diff.allow_guarded == true
+' >/dev/null
+git -C "$MEMORY_ROOT" checkout main >/dev/null 2>&1
 
 if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
   fail "pamem start must reject runtime.mode=slock"

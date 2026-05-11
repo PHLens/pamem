@@ -13,6 +13,7 @@ Commands:
   hook-json              Print SessionStart hook input JSON for the agent.
   context                Print startup memory context for runtimes without hooks.
   lint                   Run read-only memory lint for the configured memory repo.
+  pr-check               Check memory PR changed-file scope and lint status.
   install [workspace]    Install/repair default pamem bootstrap files.
   repair [workspace]     Repair pamem bootstrap files.
   remove [workspace]     Remove managed hook entries.
@@ -24,6 +25,7 @@ Examples:
   pamem status --agent-id coder-local
   pamem context --agent-id coder-local
   pamem lint --agent-id coder-local --json
+  pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 
 Use "pamem <command> --help" for command-specific options.
 EOF
@@ -316,6 +318,9 @@ case "$COMMAND" in
     ;;
   lint)
     run_root_tool "$RUNTIME_ROOT/skills/memory-lint/scripts/memory-lint.sh" "$@"
+    ;;
+  pr-check)
+    run_root_tool "$RUNTIME_ROOT/scripts/memory-pr-check.sh" "$@"
     ;;
   install)
     run_workspace_script "$SCRIPT_DIR/install-pamem.sh" "$@"

@@ -290,6 +290,18 @@ accidental `.pamem/config.toml` committed inside the memory repo.
 
 It must not run automatically from startup or compact hooks, and it must not repair, promote, sync, or rewrite memory files.
 
+### Memory PR Check
+
+`pamem pr-check` is the read-only merge gate for memory PR scope. It compares a
+base and head ref in the configured memory repo, verifies that changed files are
+inside declared `--target` paths, blocks guarded surfaces unless
+`--allow-guarded` is explicitly supplied, and runs `memory-lint`.
+
+The check is meant for both humans and the packaged sync executor. It does not
+replace human review: it proves changed-file scope and baseline memory health,
+while the reviewer still decides whether the memory content is durable and
+correct.
+
 ### Hook Boundaries
 
 `SessionStart` is retained because it is the runtime's read-only memory loader.

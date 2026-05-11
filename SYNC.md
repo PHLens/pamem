@@ -27,11 +27,17 @@ The executor may:
 
 - read pending requests
 - validate and deduplicate requests
-- run `memory-lint`
+- run `pamem pr-check` and `memory-lint`
 - merge or reject durable memory changes
 - propagate the configured memory repo with git when policy says to do so
 
 The executor must not be treated as a general task agent.
+
+For PR-based promotion, the executor runs
+`pamem pr-check --head <candidate-ref> --target <declared-surface>` before
+merge. `--base` may be supplied when reviewing against a protected ref other
+than `memory_repo.sync.ref`. Guarded surfaces require explicit review and
+`--allow-guarded`; this flag is an audit signal, not a way to skip review.
 
 The shared memory repo is initialized as a git repository during bootstrap. If
 no git remote is configured, the executor reports the repo path and tells you to

@@ -261,6 +261,7 @@ Rules:
 - `guarded_write` is empty for ordinary bundled profiles. If a local policy adds guarded targets, treat them as PR/request candidates unless explicit executor/config-owner responsibility is assigned.
 - The packaged sync executor agent lives in the pamem plugin at `agents/sync-executor.md`; it is not a memory profile and must not be copied into shared memory.
 - Config changes that alter ownership, precedence, or sync policy should be treated as governance changes and reviewed by the config owner or onboarding profile.
+- Humans and the sync executor can run `pamem pr-check` against the configured memory repo before merging a memory PR. The check verifies changed-file scope, guarded surfaces, and memory lint; it does not replace content review.
 - If no config exists, use the per-agent notes fallback load order.
 
 ## Startup Load Workflow
@@ -381,6 +382,15 @@ Promotion decisions:
 - rejected changes move to `requests/rejected/` with a short reason.
 - ordinary task agents must not silently promote contentious or cross-scope rules.
 
+Memory PR merge rule:
+
+- The sync executor, or a human reviewer acting as executor, decides whether a memory PR is merged.
+- Every memory PR must declare its intended memory surface, such as `roles/coder/`, `projects/<project-key>.md`, or `requests/inbox/`.
+- Before merge, run `pamem pr-check --head <candidate-ref> --target <declared-surface>` from an agent home or workspace that points to the target memory repo; pass `--base` only when reviewing against a protected ref other than `memory_repo.sync.ref`.
+- A PR that changes files outside the declared target must be split or retargeted before merge.
+- `MEMORY.md`, `governance/`, `shared/`, and active profile `guarded_write` targets require explicit guarded review and `--allow-guarded`; use the flag only after verifying the reviewer has config-owner, onboarding, sync-executor, or explicit human authority for that surface.
+- `pamem pr-check` is a scope and lint gate. The reviewer still checks content quality, durability, privacy, precedence, and whether the change belongs in memory at all.
+
 Keep in `projects/` when the content is:
 
 - project-specific and still changing, or
@@ -447,6 +457,8 @@ runtimes.
 - `config.toml` or `.pamem/config.toml` changes are governance changes when they alter memory
   repo location, sharing mode, runtime mode, profile, write targets, sync
   remote, ref, or executor.
+- Memory PRs must pass `pamem pr-check` before merge; guarded changes require
+  explicit review plus `--allow-guarded`.
 - Install, onboard, and repair scripts may create or restore skeleton files;
   use them for setup/repair, not ordinary task execution.
 - `requests/inbox/` is the memory promotion review queue, not a sync queue.
@@ -693,4 +705,4 @@ When new memory conflicts with existing memory:
 | Load archive by default | Load archive only when task-relevant |
 
 ## Last Updated
-2026-05-07
+2026-05-11
