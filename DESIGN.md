@@ -66,9 +66,11 @@ live in `shared/operating-rules.md`, and cross-role experience lives in
 
 ### Role Layer
 
-Role-specific entry points live in `roles/<role>/<role>.md`; reusable role
-experience lives in `roles/<role>/experience.md`. `notes/experience.md`
-remains the CLI compatibility surface for role experience.
+Role-specific entry points live in `roles/<role>/<role>.md`. Keep high-frequency
+role workflow and pointers there. Reusable role experience lives in
+`roles/<role>/experience.md`; when that file grows too large, split detailed
+topics into smaller role-local files and point to them from the role guide.
+`notes/experience.md` remains the CLI compatibility surface for role experience.
 
 ### Project Layer
 
@@ -174,6 +176,9 @@ small runtime-local recovery notes:
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem start` or `resume` is used
 
 But it does not decide the actual contents of those files for a specific agent.
+Agents may later add role-local topic files through memory promotion when a
+role experience topic becomes too detailed for the startup-loaded guide or the
+default `experience.md`.
 
 Packaged agents live in the plugin repo, not in the shared memory repo. The
 sync executor definition is shipped as `agents/sync-executor.md`; it is not a
@@ -251,8 +256,9 @@ role, shared, or constitution memory.
 
 In practice, an agent home or workspace should activate one `default_profile` at
 a time. The templates in `assets/config-profiles/` are standalone starters for
-alternate defaults, not simultaneous runtime roles. Each profile loads the role
-file and leaves deeper role files for on-demand reading.
+alternate defaults, not simultaneous runtime roles. Each profile loads shared
+experience and the role guide; the role guide leaves deeper role experience or
+topic files for on-demand reading.
 
 Profile selection belongs to onboarding. `pamem init` writes the selected
 `config.toml` before runtime hooks start reading it; startup hooks must treat the

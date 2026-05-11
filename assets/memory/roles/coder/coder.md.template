@@ -2,11 +2,16 @@
 
 Startup-loaded entry point for the coder role.
 
-Use this file as a short role guide. Read only the role files needed for the current task.
+Use this file as the short operating guide for the coder role. Keep
+high-frequency workflow here; move detailed or rarely needed lessons into role
+experience or role-local topic files.
 
 ## Role Files
 - `experience.md` — durable implementation findings, corrections, and workflow lessons.
+- Split `experience.md` into smaller role-local topic files when it grows too
+  long; keep only high-frequency rules in this guide.
 
 ## Write Policy
 - Keep this role file short.
-- Promote durable role findings into `experience.md` through pamem governance.
+- Promote durable role findings into `experience.md` or a role-local topic file
+  through pamem governance.
