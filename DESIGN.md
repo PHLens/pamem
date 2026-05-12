@@ -28,7 +28,7 @@ flowchart TD
 |---|---|---|
 | Governance | Runtime rules, startup loading, precedence, write gates | `governance/`, plus shipped `memory-rule` |
 | Shared | Cross-role preferences, operating rules, reusable experience | `shared/` |
-| Role | Role guides and role-specific experience | `roles/<role>/` |
+| Role | Concrete role guides and role-specific experience | `roles/<role>/` |
 | Project | Durable project context and pointers | `projects/` |
 | Archive | Historical summaries not loaded by default | `archive/` |
 | Promotion queue | Reviewable proposed memory changes | `requests/` |
@@ -66,11 +66,14 @@ live in `shared/operating-rules.md`, and cross-role experience lives in
 
 ### Role Layer
 
-Role-specific entry points live in `roles/<role>/<role>.md`. Keep high-frequency
-role workflow and pointers there. Reusable role experience lives in
-`roles/<role>/experience.md`; when that file grows too large, split detailed
+Role-specific entry points live in `roles/<role>/<role>.md`. Keep
+high-frequency role workflow and pointers there. Reusable role experience lives
+in `roles/<role>/experience.md`; when that file grows too large, split detailed
 topics into smaller role-local files and point to them from the role guide.
 `notes/experience.md` remains the CLI compatibility surface for role experience.
+Pamem may use a packaged base role template when bootstrapping or promoting new
+role guides, but that template is not materialized into the shared memory repo
+or loaded at runtime.
 
 ### Project Layer
 

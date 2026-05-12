@@ -376,6 +376,47 @@ pamem_copy_legacy_or_template_if_missing() {
   fi
 }
 
+pamem_render_to_file_if_missing() {
+  local file="$1"
+  shift
+
+  if [ -s "$file" ]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$file")"
+  "$@" > "$file"
+}
+
+pamem_render_role_guide() {
+  local template="$1"
+  local role="$2"
+  local title="$3"
+  local workflow="$4"
+  local experience="$5"
+
+  sed \
+    -e "s/{{ROLE_NAME}}/$role/g" \
+    -e "s/{{ROLE_TITLE}}/$title/g" \
+    -e "s/{{ROLE_WORKFLOW}}/$workflow/g" \
+    -e "s/{{ROLE_EXPERIENCE}}/$experience/g" \
+    "$template"
+}
+
+pamem_render_role_experience() {
+  local role="$1"
+  local title="$2"
+  local experience="$3"
+
+  cat <<EOF
+# $title Experience
+
+Durable role-specific $experience.
+
+- No role-specific $role experience recorded yet.
+EOF
+}
+
 pamem_ensure_memory_repo_skeleton() {
   local repo_root="$1"
   local assets_dir="$2"
@@ -398,9 +439,53 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/memory/shared/experience.md.template" "$repo_root/shared/experience.md"
 
   for role in onboarding coder reviewer researcher wiki; do
+    local role_title
+    local role_workflow
+    local role_experience
+
+    case "$role" in
+      onboarding)
+        role_title="Onboarding"
+        role_workflow="onboarding workflow"
+        role_experience="onboarding findings, corrections, and workflow lessons"
+        ;;
+      coder)
+        role_title="Coder"
+        role_workflow="implementation workflow"
+        role_experience="implementation findings, corrections, and workflow lessons"
+        ;;
+      reviewer)
+        role_title="Reviewer"
+        role_workflow="review workflow"
+        role_experience="review findings, corrections, and risk-analysis lessons"
+        ;;
+      researcher)
+        role_title="Researcher"
+        role_workflow="research workflow"
+        role_experience="research findings, corrections, and retrieval lessons"
+        ;;
+      wiki)
+        role_title="Wiki"
+        role_workflow="curation workflow"
+        role_experience="wiki workflow, curation, retrieval, and handoff lessons"
+        ;;
+    esac
+
     mkdir -p "$repo_root/roles/$role"
-    pamem_copy_if_missing "$assets_dir/memory/roles/$role/$role.md.template" "$repo_root/roles/$role/$role.md"
-    pamem_copy_if_missing "$assets_dir/memory/roles/$role/experience.md.template" "$repo_root/roles/$role/experience.md"
+    pamem_render_to_file_if_missing \
+      "$repo_root/roles/$role/$role.md" \
+      pamem_render_role_guide \
+      "$assets_dir/memory/roles/base/base.md.template" \
+      "$role" \
+      "$role_title" \
+      "$role_workflow" \
+      "$role_experience"
+    pamem_render_to_file_if_missing \
+      "$repo_root/roles/$role/experience.md" \
+      pamem_render_role_experience \
+      "$role" \
+      "$role_title" \
+      "$role_experience"
   done
 }
 

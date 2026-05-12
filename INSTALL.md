@@ -104,10 +104,11 @@ The shared memory repo remains configured by `[memory_repo].path`. The workspace
 `MEMORY.md` is only a thin router; governance and sync trigger text live in the
 shared repo entry file. The active profile loads shared memory and the startup
 role guide at `roles/<role>/<role>.md`; that guide points to detailed role
-experience when needed. In Slock mode, `notes/current-task.md` is only a thin
-cache because the task board and threads remain primary; `notes/work-log.md`
-keeps runtime-local completed summaries. Each Slock agent workspace keeps its
-own copy.
+experience when needed. The packaged base role template is only a bootstrap
+source for creating concrete role guides. In Slock mode, `notes/current-task.md`
+is only a thin cache because the task board and threads remain primary;
+`notes/work-log.md` keeps runtime-local completed summaries. Each Slock agent
+workspace keeps its own copy.
 
 ## Bootstrap And Repair
 
@@ -127,7 +128,7 @@ Install/repair creates or refreshes:
 - `.codex/skills/memory-rule`
 - `.codex/skills/sync-request`
 - `.codex/skills/memory-lint`
-- the configured shared memory repo skeleton
+- the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode
 
 `remove-pamem.sh` removes managed Codex hook and skill entries. It leaves memory

@@ -78,10 +78,12 @@ assert_file "$MEMORY_ROOT/shared/preferences.md"
 assert_file "$MEMORY_ROOT/shared/operating-rules.md"
 assert_file "$MEMORY_ROOT/shared/experience.md"
 git -C "$MEMORY_ROOT" rev-parse --is-inside-work-tree >/dev/null
+[ ! -e "$MEMORY_ROOT/roles/base" ] || fail "shared memory repo must not materialize base role templates"
 for role in onboarding coder reviewer researcher wiki; do
   assert_file "$MEMORY_ROOT/roles/$role/$role.md"
   assert_file "$MEMORY_ROOT/roles/$role/experience.md"
 done
+assert_no_match "$MEMORY_ROOT/roles/onboarding/onboarding.md" '{{ROLE_'
 
 git -C "$MEMORY_ROOT" config user.email "pamem-smoke@example.invalid"
 git -C "$MEMORY_ROOT" config user.name "pamem smoke"
@@ -147,6 +149,7 @@ printf '%s' "$CLI_HOOK_JSON" | jq -e \
 CLI_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --agent-id "$AGENT_ID")"
 grep -Fq "Persistent memory source:" <<<"$CLI_CONTEXT"
 grep -Fq 'Source: `roles/wiki/wiki.md`' <<<"$CLI_CONTEXT"
+! grep -Fq 'Source: `roles/base/base.md`' <<<"$CLI_CONTEXT" || fail "base role template must not load at runtime"
 grep -Fq "CLI runtime current task source:" <<<"$CLI_CONTEXT"
 
 CLI_LINT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" lint --agent-id "$AGENT_ID" --json)"
@@ -194,6 +197,7 @@ assert_no_match "$SLOCK_WORKSPACE/MEMORY.md" '^## (Memory Governance|Sync Trigge
 SLOCK_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --workspace "$SLOCK_WORKSPACE")"
 grep -Fq "runtime=slock" <<<"$SLOCK_CONTEXT"
 grep -Fq 'Source: `roles/coder/coder.md`' <<<"$SLOCK_CONTEXT"
+! grep -Fq 'Source: `roles/base/base.md`' <<<"$SLOCK_CONTEXT" || fail "base role template must not load in Slock context"
 grep -Fq "Slock runtime current task source:" <<<"$SLOCK_CONTEXT"
 grep -Fq "Slock runtime work log source:" <<<"$SLOCK_CONTEXT"
 
