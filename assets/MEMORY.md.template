@@ -22,13 +22,13 @@ If durable local memory or managed workspace config changes need cross-device re
 Do not run sync directly from this agent; the sync executor handles git propagation when policy says to propagate the configured memory repo.
 
 ## Key Knowledge
-- `config.toml` or `.pamem/config.toml` — memory repo path, sharing mode, git sync remote/ref, and profile policy
-- `shared/preferences.md` or `notes/user-preferences.md` — collaboration preferences and constraints
-- `shared/operating-rules.md` or `notes/operating-rules.md` — stable operating defaults
-- `shared/experience.md` — cross-role findings, corrections, and meta-knowledge loaded through the active profile
-- `roles/<role>/<role>.md` — startup-loaded role guide; it points to role-specific experience and role-local topic files
-- `roles/<role>/experience.md`, role-local topic files, or `notes/experience.md` — role-scoped findings, corrections, and meta-knowledge
-- `projects/<project-key>.md` or `notes/projects/<project-key>.md` — project-specific stable context
+- `config.toml` or `.pamem/config.toml` - memory repo path, sharing mode, git sync remote/ref, and profile policy
+- `shared/preferences.md` or `notes/user-preferences.md` - collaboration preferences and constraints
+- `shared/operating-rules.md` or `notes/operating-rules.md` - stable operating defaults
+- `shared/experience.md` - cross-role findings, corrections, and meta-knowledge loaded through the active profile
+- `roles/<role>/<role>.md` - startup-loaded role guide; it points to role-specific experience and role-local topic files
+- `roles/<role>/experience.md`, role-local topic files, or `notes/experience.md` - role-scoped findings, corrections, and meta-knowledge
+- `projects/<project-key>.md` or `notes/projects/<project-key>.md` - project-specific stable context
 
 ## Active Context
 - No active context recorded yet.

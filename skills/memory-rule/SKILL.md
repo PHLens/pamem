@@ -174,6 +174,11 @@ lessons in `experience.md`, and split `experience.md` into smaller role-local
 topic files when it grows too long. Role-local topic files are read on demand,
 not by default.
 
+Pamem may use a packaged base role template when bootstrapping or promoting a
+new role guide. That template is not a shared memory surface, is not
+materialized as `roles/base/` in the shared memory repo, and is not loaded at
+runtime.
+
 ### Project Memory
 
 `projects/` contains specific project context.
@@ -331,7 +336,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Global collaboration preferences | `shared/preferences.md` | `notes/user-preferences.md` | Durable communication and collaboration preferences |
 | Shared operating rules | `shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override governance |
 | Cross-role shared experience | `shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
-| Role guide | `roles/<role>/<role>.md` | n/a | Short startup guide for high-frequency role workflow and pointers |
+| Role guide | `roles/<role>/<role>.md` | n/a | Short startup guide for role-specific workflow and pointers |
 | Role-scoped experience | `roles/<role>/experience.md` or role-local topic files | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
 | Error corrections and prohibitions | `roles/<role>/experience.md` or a role-local topic file | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `roles/<role>/experience.md` or a role-local topic file | `notes/experience.md` | Outcomes only, never raw evidence chains |
