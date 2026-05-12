@@ -194,7 +194,6 @@ if [ "$AGENT_HOME_MODE" -ne 1 ]; then
         cp "$ASSETS_DIR/MEMORY.md.template" "$MEMORY_PATH"
       fi
       ensure_insert_after_title "$MEMORY_PATH" '## Memory Governance' "$ASSETS_DIR/memory-governance.md.fragment"
-      ensure_append_block "$MEMORY_PATH" '## Sync Trigger' "$ASSETS_DIR/sync-trigger.md.fragment"
       ;;
     slock)
       ensure_slock_workspace_memory "$MEMORY_PATH"

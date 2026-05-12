@@ -15,7 +15,7 @@ flowchart TD
     R["Role layer<br/>implemented as roles/"]
     P["Project layer<br/>implemented as projects/"]
     A["Archive layer<br/>implemented as archive/"]
-    Q["Promotion queue<br/>implemented as requests/"]
+    Q["Promotion request handoff<br/>requests/inbox/"]
 
     G --> S
     S --> R
@@ -31,7 +31,7 @@ flowchart TD
 | Role | Concrete role guides and role-specific experience | `roles/<role>/` |
 | Project | Durable project context and pointers | `projects/` |
 | Archive | Historical summaries not loaded by default | `archive/` |
-| Promotion queue | Reviewable proposed memory changes | `requests/` |
+| Promotion request handoff | Reviewable proposed memory changes, kept separate from loaded memory layers | `requests/inbox/` |
 
 ### Governance Layer
 
@@ -121,7 +121,7 @@ flowchart TD
     R["roles/<br/>Skeleton only"]
     PR["projects/<br/>Skeleton only"]
     A["archive/<br/>Optional summaries"]
-    Q["requests/<br/>Promotion queue"]
+    Q["requests/inbox/<br/>Promotion request handoff"]
     CLI["CLI/Slock runtime mode<br/>local task recovery"]
     C["Agent-local content<br/>Not managed by pamem"]
 
@@ -269,9 +269,10 @@ treat the selected role policy as read-only. Explicit workspace onboarding
 still writes `.pamem/config.toml` for compatibility.
 
 Ordinary task profiles are intentionally narrow write surfaces. They load
-shared, role, and project memory, but their default write target is the
-promotion request inbox. Durable shared-memory changes should be proposed
-through PRs or requests and reviewed by the packaged sync executor.
+shared, role, and project memory. Durable shared-memory changes should be
+proposed through PRs; if a promotion request is needed by policy, it is a
+separate handoff path in `requests/inbox/`, not part of the loaded memory
+layers.
 
 ### Config Ownership
 
@@ -320,7 +321,8 @@ for current-task state; it must not write the shared memory repo.
 
 Multiple agent instances may share the same memory repo, but they must not share
 mutable task state through that repo. The shared repo is for durable governance,
-shared, role, project memory, and promotion requests. Runtime state is owned by the runtime:
+shared, role, and project memory. Promotion requests stay in the separate
+handoff path. Runtime state is owned by the runtime:
 CLI mode keeps local recovery notes in the XDG data agent home or compatibility
 workspace notes, while Slock mode uses workspace `notes/current-task.md`,
 workspace `notes/work-log.md`, the Slock task board, and task threads.

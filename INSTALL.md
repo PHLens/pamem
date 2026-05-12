@@ -132,7 +132,6 @@ Install/repair creates or refreshes:
 - `.pamem/scripts` and `.pamem/assets` links
 - `.codex/hooks.json`
 - `.codex/skills/memory-rule`
-- `.codex/skills/sync-request`
 - `.codex/skills/memory-lint`
 - the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode

@@ -339,7 +339,7 @@ else
         "$pointer" \
         "fix-pointer"
     fi
-  done < <(grep -Eno '((governance|shared|roles|projects|archive|requests)/[A-Za-z0-9._<>/\-]+\.md)' "$ENTRY_PATH" || true)
+  done < <(grep -Eno '((governance|shared|roles|projects|archive)/[A-Za-z0-9._<>/\-]+\.md)' "$ENTRY_PATH" || true)
 fi
 
 for required in \
@@ -349,7 +349,7 @@ for required in \
   "shared/experience.md" \
   "roles/" \
   "projects/" \
-  "requests/inbox/"
+  "archive/"
 do
   check_repo_target "$required" "error" "ML004" "required skeleton"
 done

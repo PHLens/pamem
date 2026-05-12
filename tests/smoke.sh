@@ -68,7 +68,7 @@ grep -Fq 'default_profile = "onboarding"' "$WORKSPACE/.pamem/config.toml"
 grep -Fq 'mode = "cli"' "$WORKSPACE/.pamem/config.toml"
 assert_no_match "$WORKSPACE/.pamem/config.toml" 'backend[[:space:]]*='
 
-for skill in memory-rule sync-request memory-lint; do
+for skill in memory-rule memory-lint; do
   assert_link_target "$WORKSPACE/.codex/skills/$skill" "$ROOT/skills/$skill"
 done
 
@@ -110,7 +110,7 @@ if jq -e '.hooks.SessionStart[]?.hooks[]?.command == ".pamem/scripts/memory-sess
   "$REMOVE_WORKSPACE/.codex/hooks.json" >/dev/null; then
   fail "remove-pamem.sh must remove the managed SessionStart hook"
 fi
-for skill in memory-rule sync-request memory-lint; do
+for skill in memory-rule memory-lint; do
   [ ! -e "$REMOVE_WORKSPACE/.codex/skills/$skill" ] || fail "remove-pamem.sh must remove managed skill link: $skill"
 done
 

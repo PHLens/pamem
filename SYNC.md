@@ -14,8 +14,8 @@ effective shared memory.
 
 `sync-request` is the fallback handoff path for agents that need a structured
 intent queue. It is useful for compatibility, low-permission handoff, or offline
-retention. It is not the mainline path once PR-based promotion and the packaged
-sync executor are available.
+retention. It is separate from the core memory layers and is not the mainline
+path once PR-based promotion and the packaged sync executor are available.
 
 ## Packaged Executor
 

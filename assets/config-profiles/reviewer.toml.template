@@ -41,9 +41,9 @@ requires_review_for = [
 ]
 
 [sync]
-queue_root = ".pamem/sync-queue"
 executor = "<configured-sync-executor>"
-policy = "explicit_request_or_workspace_policy"
+# GitHub PRs are the default proposal path; the sync executor reviews and merges when policy allows.
+policy = "github_pr_only"
 
 [profiles.reviewer]
 role = "reviewer"
@@ -56,7 +56,5 @@ load = [
   "roles/reviewer/reviewer.md",
   "projects/<project-key>.md"
 ]
-write = [
-  "requests/inbox/"
-]
+write = []
 guarded_write = []
