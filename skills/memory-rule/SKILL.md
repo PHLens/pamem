@@ -28,7 +28,7 @@ shared/ or notes/         = stable shared preferences, rules, and cross-role exp
 roles/                    = role guides and role-scoped experience
 projects/ or notes/       = project memory
 archive/ or notes/        = archive summaries not loaded by default, usually CLI-local
-requests/           = reviewable memory-promotion requests
+requests/           = optional promotion handoff queue, not a loaded memory layer
 XDG data agent home = CLI runtime-local config and task recovery by agent id
 git push / repo propagation = executor-only write path for the configured memory repo
 sync-request        = separate request-generation skill for cross-device retention
@@ -55,7 +55,7 @@ ${XDG_DATA_HOME:-~/.local/share}/pamem/
     roles/
     projects/
     archive/
-    requests/
+    requests/        # optional promotion handoff queue
 
 <legacy-or-slock-workspace>/
   .pamem/
@@ -88,7 +88,7 @@ memory/
   projects/
     <project-key>.md
   archive/
-  requests/
+  requests/        # optional promotion handoff queue
     inbox/
     promoted/
     rejected/
@@ -245,9 +245,7 @@ load = [
   "roles/coder/coder.md",
   "projects/pamem.md"
 ]
-write = [
-  "requests/inbox/"
-]
+write = []
 guarded_write = []
 ```
 
@@ -282,7 +280,7 @@ On wake-up:
    or role-local topic files are task-relevant.
 7. Load project memory for the active project.
 9. If runtime mode is `cli`, load hook-provided or XDG data CLI current-task/work-log state when present, falling back to `notes/current-task.md` and `notes/work-log.md` as compatibility files.
-10. Do not load `archive/` or `requests/` by default.
+10. Do not load `archive/` by default. Treat `requests/` as a handoff queue, not a loaded memory layer.
 11. If runtime mode is `slock`, treat Slock task state and workspace files as the source of truth for active work.
 
 Fallback load order when local config is absent:
@@ -344,7 +342,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Project-specific rules and facts | `projects/<project-key>.md` | `notes/projects/<project-key>.md` | Project wins over role on conflict; CLI-local compatibility only |
 | CLI current-task recovery | n/a | XDG data `pamem/agents/<agent-id>/current-task.md`, fallback `notes/current-task.md` | Runtime-local, startup-safe summary only |
 | CLI work-log summary | n/a | XDG data `pamem/agents/<agent-id>/work-log.md`, fallback `notes/work-log.md` | Runtime-local summary only |
-| Memory promotion request | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes |
+| Promotion request handoff | `requests/inbox/<request-id>.md` | local request note or user-visible task thread | For review before stable writes; not a memory layer |
 | Closed task summary | `archive/` | `notes/work-log.md` in CLI runtime mode | Newest first; summaries only |
 
 ## Promotion Policy
@@ -390,7 +388,7 @@ Promotion decisions:
 Memory PR merge rule:
 
 - The sync executor, or a human reviewer acting as executor, decides whether a memory PR is merged.
-- Every memory PR must declare its intended memory surface, such as `roles/coder/`, `projects/<project-key>.md`, or `requests/inbox/`.
+- Every memory PR must declare its intended memory surface, such as `roles/coder/`, `projects/<project-key>.md`, or `requests/inbox/` when a separate handoff queue is used.
 - Before merge, run `pamem pr-check --head <candidate-ref> --target <declared-surface>` from an agent home or workspace that points to the target memory repo; pass `--base` only when reviewing against a protected ref other than `memory_repo.sync.ref`.
 - A PR that changes files outside the declared target must be split or retargeted before merge.
 - `MEMORY.md`, `governance/`, `shared/`, and active profile `guarded_write` targets require explicit guarded review and `--allow-guarded`; use the flag only after verifying the reviewer has config-owner, onboarding, sync-executor, or explicit human authority for that surface.
@@ -466,7 +464,7 @@ runtimes.
   explicit review plus `--allow-guarded`.
 - Install, onboard, and repair scripts may create or restore skeleton files;
   use them for setup/repair, not ordinary task execution.
-- `requests/inbox/` is the memory promotion review queue, not a sync queue.
+- `requests/inbox/` is the memory promotion review queue, not a sync queue and not a loaded memory layer.
 
 ## Multi-Instance Concurrency
 
@@ -510,7 +508,7 @@ If last-write-wins occurs on a shared durable memory file:
 
 1. Task start: update only the runtime-owned task surface, not the shared memory repo.
 2. Task execution: keep task state in CLI local notes/planning files or in Slock task threads and workspace files.
-3. Task completion: promote durable findings to `projects/` or `requests/inbox/`; in CLI mode optionally add a concise local work-log summary; in Slock mode leave ordinary work logs in Slock.
+3. Task completion: promote durable findings to `projects/` or `requests/inbox/` when review is required; in CLI mode optionally add a concise local work-log summary; in Slock mode leave ordinary work logs in Slock.
 
 ## Current Task Vs Planning Files
 

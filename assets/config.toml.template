@@ -42,9 +42,9 @@ requires_review_for = [
 ]
 
 [sync]
-queue_root = ".pamem/sync-queue"
 executor = "<configured-sync-executor>"
-policy = "explicit_request_or_workspace_policy"
+# GitHub PRs are the default proposal path; the sync executor reviews and merges when policy allows.
+policy = "github_pr_only"
 
 [profiles.onboarding]
 role = "onboarding"
@@ -58,8 +58,7 @@ load = [
   "projects/<project-key>.md"
 ]
 write = [
-  "projects/<project-key>.md",
-  "requests/inbox/"
+  "projects/<project-key>.md"
 ]
 guarded_write = [
   "config.toml",

@@ -427,10 +427,7 @@ pamem_ensure_memory_repo_skeleton() {
     "$repo_root/shared" \
     "$repo_root/roles" \
     "$repo_root/projects" \
-    "$repo_root/archive" \
-    "$repo_root/requests/inbox" \
-    "$repo_root/requests/promoted" \
-    "$repo_root/requests/rejected"
+    "$repo_root/archive"
 
   pamem_copy_if_missing "$assets_dir/MEMORY.md.template" "$repo_root/MEMORY.md"
   pamem_copy_if_missing "$assets_dir/memory/governance/constitution.md.template" "$repo_root/governance/constitution.md"

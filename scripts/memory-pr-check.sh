@@ -220,7 +220,7 @@ is_guarded_path() {
 
 is_memory_surface_path() {
   case "$1" in
-    MEMORY.md|governance/*|shared/*|roles/*|projects/*|archive/*|requests/*)
+    MEMORY.md|governance/*|shared/*|roles/*|projects/*|archive/*)
       return 0
       ;;
     *)
@@ -270,7 +270,7 @@ for changed in "${CHANGED_FILES[@]}"; do
   if ! is_memory_surface_path "$changed"; then
     add_finding "error" "MP001" "$changed" \
       "Changed file is outside memory surfaces" \
-      "Memory PRs may only change MEMORY.md, governance/, shared/, roles/, projects/, archive/, or requests/." \
+      "Memory PRs may only change MEMORY.md, governance/, shared/, roles/, projects/, or archive/." \
       "$changed" \
       "remove-out-of-scope-change"
     continue
