@@ -119,12 +119,15 @@ function runSmoke(tmpRoot) {
     'lib/cli.mjs',
     'lib/install.mjs',
     'lib/onboard.mjs',
+    'lib/runtime.mjs',
     'assets/config.toml.template',
+    'scripts/memory-session-start.sh',
+    'scripts/memory-pre-compact.sh',
     'skills/memory-lint/scripts/memory-lint.sh',
   ]) {
     assert.ok(packFiles.has(file), `npm pack should include ${file}`);
   }
-  for (const file of ['scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh']) {
+  for (const file of ['scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
     assert.equal(packFiles.has(file), false, `npm pack should not include removed script ${file}`);
   }
 
@@ -199,6 +202,17 @@ function runSmoke(tmpRoot) {
   assert.match(cliStatus, new RegExp(`root=${escapeRegExp(agentHome)}`));
   assert.match(cliStatus, /runtime=cli/);
   assert.match(cliStatus, new RegExp(`memory_repo=${escapeRegExp(memoryRoot)}`));
+  assert.match(cliStatus, /last_command=sh -c/);
+
+  const cliEnv = pamemRun(['status', '--agent-id', agentId, '--print-env'], { env }).stdout;
+  assert.match(cliEnv, new RegExp(`export PAMEM_WORKSPACE=${escapeRegExp(agentHome)}`));
+  assert.match(cliEnv, /export PAMEM_RESUME=0/);
+
+  appendFile(join(agentHome, 'config.toml'), '\n[runtime.resume]\ncommand = ["sh", "-c", "printf configured > $PAMEM_LOCAL_DIR/configured-marker"]\n');
+  rmSync(join(agentHome, 'resume-marker'), { force: true });
+  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--resume'], { env });
+  assertFile(join(agentHome, 'configured-marker'));
+  assertMissing(join(agentHome, 'resume-marker'), 'configured resume command should take precedence over last session command');
 
   const cliHookJson = JSON.parse(pamemRun(['hook-json', '--agent-id', agentId], { env }).stdout);
   assert.equal(cliHookJson.cwd, agentHome);

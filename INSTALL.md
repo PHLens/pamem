@@ -9,8 +9,8 @@ For the model and boundaries, see [DESIGN.md](DESIGN.md) and [SYNC.md](SYNC.md).
 - `bash`
 - `git`
 - Node.js 18+ for the standalone npm/npx CLI
-- `jq` for the remaining shell-based runtime, hook/context, lint, and PR-check helpers
-- GNU `realpath` for the remaining shell-based runtime helpers
+- `jq` for the remaining shell-based SessionStart/PreCompact hooks, lint, and PR-check helpers
+- GNU `realpath` for the remaining shell-based hooks, lint, and PR-check helpers
 
 ## Install CLI
 
@@ -107,6 +107,10 @@ pamem status --agent-id coder-local
 pamem hook-json --agent-id coder-local
 pamem context --agent-id coder-local
 ```
+
+`status`, `hook-json`, launch state, and resume dispatch are handled by Node.
+`context` still feeds the lightweight SessionStart shell hook so runtime startup
+loading stays shared with Codex/Slock hook execution.
 
 To create or deliberately replace config without starting a runtime, use
 `pamem onboard`:
