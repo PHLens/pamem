@@ -10,11 +10,15 @@
   "bin": {
     "pamem": "./bin/pamem.mjs"
   },
+  "scripts": {
+    "test": "node --test tests/smoke.test.mjs"
+  },
   "files": [
     "agents/",
     "assets/",
     "bin/",
     "hooks/",
+    "lib/",
     "scripts/",
     "skills/",
     "DESIGN.md",
