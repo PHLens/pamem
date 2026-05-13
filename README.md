@@ -12,21 +12,27 @@ It provides:
 
 ## Install CLI
 
-Install the standalone CLI package:
+Install the standalone CLI from GitHub:
 
 ```bash
-npm install -g @phlens/pamem
+npm install -g git+ssh://git@github.com/PHLens/pamem.git
 ```
 
-Or run it without a global install:
+From a checked-out repo, install the local package:
 
 ```bash
-npx @phlens/pamem --help
+npm install -g .
 ```
 
-The package exposes the `pamem` command directly. Use `pamem install` to
-install or repair runtime/plugin files, then `pamem launch` to start a
-role/runtime instance.
+Then verify:
+
+```bash
+pamem --help
+```
+
+The package exposes the `pamem` command directly. Use `pamem install` to install
+or repair runtime/plugin files, then `pamem launch` to start a role/runtime
+instance.
 
 ## Plugin Install
 

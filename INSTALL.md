@@ -8,28 +8,32 @@ For the model and boundaries, see [DESIGN.md](DESIGN.md) and [SYNC.md](SYNC.md).
 
 - `bash`
 - `git`
-- Node.js 18+ for the standalone npm/npx CLI
+- Node.js 18+ for the standalone npm CLI
 - `jq` for the remaining shell-based SessionStart/PreCompact hooks, lint, and PR-check helpers
 - GNU `realpath` for the remaining shell-based hooks, lint, and PR-check helpers
 
 ## Install CLI
 
-Install the standalone CLI package:
+Install the standalone CLI from GitHub:
 
 ```bash
-npm install -g @phlens/pamem
+npm install -g git+ssh://git@github.com/PHLens/pamem.git
 ```
 
-Or run it without a global install:
+From a checked-out repo, install the local package:
 
 ```bash
-npx @phlens/pamem --help
+npm install -g .
 ```
 
-The package exposes the `pamem` command directly through npm's bin linking. It
-does not require a separate `install-cli` command or shell rc modification.
-Use `pamem install` to install or repair runtime/plugin files, then
-`pamem launch` to start a role/runtime instance.
+Then verify:
+
+```bash
+pamem --help
+```
+
+After installing, use `pamem install` to install or repair runtime/plugin
+files, then `pamem launch` to start a role/runtime instance.
 
 ## Launch An Agent
 
@@ -82,6 +86,27 @@ for the active task, blocker, and next step. `work-log.md` records completed
 summaries and verification results. Multiple role instances should use distinct
 agent ids so each instance has its own current task and work log.
 
+Recommended local CLI practice:
+
+- Install with npm, then verify the command:
+
+  ```bash
+  npm install -g git+ssh://git@github.com/PHLens/pamem.git
+  pamem --help
+  ```
+
+- Treat `pamem` as the explicit agent launcher.
+- Pick one stable `--agent-id` per long-lived local agent. The id is the
+  recovery boundary for config, current task, work log, and resume state.
+- Keep role and agent id effectively one-to-one. For concurrent roles, create
+  separate ids such as `percy-coder`, `percy-reviewer`, and
+  `percy-researcher` instead of rebinding one id between roles.
+- Keep project repositories as work directories, not memory homes. The CLI
+  agent home should stay under the XDG data path, while the launched command can
+  `cd` into the project.
+- Use `pamem status`, `pamem context`, and `pamem lint` before debugging startup
+  behavior. Use `pamem pr-check` when proposing shared-memory changes.
+
 The shared memory repo defaults to:
 
 ```text
@@ -95,17 +120,32 @@ another location, configure a git remote for that repo path and set
 Start and resume:
 
 ```bash
-pamem launch --role coder --agent-id coder-local -- codex
-pamem launch --role coder --agent-id coder-local --resume
+pamem launch --role coder --agent-id percy-coder -- codex
+pamem launch --role coder --agent-id percy-coder --resume
+```
+
+Use distinct ids for other local role instances:
+
+```bash
+pamem launch --role reviewer --agent-id percy-reviewer -- codex
+pamem launch --role researcher --agent-id percy-researcher -- codex
+```
+
+To work in a project repo while keeping the same stable pamem agent home:
+
+```bash
+pamem launch --role coder --agent-id percy-coder -- bash -lc 'cd /path/to/project && codex'
 ```
 
 Without a launcher, `status`, `hook-json`, and `context` are useful for
 runtime integration and debugging:
 
 ```bash
-pamem status --agent-id coder-local
-pamem hook-json --agent-id coder-local
-pamem context --agent-id coder-local
+pamem status --agent-id percy-coder
+pamem hook-json --agent-id percy-coder
+pamem context --agent-id percy-coder
+pamem lint --agent-id percy-coder --json
+pamem pr-check --agent-id percy-coder --head HEAD --target roles/coder/ --json
 ```
 
 `status`, `hook-json`, launch state, and resume dispatch are handled by Node.
