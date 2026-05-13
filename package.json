@@ -1,0 +1,38 @@
+{
+  "name": "@phlens/pamem",
+  "version": "0.7.0",
+  "description": "Persistent agent memory runtime CLI with shared governance, hooks, and workspace bootstrap.",
+  "license": "MIT",
+  "author": {
+    "name": "Percy Lee"
+  },
+  "type": "module",
+  "bin": {
+    "pamem": "./bin/pamem.mjs"
+  },
+  "files": [
+    "agents/",
+    "assets/",
+    "bin/",
+    "hooks/",
+    "scripts/",
+    "skills/",
+    "DESIGN.md",
+    "INSTALL.md",
+    "README.md",
+    "SYNC.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "agent-memory",
+    "agents",
+    "bootstrap",
+    "cli",
+    "hooks",
+    "persistent-memory",
+    "sync"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

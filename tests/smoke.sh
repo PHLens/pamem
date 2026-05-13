@@ -32,7 +32,7 @@ assert_no_match() {
 for script in "$ROOT"/scripts/*.sh; do
   bash -n "$script"
 done
-bash -n "$ROOT/scripts/pamem"
+PAMEM=(node "$ROOT/bin/pamem.mjs")
 
 if ! command -v jq >/dev/null 2>&1; then
   fail "jq is required for pamem smoke checks"
@@ -43,6 +43,8 @@ XDG_ROOT="$TMP_ROOT/xdg"
 WORKSPACE="$TMP_ROOT/workspace"
 REMOVE_WORKSPACE="$TMP_ROOT/remove"
 SLOCK_WORKSPACE="$TMP_ROOT/slock"
+PACKAGE_SLOCK_WORKSPACE="$TMP_ROOT/package-slock"
+NPM_PREFIX="$TMP_ROOT/npm-prefix"
 AGENT_ID="smoke-agent"
 AGENT_HOME="$XDG_ROOT/pamem/agents/$AGENT_ID"
 MEMORY_ROOT="$XDG_ROOT/pamem/memory"
@@ -52,7 +54,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$WORKSPACE" "$REMOVE_WORKSPACE" "$SLOCK_WORKSPACE"
+mkdir -p "$WORKSPACE" "$REMOVE_WORKSPACE" "$SLOCK_WORKSPACE" "$PACKAGE_SLOCK_WORKSPACE"
 
 # Workspace bootstrap creates the runtime links, selected config, local task
 # files, and the shared memory skeleton.
@@ -102,6 +104,36 @@ if jq -e '.hooks | has("PreCompact")' "$WORKSPACE/.codex/hooks.json" >/dev/null;
   fail "bootstrap must not install an automatic PreCompact hook"
 fi
 
+# The npm package exposes pamem directly as a bin and includes the runtime
+# files needed by install/launch.
+"${PAMEM[@]}" --help | grep -Fq 'Usage: pamem <command> [options]'
+jq -e '.name == "@phlens/pamem" and .bin.pamem == "./bin/pamem.mjs"' "$ROOT/package.json" >/dev/null
+jq -e '
+  input as $claude |
+  input as $codex |
+  input as $marketplace |
+  .version == "0.7.0" and
+  $claude.version == .version and
+  $codex.version == .version and
+  ($marketplace.plugins[] | select(.name == "pamem").version) == .version
+' \
+  "$ROOT/package.json" \
+  "$ROOT/.claude-plugin/plugin.json" \
+  "$ROOT/.codex-plugin/plugin.json" \
+  "$ROOT/.claude-plugin/marketplace.json" >/dev/null
+PACK_LIST="$(cd "$ROOT" && npm pack --dry-run --json)"
+printf '%s' "$PACK_LIST" | jq -e '.[0].files | map(.path) |
+  index("bin/pamem.mjs") and
+  index("scripts/pamem-backend.sh") and
+  index("scripts/install-pamem.sh") and
+  index("assets/config.toml.template") and
+  index("skills/memory-lint/scripts/memory-lint.sh")
+' >/dev/null
+npm install --global --prefix "$NPM_PREFIX" "$ROOT" >/dev/null
+INSTALLED_PAMEM="$NPM_PREFIX/bin/pamem"
+INSTALLED_PACKAGE_ROOT="$(cd "$(dirname "$(readlink -f "$INSTALLED_PAMEM")")/.." && pwd)"
+"$INSTALLED_PAMEM" --help | grep -Fq 'Usage: pamem <command> [options]'
+
 # Removal only clears managed hook and skill entries. It leaves workspace memory
 # and config in place for later repair.
 XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/install-pamem.sh" "$REMOVE_WORKSPACE" >/dev/null
@@ -115,7 +147,7 @@ for skill in memory-rule memory-lint; do
 done
 
 # Agent-home launch and CLI lifecycle.
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" launch \
   --role wiki \
   --agent-id "$AGENT_ID" >/dev/null
 
@@ -127,42 +159,42 @@ grep -Fq 'mode = "cli"' "$AGENT_HOME/config.toml"
 assert_no_match "$AGENT_HOME/config.toml" 'backend[[:space:]]*='
 
 SESSION_TEST='test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi'
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" launch \
   --role wiki \
   --agent-id "$AGENT_ID" \
   -- sh -c "$SESSION_TEST"
 assert_file "$AGENT_HOME/start-marker"
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" launch \
   --role wiki \
   --agent-id "$AGENT_ID" \
   --resume
 assert_file "$AGENT_HOME/resume-marker"
 
-if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+if XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" launch \
   --role coder \
   --agent-id "$AGENT_ID" >/dev/null 2>&1; then
   fail "pamem launch must reject a role mismatch for an existing agent home"
 fi
 
-CLI_STATUS="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" status --agent-id "$AGENT_ID")"
+CLI_STATUS="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" status --agent-id "$AGENT_ID")"
 grep -Fq "root=$AGENT_HOME" <<<"$CLI_STATUS"
 grep -Fq "runtime=cli" <<<"$CLI_STATUS"
 grep -Fq "memory_repo=$MEMORY_ROOT" <<<"$CLI_STATUS"
 
-CLI_HOOK_JSON="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" hook-json --agent-id "$AGENT_ID")"
+CLI_HOOK_JSON="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" hook-json --agent-id "$AGENT_ID")"
 printf '%s' "$CLI_HOOK_JSON" | jq -e \
   --arg cwd "$AGENT_HOME" \
   --arg current_task "$AGENT_HOME/current-task.md" \
   --arg work_log "$AGENT_HOME/work-log.md" \
   '.cwd == $cwd and .pamem.runtime == "cli" and .pamem.current_task == $current_task and .pamem.work_log == $work_log' >/dev/null
 
-CLI_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --agent-id "$AGENT_ID")"
+CLI_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" context --agent-id "$AGENT_ID")"
 grep -Fq "Persistent memory source:" <<<"$CLI_CONTEXT"
 grep -Fq 'Source: `roles/wiki/wiki.md`' <<<"$CLI_CONTEXT"
 ! grep -Fq 'Source: `roles/base/base.md`' <<<"$CLI_CONTEXT" || fail "base role template must not load at runtime"
 grep -Fq "CLI runtime current task source:" <<<"$CLI_CONTEXT"
 
-CLI_LINT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" lint --agent-id "$AGENT_ID" --json)"
+CLI_LINT="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" lint --agent-id "$AGENT_ID" --json)"
 printf '%s' "$CLI_LINT" | jq -e '
   .status == "ok" and
   .summary.error_count == 0 and
@@ -188,7 +220,7 @@ old workspace sync block
 - existing workspace note
 EOF
 
-XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" launch \
   --runtime slock \
   --role coder \
   --workspace "$SLOCK_WORKSPACE" >/dev/null
@@ -204,26 +236,45 @@ grep -Fq '# Existing Slock Agent' "$SLOCK_WORKSPACE/MEMORY.md"
 grep -Fq 'existing workspace note' "$SLOCK_WORKSPACE/MEMORY.md"
 assert_no_match "$SLOCK_WORKSPACE/MEMORY.md" '^## (Memory Governance|Sync Trigger)$|old workspace governance block|old workspace sync block'
 
-SLOCK_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --workspace "$SLOCK_WORKSPACE")"
+SLOCK_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" context --workspace "$SLOCK_WORKSPACE")"
 grep -Fq "runtime=slock" <<<"$SLOCK_CONTEXT"
 grep -Fq 'Source: `roles/coder/coder.md`' <<<"$SLOCK_CONTEXT"
 ! grep -Fq 'Source: `roles/base/base.md`' <<<"$SLOCK_CONTEXT" || fail "base role template must not load in Slock context"
 grep -Fq "Slock runtime current task source:" <<<"$SLOCK_CONTEXT"
 grep -Fq "Slock runtime work log source:" <<<"$SLOCK_CONTEXT"
 
-SLOCK_LINT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" lint --workspace "$SLOCK_WORKSPACE" --json)"
+SLOCK_LINT="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" lint --workspace "$SLOCK_WORKSPACE" --json)"
 printf '%s' "$SLOCK_LINT" | jq -e '
   .status == "ok" and
   .summary.error_count == 0 and
   .config.runtime_mode == "slock"
 ' >/dev/null
 
+# The npm-installed CLI should reuse the same onboarding path for Slock
+# workspaces, while linking runtime files from the installed package payload.
+XDG_DATA_HOME="$XDG_ROOT" "$INSTALLED_PAMEM" launch \
+  --runtime slock \
+  --role reviewer \
+  --workspace "$PACKAGE_SLOCK_WORKSPACE" >/dev/null
+
+assert_file "$PACKAGE_SLOCK_WORKSPACE/.pamem/config.toml"
+assert_file "$PACKAGE_SLOCK_WORKSPACE/MEMORY.md"
+assert_file "$PACKAGE_SLOCK_WORKSPACE/notes/current-task.md"
+assert_file "$PACKAGE_SLOCK_WORKSPACE/notes/work-log.md"
+assert_link_target "$PACKAGE_SLOCK_WORKSPACE/.pamem/scripts" "$INSTALLED_PACKAGE_ROOT/scripts"
+assert_link_target "$PACKAGE_SLOCK_WORKSPACE/.pamem/assets" "$INSTALLED_PACKAGE_ROOT/assets"
+grep -Fq 'default_profile = "reviewer"' "$PACKAGE_SLOCK_WORKSPACE/.pamem/config.toml"
+grep -Fq 'mode = "slock"' "$PACKAGE_SLOCK_WORKSPACE/.pamem/config.toml"
+PACKAGE_SLOCK_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" "$INSTALLED_PAMEM" context --workspace "$PACKAGE_SLOCK_WORKSPACE")"
+grep -Fq "runtime=slock" <<<"$PACKAGE_SLOCK_CONTEXT"
+grep -Fq 'Source: `roles/reviewer/reviewer.md`' <<<"$PACKAGE_SLOCK_CONTEXT"
+
 git -C "$MEMORY_ROOT" checkout -b smoke-memory-pr >/dev/null 2>&1
 printf '\n## Smoke finding\n' >> "$MEMORY_ROOT/roles/coder/experience.md"
 git -C "$MEMORY_ROOT" add roles/coder/experience.md
 git -C "$MEMORY_ROOT" commit -m "Smoke role memory PR" >/dev/null
 
-PR_CHECK_OK="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" pr-check \
+PR_CHECK_OK="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" pr-check \
   --workspace "$SLOCK_WORKSPACE" \
   --head HEAD \
   --target roles/coder/ \
@@ -239,7 +290,7 @@ git -C "$MEMORY_ROOT" add shared/preferences.md
 git -C "$MEMORY_ROOT" commit -m "Smoke guarded memory PR" >/dev/null
 
 PR_CHECK_FAIL_JSON="$TMP_ROOT/pr-check-fail.json"
-if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" pr-check \
+if XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" pr-check \
   --workspace "$SLOCK_WORKSPACE" \
   --head HEAD \
   --target roles/coder/ \
@@ -251,7 +302,7 @@ jq -e '
   any(.findings[]; .rule == "MP002" and .path == "shared/preferences.md")
 ' "$PR_CHECK_FAIL_JSON" >/dev/null
 
-PR_CHECK_GUARDED_OK="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" pr-check \
+PR_CHECK_GUARDED_OK="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" pr-check \
   --workspace "$SLOCK_WORKSPACE" \
   --head HEAD \
   --target roles/coder/ \
@@ -264,11 +315,11 @@ printf '%s' "$PR_CHECK_GUARDED_OK" | jq -e '
 ' >/dev/null
 git -C "$MEMORY_ROOT" checkout main >/dev/null 2>&1
 
-if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
-  fail "pamem start must reject runtime.mode=slock"
+if XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" start --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
+  fail "legacy start command must not be public"
 fi
 
-if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" launch \
+if XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" launch \
   --runtime cli \
   --role coder \
   --workspace "$SLOCK_WORKSPACE" >/dev/null 2>&1; then
@@ -277,14 +328,14 @@ fi
 
 # A missing shared memory entry is reported, not silently recreated at startup.
 rm -f "$MEMORY_ROOT/MEMORY.md"
-MISSING_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" context --agent-id "$AGENT_ID")"
+MISSING_CONTEXT="$(XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" context --agent-id "$AGENT_ID")"
 grep -Fq "Warning: configured memory entry file is missing or empty" <<<"$MISSING_CONTEXT"
 if grep -Fq "Load and follow this persistent memory index" <<<"$MISSING_CONTEXT"; then
   fail "missing memory entry must not be injected as loaded memory"
 fi
 
 sed -i 's/mode = "cli"/mode = "invalid"/' "$AGENT_HOME/config.toml"
-if XDG_DATA_HOME="$XDG_ROOT" bash "$ROOT/scripts/pamem" lint --agent-id "$AGENT_ID" --json >/dev/null 2>&1; then
+if XDG_DATA_HOME="$XDG_ROOT" "${PAMEM[@]}" lint --agent-id "$AGENT_ID" --json >/dev/null 2>&1; then
   fail "memory lint must fail when runtime.mode is invalid"
 fi
 
