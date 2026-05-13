@@ -258,6 +258,9 @@ old workspace sync block
   assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
   assertNoMatch(join(slockWorkspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '# Existing Slock Agent');
+  assertIncludes(join(slockWorkspace, 'MEMORY.md'), '## Memory Routing');
+  assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'Durable memory is loaded from the configured pamem shared memory repo.');
+  assertIncludes(join(slockWorkspace, 'MEMORY.md'), '.pamem/config.toml');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'existing workspace note');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace governance block');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace sync block');
@@ -285,6 +288,8 @@ old workspace sync block
   assertLinkTarget(join(packageSlockWorkspace, '.pamem', 'assets'), join(installedPackageRoot, 'assets'));
   assertIncludes(join(packageSlockWorkspace, '.pamem', 'config.toml'), 'default_profile = "reviewer"');
   assertIncludes(join(packageSlockWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
+  assertIncludes(join(packageSlockWorkspace, 'MEMORY.md'), '## Memory Routing');
+  assertIncludes(join(packageSlockWorkspace, 'MEMORY.md'), 'Durable memory is loaded from the configured pamem shared memory repo.');
   const packageSlockContext = run(installedPamem, ['context', '--workspace', packageSlockWorkspace], { env }).stdout;
   assert.match(packageSlockContext, /runtime=slock/);
   assert.match(packageSlockContext, /Source: `roles\/reviewer\/reviewer.md`/);
