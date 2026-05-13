@@ -10,6 +10,26 @@ For the model and boundaries, see [DESIGN.md](DESIGN.md) and [SYNC.md](SYNC.md).
 - `jq`
 - `git`
 - GNU `realpath`
+- Node.js 18+ for the standalone npm/npx CLI
+
+## Install CLI
+
+Install the standalone CLI package:
+
+```bash
+npm install -g @phlens/pamem
+```
+
+Or run it without a global install:
+
+```bash
+npx @phlens/pamem --help
+```
+
+The package exposes the `pamem` command directly through npm's bin linking. It
+does not require a separate `install-cli` command or shell rc modification.
+Use `pamem install` to install or repair runtime/plugin files, then
+`pamem launch` to start a role/runtime instance.
 
 ## Launch An Agent
 

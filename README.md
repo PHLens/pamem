@@ -10,7 +10,25 @@ It provides:
 - a packaged sync executor agent definition
 - sync request handoff and executor policy
 
-## Install
+## Install CLI
+
+Install the standalone CLI package:
+
+```bash
+npm install -g @phlens/pamem
+```
+
+Or run it without a global install:
+
+```bash
+npx @phlens/pamem --help
+```
+
+The package exposes the `pamem` command directly. Use `pamem install` to
+install or repair runtime/plugin files, then `pamem launch` to start a
+role/runtime instance.
+
+## Plugin Install
 
 Claude Code:
 
@@ -64,7 +82,8 @@ durable memory is shared.
 - [DESIGN.md](DESIGN.md): layers, precedence, and runtime model
 - [SYNC.md](SYNC.md): sync request handoff and sync executor boundaries
 - `agents/sync-executor.md`: packaged sync executor agent definition
-- `scripts/pamem`: human-facing CLI
+- `bin/pamem.mjs`: human-facing npm CLI
+- `scripts/pamem-backend.sh`: internal command backend
 - `scripts/onboard-pamem.sh`: internal onboarding helper
 - `scripts/pamem-cli.sh`: internal CLI runtime helper
 - `scripts/memory-pr-check.sh`: read-only memory PR scope and lint check
