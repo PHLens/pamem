@@ -7,10 +7,10 @@ For the model and boundaries, see [DESIGN.md](DESIGN.md) and [SYNC.md](SYNC.md).
 ## Prerequisites
 
 - `bash`
-- `jq`
 - `git`
-- GNU `realpath`
 - Node.js 18+ for the standalone npm/npx CLI
+- `jq` for the remaining shell-based runtime, hook/context, lint, and PR-check helpers
+- GNU `realpath` for the remaining shell-based runtime helpers
 
 ## Install CLI
 
@@ -100,12 +100,20 @@ pamem launch --role coder --agent-id coder-local --resume
 ```
 
 Without a launcher, `status`, `hook-json`, and `context` are useful for
-wrappers and debugging:
+runtime integration and debugging:
 
 ```bash
 pamem status --agent-id coder-local
 pamem hook-json --agent-id coder-local
 pamem context --agent-id coder-local
+```
+
+To create or deliberately replace config without starting a runtime, use
+`pamem onboard`:
+
+```bash
+pamem onboard /path/to/workspace --profile coder --runtime slock
+pamem onboard /path/to/agent-home --agent-home --profile wiki --runtime cli --force
 ```
 
 ## Slock Runtime
@@ -138,12 +146,12 @@ workspace keeps its own copy.
 
 ## Bootstrap And Repair
 
-The lower-level scripts are still available when a wrapper needs them:
+Use the public CLI for bootstrap and cleanup:
 
 ```bash
-scripts/install-pamem.sh <workspace>
-scripts/repair-pamem.sh <workspace>
-scripts/remove-pamem.sh <workspace>
+pamem install <workspace>
+pamem repair <workspace>
+pamem remove <workspace>
 ```
 
 Install/repair creates or refreshes:
@@ -156,7 +164,7 @@ Install/repair creates or refreshes:
 - the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode
 
-`remove-pamem.sh` removes managed Codex hook and skill entries. It leaves memory
+`pamem remove` removes managed Codex hook and skill entries. It leaves memory
 files and config in place so the workspace can be repaired later.
 
 ## Validate
@@ -164,7 +172,7 @@ files and config in place so the workspace can be repaired later.
 Run the repo smoke test:
 
 ```bash
-bash tests/smoke.sh
+npm test
 ```
 
 Run memory lint for a configured agent or workspace:

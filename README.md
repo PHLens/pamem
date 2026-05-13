@@ -82,9 +82,9 @@ durable memory is shared.
 - [DESIGN.md](DESIGN.md): layers, precedence, and runtime model
 - [SYNC.md](SYNC.md): sync request handoff and sync executor boundaries
 - `agents/sync-executor.md`: packaged sync executor agent definition
-- `bin/pamem.mjs`: human-facing npm CLI
-- `scripts/pamem-backend.sh`: internal command backend
-- `scripts/onboard-pamem.sh`: internal onboarding helper
+- `bin/pamem.mjs`: human-facing npm CLI entrypoint
+- `lib/`: Node CLI command, config, onboarding, install/remove, and process helpers
 - `scripts/pamem-cli.sh`: internal CLI runtime helper
 - `scripts/memory-pr-check.sh`: read-only memory PR scope and lint check
 - `skills/memory-lint/scripts/memory-lint.sh`: read-only lint helper
+- `tests/smoke.test.mjs`: end-to-end Node smoke test
