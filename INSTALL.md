@@ -137,20 +137,25 @@ To work in a project repo while keeping the same stable pamem agent home:
 pamem launch --role coder --agent-id coder-local -- bash -lc 'cd /path/to/project && codex'
 ```
 
-Without a launcher, `status`, `hook-json`, and `context` are useful for
-runtime integration and debugging:
+Without a launcher, `status`, `hook-json`, and `context` are useful for runtime
+integration and debugging. `skill` inspects per-instance skill visibility
+without changing it:
 
 ```bash
+pamem list
 pamem status --agent-id coder-local
 pamem hook-json --agent-id coder-local
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/ --json
+pamem skill list --agent-id coder-local
+pamem skill inspect --agent-id coder-local --json
+pamem skill verify --agent-id coder-local
 ```
 
-`status`, `hook-json`, launch state, and resume dispatch are handled by Node.
-`context` still feeds the lightweight SessionStart shell hook so runtime startup
-loading stays shared with Codex/Slock hook execution.
+`status`, `hook-json`, launch state, resume dispatch, and `skill` inspection
+are handled by Node. `context` still feeds the lightweight SessionStart shell
+hook so runtime startup loading stays shared with Codex/Slock hook execution.
 
 To create or deliberately replace config without starting a runtime, use
 `pamem onboard`:
@@ -205,6 +210,7 @@ Install/repair creates or refreshes:
 - `.codex/hooks.json`
 - `.codex/skills/memory-rule`
 - `.codex/skills/memory-lint`
+- `.codex/skills/sync-request`
 - the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode
 
@@ -224,4 +230,11 @@ Run memory lint for a configured agent or workspace:
 ```bash
 pamem lint --agent-id coder-local --json
 pamem lint --workspace <slock-agent-workspace> --json
+```
+
+Inspect skill visibility for a configured agent or workspace:
+
+```bash
+pamem skill list --agent-id coder-local
+pamem skill verify --workspace <slock-agent-workspace> --json
 ```

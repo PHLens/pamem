@@ -59,9 +59,13 @@ Resume and inspect the runtime:
 
 ```bash
 pamem launch --role coder --agent-id coder-local --resume
+pamem list
+pamem status --agent-id coder-local
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
+pamem skill list --agent-id coder-local
+pamem skill verify --agent-id coder-local --json
 ```
 
 For Slock workspaces, use the workspace anchor explicitly:
@@ -104,7 +108,7 @@ durable memory is shared.
 - [SYNC.md](SYNC.md): sync request handoff and sync executor boundaries
 - `agents/sync-executor.md`: packaged sync executor agent definition
 - `bin/pamem.mjs`: human-facing npm CLI entrypoint
-- `lib/`: Node CLI command, config, onboarding, runtime state, install/remove, and process helpers
+- `lib/`: Node CLI command, config, onboarding, runtime state, skill inspection, install/remove, and process helpers
 - `scripts/memory-session-start.sh`: lightweight SessionStart hook used by runtimes and `pamem context`
 - `scripts/memory-pre-compact.sh`: lightweight explicit PreCompact helper
 - `scripts/memory-pr-check.sh`: read-only memory PR scope and lint check
