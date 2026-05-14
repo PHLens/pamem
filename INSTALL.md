@@ -138,24 +138,25 @@ pamem launch --role coder --agent-id coder-local -- bash -lc 'cd /path/to/projec
 ```
 
 Without a launcher, `status`, `hook-json`, and `context` are useful for runtime
-integration and debugging. `skill` inspects per-instance skill visibility
-without changing it:
+integration and debugging:
 
 ```bash
 pamem list
+pamem status --agent-id coder-local --json
 pamem status --agent-id coder-local
 pamem hook-json --agent-id coder-local
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/ --json
-pamem skill list --agent-id coder-local
-pamem skill inspect --agent-id coder-local --json
-pamem skill verify --agent-id coder-local
 ```
 
-`status`, `hook-json`, launch state, resume dispatch, and `skill` inspection
-are handled by Node. `context` still feeds the lightweight SessionStart shell
-hook so runtime startup loading stays shared with Codex/Slock hook execution.
+`status --json` is the stable read-only interface for tools that need the configured
+agent home or Slock workspace path without taking over memory responsibilities.
+Agent-id resolution checks configured CLI homes and local Slock agent
+workspaces.
+`status`, `hook-json`, launch state, and resume dispatch are handled by Node.
+`context` still feeds the lightweight SessionStart shell hook so runtime startup
+loading stays shared with Codex/Slock hook execution.
 
 To create or deliberately replace config without starting a runtime, use
 `pamem onboard`:
@@ -230,11 +231,4 @@ Run memory lint for a configured agent or workspace:
 ```bash
 pamem lint --agent-id coder-local --json
 pamem lint --workspace <slock-agent-workspace> --json
-```
-
-Inspect skill visibility for a configured agent or workspace:
-
-```bash
-pamem skill list --agent-id coder-local
-pamem skill verify --workspace <slock-agent-workspace> --json
 ```

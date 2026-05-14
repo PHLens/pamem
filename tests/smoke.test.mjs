@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -40,16 +41,19 @@ test('pamem smoke checks', () => {
 });
 
 function runSmoke(tmpRoot) {
+  const homeRoot = join(tmpRoot, 'home');
   const xdgRoot = join(tmpRoot, 'xdg');
   const workspace = join(tmpRoot, 'workspace');
   const removeWorkspace = join(tmpRoot, 'remove');
-  const slockWorkspace = join(tmpRoot, 'slock');
+  const slockAgentsRoot = join(homeRoot, '.slock', 'agents');
+  const slockAgentId = 'slock-smoke-agent';
+  const slockWorkspace = join(slockAgentsRoot, slockAgentId);
   const packageSlockWorkspace = join(tmpRoot, 'package-slock');
   const npmPrefix = join(tmpRoot, 'npm-prefix');
   const agentId = 'smoke-agent';
   const agentHome = join(xdgRoot, 'pamem', 'agents', agentId);
   const memoryRoot = join(xdgRoot, 'pamem', 'memory');
-  const env = { XDG_DATA_HOME: xdgRoot };
+  const env = { HOME: homeRoot, XDG_DATA_HOME: xdgRoot };
 
   for (const dir of [workspace, removeWorkspace, slockWorkspace, packageSlockWorkspace]) {
     mkdirSync(dir, { recursive: true });
@@ -128,7 +132,6 @@ function runSmoke(tmpRoot) {
     'lib/install.mjs',
     'lib/onboard.mjs',
     'lib/runtime.mjs',
-    'lib/skills.mjs',
     'assets/config.toml.template',
     'scripts/memory-session-start.sh',
     'scripts/memory-pre-compact.sh',
@@ -136,7 +139,7 @@ function runSmoke(tmpRoot) {
   ]) {
     assert.ok(packFiles.has(file), `npm pack should include ${file}`);
   }
-  for (const file of ['scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
+  for (const file of ['lib/skills.mjs', 'scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
     assert.equal(packFiles.has(file), false, `npm pack should not include removed script ${file}`);
   }
 
@@ -217,15 +220,34 @@ function runSmoke(tmpRoot) {
   assert.notEqual(pamemTry(['launch', '--role', 'coder', '--agent-id', agentId], { env }).status, 0);
 
   const cliList = pamemRun(['list'], { env }).stdout;
-  assert.match(cliList, /agent_id\truntime\trole\thome/);
-  assert.match(cliList, new RegExp(`${escapeRegExp(agentId)}\\tcli\\twiki\\t${escapeRegExp(agentHome)}`));
+  assert.match(cliList, /agent_id\truntime\trole\tkind\thome/);
+  assert.match(cliList, new RegExp(`${escapeRegExp(agentId)}\\tcli\\twiki\\tagent-home\\t${escapeRegExp(agentHome)}`));
   const cliListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
   assert.equal(cliListJson.agents_dir, join(xdgRoot, 'pamem', 'agents'));
+  assert.equal(cliListJson.slock_agents_dir, slockAgentsRoot);
   assert.deepEqual(cliListJson.agents.map((agent) => agent.agent_id), [agentId]);
   assert.equal(cliListJson.agents[0].runtime, 'cli');
   assert.equal(cliListJson.agents[0].role, 'wiki');
+  assert.equal(cliListJson.agents[0].kind, 'agent-home');
   assert.equal(cliListJson.agents[0].home, agentHome);
   assert.equal(cliListJson.agents[0].config, join(agentHome, 'config.toml'));
+
+  const cliStatusJson = JSON.parse(pamemRun(['status', '--agent-id', agentId, '--json'], { env }).stdout);
+  assert.equal(cliStatusJson.status, 'ok');
+  assert.equal(cliStatusJson.kind, 'agent-home');
+  assert.equal(cliStatusJson.root, agentHome);
+  assert.equal(cliStatusJson.runtime, 'cli');
+  assert.equal(cliStatusJson.role, 'wiki');
+  assert.equal(cliStatusJson.agent_id, agentId);
+  assert.equal(cliStatusJson.config, join(agentHome, 'config.toml'));
+  assert.equal(cliStatusJson.memory_repo, memoryRoot);
+  assert.equal(cliStatusJson.memory_entry, join(memoryRoot, 'MEMORY.md'));
+  assert.equal(cliStatusJson.current_task, join(agentHome, 'current-task.md'));
+  assert.equal(cliStatusJson.work_log, join(agentHome, 'work-log.md'));
+  assert.equal(cliStatusJson.agent_home, agentHome);
+  assert.equal(cliStatusJson.local_dir, agentHome);
+  assert.equal(cliStatusJson.session_file, join(agentHome, 'session.json'));
+  assert.deepEqual(cliStatusJson.last_command, ['sh', '-c', sessionTest]);
 
   const cliStatus = pamemRun(['status', '--agent-id', agentId], { env }).stdout;
   assert.match(cliStatus, new RegExp(`root=${escapeRegExp(agentHome)}`));
@@ -267,32 +289,14 @@ function runSmoke(tmpRoot) {
     applied_email: '',
   });
 
-  const cliSkillList = pamemRun(['skill', 'list', '--agent-id', agentId], { env }).stdout;
-  assert.match(cliSkillList, /status=ok/);
-  assert.match(cliSkillList, /codex_skills=memory-lint,memory-rule,sync-request/);
-  assert.match(cliSkillList, /pamem_runtime=present/);
-
-  const cliSkillInspect = JSON.parse(pamemRun(['skill', 'inspect', '--agent-id', agentId, '--json'], { env }).stdout);
-  assert.equal(cliSkillInspect.status, 'ok');
-  assert.equal(cliSkillInspect.target.type, 'agent-id');
-  assert.equal(cliSkillInspect.target.value, agentId);
-  assert.equal(cliSkillInspect.pamem_runtime.kind, 'agent-home');
-  assert.equal(cliSkillInspect.pamem_runtime.codex.codex_hooks_enabled, true);
-  assert.equal(cliSkillInspect.pamem_runtime.codex.session_start_hook, true);
-  assert.deepEqual(cliSkillInspect.codex.skills.map((skill) => skill.name), ['memory-lint', 'memory-rule', 'sync-request']);
-  assert.equal(cliSkillInspect.codex.skills.every((skill) => skill.kind === 'symlink' && skill.managed && skill.status === 'present'), true);
-  assert.equal(cliSkillInspect.findings.length, 0);
-
-  pamemRun(['skill', 'verify', '--agent-id', agentId, '--json'], { env });
-
+  const missingSkillPath = join(agentHome, '.codex', 'skills', 'memory-rule');
   rmSync(join(agentHome, '.codex', 'skills', 'memory-rule'), { force: true });
-  const missingSkill = pamemTry(['skill', 'verify', '--agent-id', agentId, '--json'], { env });
-  assert.notEqual(missingSkill.status, 0);
-  const missingSkillJson = JSON.parse(missingSkill.stdout);
-  assert.equal(missingSkillJson.status, 'error');
-  assert.ok(missingSkillJson.findings.some((finding) => finding.rule === 'SKILL_MANAGED_MISSING' && finding.path.endsWith('/memory-rule')));
+  assertMissing(missingSkillPath, 'removed managed skill link should be absent before repair');
   pamemRun(['repair', agentHome, '--agent-home'], { env });
-  assert.equal(JSON.parse(pamemRun(['skill', 'verify', '--agent-id', agentId, '--json'], { env }).stdout).status, 'ok');
+  assertLinkTarget(missingSkillPath, join(root, 'skills', 'memory-rule'));
+  const removedSkillCommand = pamemTry(['skill', 'list', '--agent-id', agentId], { env });
+  assert.notEqual(removedSkillCommand.status, 0);
+  assert.match(removedSkillCommand.stderr, /unknown pamem command: skill/);
 
   // Slock mode keeps task state in the Slock workspace and loads shared memory
   // through the selected profile.
@@ -311,13 +315,14 @@ old workspace sync block
 - existing workspace note
 `);
 
-  pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--workspace', slockWorkspace], { env });
+  pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--agent-id', slockAgentId, '--workspace', slockWorkspace], { env });
   assertFile(join(slockWorkspace, '.pamem', 'config.toml'));
   assertFile(join(slockWorkspace, 'MEMORY.md'));
   assertFile(join(slockWorkspace, 'notes', 'current-task.md'));
   assertFile(join(slockWorkspace, 'notes', 'work-log.md'));
   assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), 'default_profile = "coder"');
   assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
+  assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), `agent_id = "${slockAgentId}"`);
   assertNoMatch(join(slockWorkspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '# Existing Slock Agent');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '## Memory Routing');
@@ -339,6 +344,26 @@ old workspace sync block
   assert.equal(slockLint.summary.error_count, 0);
   assert.equal(slockLint.config.runtime_mode, 'slock');
 
+  const slockStatusJson = JSON.parse(pamemRun(['status', '--workspace', slockWorkspace, '--json'], { env }).stdout);
+  assert.equal(slockStatusJson.status, 'ok');
+  assert.equal(slockStatusJson.kind, 'workspace');
+  assert.equal(slockStatusJson.root, slockWorkspace);
+  assert.equal(slockStatusJson.runtime, 'slock');
+  assert.equal(slockStatusJson.role, 'coder');
+  assert.equal(slockStatusJson.agent_id, slockAgentId);
+  assert.equal(slockStatusJson.memory_repo, memoryRoot);
+  assert.equal(slockStatusJson.current_task, join(slockWorkspace, 'notes', 'current-task.md'));
+  assert.equal(slockStatusJson.work_log, join(slockWorkspace, 'notes', 'work-log.md'));
+  assert.equal(slockStatusJson.agent_home, join(xdgRoot, 'pamem', 'agents', slockStatusJson.agent_id));
+  const slockStatusByIdJson = JSON.parse(pamemRun(['status', '--agent-id', slockAgentId, '--json'], { env }).stdout);
+  assert.equal(slockStatusByIdJson.root, slockWorkspace);
+  assert.equal(slockStatusByIdJson.kind, 'workspace');
+  const slockStatusById = pamemRun(['status', '--agent-id', slockAgentId], { env }).stdout;
+  assert.match(slockStatusById, new RegExp(`root=${escapeRegExp(slockWorkspace)}`));
+  const slockListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
+  assert.deepEqual(slockListJson.agents.map((agent) => agent.agent_id), [agentId, slockAgentId]);
+  assert.equal(slockListJson.agents.find((agent) => agent.agent_id === slockAgentId)?.kind, 'workspace');
+
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_name = ""', 'author_name = "Memory Bot"');
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_email = ""', 'author_email = "memory-bot@example.invalid"');
   pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--workspace', slockWorkspace], { env });
@@ -357,14 +382,6 @@ old workspace sync block
   assert.equal(slockAuthorMismatchJson.status, 'error');
   assert.ok(slockAuthorMismatchJson.findings.some((finding) => finding.rule === 'ML010' && /author email/.test(finding.title)));
   run('git', ['-C', memoryRoot, 'config', '--local', 'user.email', 'memory-bot@example.invalid']);
-
-  const slockSkillInspect = JSON.parse(pamemRun(['skill', 'inspect', '--workspace', slockWorkspace, '--json'], { env }).stdout);
-  assert.equal(slockSkillInspect.status, 'ok');
-  assert.equal(slockSkillInspect.target.type, 'workspace');
-  assert.equal(slockSkillInspect.pamem_runtime.kind, 'workspace');
-  assert.equal(slockSkillInspect.pamem_runtime.workspace_files.pamem_dir, true);
-  assert.equal(slockSkillInspect.pamem_runtime.workspace_files.memory_md, true);
-  assert.equal(slockSkillInspect.pamem_runtime.codex.session_start_hook, true);
 
   // The npm-installed CLI should reuse the same onboarding path for Slock
   // workspaces, while linking runtime files from the installed package payload.
@@ -529,6 +546,7 @@ function repoTextFiles() {
   return run('git', ['ls-files'], { cwd: root }).stdout
     .split(/\r?\n/)
     .filter(Boolean)
+    .filter((file) => existsSync(join(root, file)) && lstatSync(join(root, file)).isFile())
     .filter((file) => !file.endsWith('package-lock.json'))
     .filter((file) => !file.endsWith('.png'))
     .filter((file) => !file.endsWith('.jpg'))
