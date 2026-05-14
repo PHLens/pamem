@@ -28,6 +28,12 @@ entry_file = "MEMORY.md"
 remote = ""
 ref = "main"
 
+[memory_repo.git]
+# Optional repo-local git author applied to the configured memory repo by install/repair/onboard/launch.
+# Leave both empty to use the repo or environment default.
+author_name = ""
+author_email = ""
+
 [governance]
 config_owner = "human"
 generated_by = "onboarding"

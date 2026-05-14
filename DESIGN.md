@@ -210,7 +210,7 @@ the configured memory repo rather than mirroring shared or role files into the w
 The Slock task board and threads remain primary; `current-task.md` is a thin
 cache for the active pointer, and `work-log.md` is local completed-work history.
 Multiple Slock agents naturally get separate copies under
-`~/.slock/agents/<agent-id>`.
+the Slock-managed agent workspace.
 
 ### Local Convenience, Shared Infrastructure
 
@@ -278,11 +278,20 @@ layers.
 
 When an agent home uses `config.toml`, or a workspace uses `.pamem/config.toml`,
 that file is the local source of truth for profiles, memory repo location,
-sharing mode, load targets, write targets, and sync policy. It belongs to the
-agent home or workspace, not inside the shared memory repo itself. Onboarding can
-seed it from `assets/config.toml.template`, but ordinary task agents should
-treat it as read-only and route changes through the config owner or onboarding
-review.
+sharing mode, load targets, write targets, sync policy, and optional
+`[memory_repo.git]` author identity. It belongs to the agent home or workspace,
+not inside the shared memory repo itself. Onboarding can seed it from
+`assets/config.toml.template`, but ordinary task agents should treat it as
+read-only and route changes through the config owner or onboarding review.
+
+When `[memory_repo.git].author_name` and `author_email` are set, pamem applies
+them to the configured memory repo's repo-local `git config user.name` and
+`user.email` during install, repair, launch, or onboard. The config remains the
+source of truth; the git config is execution state that should be repairable.
+The author fields must be configured together.
+When pamem initializes a new shared memory repo and either the sync remote or
+git author is still unset, the CLI prints a reminder to provide the missing
+`[memory_repo.sync].remote` and `[memory_repo.git]` values.
 
 ### Memory Lint
 
@@ -290,7 +299,9 @@ review.
 `config.toml` or workspace-local `.pamem/config.toml`, resolves the configured
 memory repo, and reports issues such as missing profile load targets, broken
 `MEMORY.md` pointers, invalid runtime mode, oversized entry files, or an
-accidental `.pamem/config.toml` committed inside the memory repo.
+accidental `.pamem/config.toml` committed inside the memory repo. If
+`[memory_repo.git]` author identity is configured, lint also verifies that the
+repo-local git author is applied.
 
 It must not run automatically from startup or compact hooks, and it must not repair, promote, sync, or rewrite memory files.
 

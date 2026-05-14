@@ -271,6 +271,46 @@ case "$RUNTIME_MODE" in
     ;;
 esac
 
+GIT_AUTHOR_NAME="$(pamem_memory_repo_git_author_name "$WORKSPACE")"
+GIT_AUTHOR_EMAIL="$(pamem_memory_repo_git_author_email "$WORKSPACE")"
+GIT_CONFIG_NAME=""
+GIT_CONFIG_EMAIL=""
+if [ -n "$GIT_AUTHOR_NAME" ] || [ -n "$GIT_AUTHOR_EMAIL" ]; then
+  pamem_require_command git "memory-lint requires git when memory_repo.git author config is set."
+  if [ -z "$GIT_AUTHOR_NAME" ] || [ -z "$GIT_AUTHOR_EMAIL" ]; then
+    add_finding "error" "ML009" "$(repo_display_path "$CONFIG_PATH")" "" \
+      "Memory repo git author config is incomplete" \
+      "memory_repo.git author_name and author_email must be configured together." \
+      "author_name=$GIT_AUTHOR_NAME author_email=$GIT_AUTHOR_EMAIL" \
+      "fix-config"
+  else
+    if git -C "$MEMORY_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      GIT_CONFIG_NAME="$(git -C "$MEMORY_ROOT" config --local user.name || true)"
+      GIT_CONFIG_EMAIL="$(git -C "$MEMORY_ROOT" config --local user.email || true)"
+      if [ "$GIT_CONFIG_NAME" != "$GIT_AUTHOR_NAME" ]; then
+        add_finding "error" "ML010" "$(repo_display_path "$CONFIG_PATH")" "" \
+          "Memory repo git author name is not applied" \
+          "Run pamem install, repair, launch, or onboard so memory_repo.git.author_name is applied to the repo-local git config." \
+          "expected=$GIT_AUTHOR_NAME actual=$GIT_CONFIG_NAME" \
+          "repair-workspace"
+      fi
+      if [ "$GIT_CONFIG_EMAIL" != "$GIT_AUTHOR_EMAIL" ]; then
+        add_finding "error" "ML010" "$(repo_display_path "$CONFIG_PATH")" "" \
+          "Memory repo git author email is not applied" \
+          "Run pamem install, repair, launch, or onboard so memory_repo.git.author_email is applied to the repo-local git config." \
+          "expected=$GIT_AUTHOR_EMAIL actual=$GIT_CONFIG_EMAIL" \
+          "repair-workspace"
+      fi
+    else
+      add_finding "error" "ML010" "$(repo_display_path "$CONFIG_PATH")" "" \
+        "Configured memory repo is not a git work tree" \
+        "memory_repo.git author config can only be applied to a git work tree." \
+        "$MEMORY_ROOT" \
+        "repair-memory-repo"
+    fi
+  fi
+fi
+
 NESTED_CONFIG="$MEMORY_ROOT/.pamem/config.toml"
 if [ -s "$NESTED_CONFIG" ]; then
   add_finding "error" "ML003" "$(repo_display_path "$NESTED_CONFIG")" "" \
@@ -387,6 +427,10 @@ if [ "$JSON" -eq 1 ]; then
     --arg entry_file "$ENTRY_FILE_RAW" \
     --arg default_profile "$DEFAULT_PROFILE" \
     --arg runtime_mode "$RUNTIME_MODE" \
+    --arg git_author_name "$GIT_AUTHOR_NAME" \
+    --arg git_author_email "$GIT_AUTHOR_EMAIL" \
+    --arg git_config_name "$GIT_CONFIG_NAME" \
+    --arg git_config_email "$GIT_CONFIG_EMAIL" \
     --argjson profiles "$PROFILE_NAMES_JSON" \
     --argjson findings "$FINDINGS_JSON" \
     --argjson error_count "$ERROR_COUNT" \
@@ -402,6 +446,12 @@ if [ "$JSON" -eq 1 ]; then
         entry_file: $entry_file,
         default_profile: $default_profile,
         runtime_mode: $runtime_mode,
+        git_author: {
+          name: $git_author_name,
+          email: $git_author_email,
+          applied_name: $git_config_name,
+          applied_email: $git_config_email
+        },
         profiles: $profiles
       },
       summary: {

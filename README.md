@@ -67,8 +67,23 @@ pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 For Slock workspaces, use the workspace anchor explicitly:
 
 ```bash
-pamem launch --runtime slock --role coder --workspace /root/.slock/agents/<slock-agent-id>
+pamem launch --runtime slock --role coder --workspace <slock-agent-workspace>
 ```
+
+To pin commits in the configured memory repo to a specific identity, configure
+the repo-local git author during onboarding or launch:
+
+```bash
+pamem onboard /path/to/workspace --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
+pamem launch --role coder --agent-id coder-local --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
+```
+
+Pamem stores this in `[memory_repo.git]`, applies it to the configured memory
+repo's local `git config user.name/user.email`, and `pamem lint` reports a
+mismatch if the repo-local config drifts.
+When pamem initializes a new shared memory repo without a configured sync
+remote or git author, the CLI prints a follow-up reminder with the relevant
+flags and config fields.
 
 In Slock mode, `pamem launch` binds or repairs the existing Slock workspace; it
 does not create or start the Slock agent process. `MEMORY.md` stays a thin

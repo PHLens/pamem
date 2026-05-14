@@ -4,7 +4,7 @@
   "description": "Persistent agent memory runtime CLI with shared governance, hooks, and workspace bootstrap.",
   "license": "MIT",
   "author": {
-    "name": "Percy Lee"
+    "name": "Pamem Contributors"
   },
   "type": "module",
   "bin": {

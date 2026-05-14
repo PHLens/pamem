@@ -204,9 +204,9 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 ## Profile Configuration
 
-When local `config.toml` or `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, and sync policy. `MEMORY.md` should point to it instead of duplicating its details.
+When local `config.toml` or `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, sync policy, and optional memory repo git author identity. `MEMORY.md` should point to it instead of duplicating its details.
 
-For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, git remote, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
+For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, git remote, optional `[memory_repo.git]` author identity, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
 The wiki profile stores curation workflow, knowledge pointers, and sync handoff memory; domain knowledge itself belongs in the external wiki.
 
@@ -230,7 +230,16 @@ command = []
 [memory_repo.sync]
 remote = ""
 ref = "main"
+
+[memory_repo.git]
+author_name = ""
+author_email = ""
 ```
+
+When `[memory_repo.git].author_name` and `author_email` are set, both fields
+must be present. Pamem applies them to the configured memory repo's repo-local
+`git config user.name` and `user.email`; do not duplicate this identity in
+shared memory.
 
 Example shape:
 
