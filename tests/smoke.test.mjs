@@ -46,14 +46,19 @@ function runSmoke(tmpRoot) {
   const slockWorkspace = join(tmpRoot, 'slock');
   const packageSlockWorkspace = join(tmpRoot, 'package-slock');
   const npmPrefix = join(tmpRoot, 'npm-prefix');
+  const homeRoot = join(tmpRoot, 'home');
+  const userSkillsRoot = join(homeRoot, 'skills');
+  const docReviewSource = join(userSkillsRoot, 'doc-review');
   const agentId = 'smoke-agent';
   const agentHome = join(xdgRoot, 'pamem', 'agents', agentId);
   const memoryRoot = join(xdgRoot, 'pamem', 'memory');
-  const env = { XDG_DATA_HOME: xdgRoot };
+  const env = { XDG_DATA_HOME: xdgRoot, HOME: homeRoot };
 
   for (const dir of [workspace, removeWorkspace, slockWorkspace, packageSlockWorkspace]) {
     mkdirSync(dir, { recursive: true });
   }
+  mkdirSync(docReviewSource, { recursive: true });
+  writeFileSync(join(docReviewSource, 'SKILL.md'), '# Doc Review\n');
 
   // Workspace bootstrap creates runtime links, selected config, local task
   // files, and the shared memory skeleton.
@@ -115,7 +120,7 @@ function runSmoke(tmpRoot) {
   assert.equal(pkg.name, '@phlens/pamem');
   assert.equal(pkg.bin.pamem, './bin/pamem.mjs');
   assert.equal(pkg.scripts.test, 'node --test tests/smoke.test.mjs');
-  assert.equal(pkg.version, '0.8.0');
+  assert.equal(pkg.version, '0.9.0');
   assert.equal(claude.version, pkg.version);
   assert.equal(codex.version, pkg.version);
   assert.equal(marketplace.plugins.find((plugin) => plugin.name === 'pamem')?.version, pkg.version);
@@ -272,6 +277,30 @@ function runSmoke(tmpRoot) {
   assert.match(cliSkillList, /codex_skills=memory-lint,memory-rule,sync-request/);
   assert.match(cliSkillList, /pamem_runtime=present/);
 
+  const addSkill = JSON.parse(pamemRun(['skill', 'add', 'doc-review', '--agent-id', agentId, '--json'], { env }).stdout);
+  assert.equal(addSkill.action, 'add');
+  assert.equal(addSkill.skill.name, 'doc-review');
+  assert.equal(addSkill.skill.source, docReviewSource);
+  assert.equal(addSkill.codex.action, 'added');
+  assert.equal(addSkill.claude.action, 'added');
+  assertLinkTarget(join(agentHome, '.codex', 'skills', 'doc-review'), docReviewSource);
+  assertLinkTarget(join(agentHome, '.claude', 'skills', 'doc-review'), docReviewSource);
+
+  const addSkillAgain = JSON.parse(pamemRun(['skill', 'add', 'doc-review', '--agent-id', agentId, '--json'], { env }).stdout);
+  assert.equal(addSkillAgain.codex.action, 'present');
+  assert.equal(addSkillAgain.claude.action, 'present');
+  assert.notEqual(pamemTry(['skill', 'add', 'memory-rule', '--agent-id', agentId], { env }).status, 0);
+
+  rmSync(docReviewSource, { recursive: true, force: true });
+  const removeBrokenSkill = JSON.parse(pamemRun(['skill', 'remove', 'doc-review', '--agent-id', agentId, '--json'], { env }).stdout);
+  assert.equal(removeBrokenSkill.codex.action, 'removed');
+  assert.equal(removeBrokenSkill.claude.action, 'removed');
+  assertMissing(join(agentHome, '.codex', 'skills', 'doc-review'), 'skill remove should remove a broken Codex symlink');
+  assertMissing(join(agentHome, '.claude', 'skills', 'doc-review'), 'skill remove should remove a broken Claude symlink');
+  mkdirSync(docReviewSource, { recursive: true });
+  writeFileSync(join(docReviewSource, 'SKILL.md'), '# Doc Review\n');
+  pamemRun(['skill', 'add', 'doc-review', '--agent-id', agentId, '--json'], { env });
+
   const cliSkillInspect = JSON.parse(pamemRun(['skill', 'inspect', '--agent-id', agentId, '--json'], { env }).stdout);
   assert.equal(cliSkillInspect.status, 'ok');
   assert.equal(cliSkillInspect.target.type, 'agent-id');
@@ -279,11 +308,20 @@ function runSmoke(tmpRoot) {
   assert.equal(cliSkillInspect.pamem_runtime.kind, 'agent-home');
   assert.equal(cliSkillInspect.pamem_runtime.codex.codex_hooks_enabled, true);
   assert.equal(cliSkillInspect.pamem_runtime.codex.session_start_hook, true);
-  assert.deepEqual(cliSkillInspect.codex.skills.map((skill) => skill.name), ['memory-lint', 'memory-rule', 'sync-request']);
-  assert.equal(cliSkillInspect.codex.skills.every((skill) => skill.kind === 'symlink' && skill.managed && skill.status === 'present'), true);
+  assert.deepEqual(cliSkillInspect.codex.skills.map((skill) => skill.name), ['doc-review', 'memory-lint', 'memory-rule', 'sync-request']);
+  assert.equal(cliSkillInspect.codex.skills.filter((skill) => skill.managed).every((skill) => skill.kind === 'symlink' && skill.status === 'present'), true);
+  assert.equal(cliSkillInspect.codex.skills.find((skill) => skill.name === 'doc-review')?.managed, false);
   assert.equal(cliSkillInspect.findings.length, 0);
 
   pamemRun(['skill', 'verify', '--agent-id', agentId, '--json'], { env });
+
+  const removeSkill = JSON.parse(pamemRun(['skill', 'remove', 'doc-review', '--agent-id', agentId, '--json'], { env }).stdout);
+  assert.equal(removeSkill.action, 'remove');
+  assert.equal(removeSkill.codex.action, 'removed');
+  assert.equal(removeSkill.claude.action, 'removed');
+  assertMissing(join(agentHome, '.codex', 'skills', 'doc-review'), 'skill remove should remove the Codex symlink');
+  assertMissing(join(agentHome, '.claude', 'skills', 'doc-review'), 'skill remove should remove the Claude symlink');
+  assertFile(join(docReviewSource, 'SKILL.md'));
 
   rmSync(join(agentHome, '.codex', 'skills', 'memory-rule'), { force: true });
   const missingSkill = pamemTry(['skill', 'verify', '--agent-id', agentId, '--json'], { env });

@@ -149,7 +149,9 @@ pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/ --json
 pamem skill list --agent-id coder-local
+pamem skill add doc-review --agent-id coder-local
 pamem skill inspect --agent-id coder-local --json
+pamem skill remove doc-review --agent-id coder-local
 pamem skill verify --agent-id coder-local
 ```
 
@@ -238,3 +240,15 @@ Inspect skill visibility for a configured agent or workspace:
 pamem skill list --agent-id coder-local
 pamem skill verify --workspace <slock-agent-workspace> --json
 ```
+
+Expose or remove an unmanaged skill for one configured agent or workspace:
+
+```bash
+pamem skill add doc-review --agent-id coder-local
+pamem skill remove doc-review --agent-id coder-local
+```
+
+`add` resolves the source from `~/skills/<name>` unless `--source <path>` is
+passed. It creates relative symlinks in both `.codex/skills/` and
+`.claude/skills/`. It refuses to overwrite non-symlink targets, and it does not
+delete or modify the source skill directory.

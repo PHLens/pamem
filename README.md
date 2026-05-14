@@ -65,6 +65,7 @@ pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 pamem skill list --agent-id coder-local
+pamem skill add doc-review --agent-id coder-local
 pamem skill verify --agent-id coder-local --json
 ```
 
