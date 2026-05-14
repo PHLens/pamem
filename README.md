@@ -60,6 +60,7 @@ Resume and inspect the runtime:
 ```bash
 pamem launch --role coder --agent-id coder-local --resume
 pamem list
+pamem resolve --agent-id coder-local --json
 pamem status --agent-id coder-local
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
@@ -67,6 +68,12 @@ pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 pamem skill list --agent-id coder-local
 pamem skill verify --agent-id coder-local --json
 ```
+
+`resolve` is the stable read-only interface for other tools that need the
+configured agent home or Slock workspace path. For example, a separate skill
+manager can call `pamem resolve --agent-id coder-local --json` before changing
+workspace-local `.codex/skills` or `.claude/skills`. Agent-id resolution checks
+configured CLI homes and local Slock agent workspaces.
 
 For Slock workspaces, use the workspace anchor explicitly:
 

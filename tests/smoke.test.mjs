@@ -40,16 +40,19 @@ test('pamem smoke checks', () => {
 });
 
 function runSmoke(tmpRoot) {
+  const homeRoot = join(tmpRoot, 'home');
   const xdgRoot = join(tmpRoot, 'xdg');
   const workspace = join(tmpRoot, 'workspace');
   const removeWorkspace = join(tmpRoot, 'remove');
-  const slockWorkspace = join(tmpRoot, 'slock');
+  const slockAgentsRoot = join(homeRoot, '.slock', 'agents');
+  const slockAgentId = 'slock-smoke-agent';
+  const slockWorkspace = join(slockAgentsRoot, slockAgentId);
   const packageSlockWorkspace = join(tmpRoot, 'package-slock');
   const npmPrefix = join(tmpRoot, 'npm-prefix');
   const agentId = 'smoke-agent';
   const agentHome = join(xdgRoot, 'pamem', 'agents', agentId);
   const memoryRoot = join(xdgRoot, 'pamem', 'memory');
-  const env = { XDG_DATA_HOME: xdgRoot };
+  const env = { HOME: homeRoot, XDG_DATA_HOME: xdgRoot };
 
   for (const dir of [workspace, removeWorkspace, slockWorkspace, packageSlockWorkspace]) {
     mkdirSync(dir, { recursive: true });
@@ -115,7 +118,7 @@ function runSmoke(tmpRoot) {
   assert.equal(pkg.name, '@phlens/pamem');
   assert.equal(pkg.bin.pamem, './bin/pamem.mjs');
   assert.equal(pkg.scripts.test, 'node --test tests/smoke.test.mjs');
-  assert.equal(pkg.version, '0.8.0');
+  assert.equal(pkg.version, '0.9.0');
   assert.equal(claude.version, pkg.version);
   assert.equal(codex.version, pkg.version);
   assert.equal(marketplace.plugins.find((plugin) => plugin.name === 'pamem')?.version, pkg.version);
@@ -217,15 +220,37 @@ function runSmoke(tmpRoot) {
   assert.notEqual(pamemTry(['launch', '--role', 'coder', '--agent-id', agentId], { env }).status, 0);
 
   const cliList = pamemRun(['list'], { env }).stdout;
-  assert.match(cliList, /agent_id\truntime\trole\thome/);
-  assert.match(cliList, new RegExp(`${escapeRegExp(agentId)}\\tcli\\twiki\\t${escapeRegExp(agentHome)}`));
+  assert.match(cliList, /agent_id\truntime\trole\tkind\thome/);
+  assert.match(cliList, new RegExp(`${escapeRegExp(agentId)}\\tcli\\twiki\\tagent-home\\t${escapeRegExp(agentHome)}`));
   const cliListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
   assert.equal(cliListJson.agents_dir, join(xdgRoot, 'pamem', 'agents'));
+  assert.equal(cliListJson.slock_agents_dir, slockAgentsRoot);
   assert.deepEqual(cliListJson.agents.map((agent) => agent.agent_id), [agentId]);
   assert.equal(cliListJson.agents[0].runtime, 'cli');
   assert.equal(cliListJson.agents[0].role, 'wiki');
+  assert.equal(cliListJson.agents[0].kind, 'agent-home');
   assert.equal(cliListJson.agents[0].home, agentHome);
   assert.equal(cliListJson.agents[0].config, join(agentHome, 'config.toml'));
+
+  const cliResolve = JSON.parse(pamemRun(['resolve', '--agent-id', agentId, '--json'], { env }).stdout);
+  assert.equal(cliResolve.status, 'ok');
+  assert.equal(cliResolve.kind, 'agent-home');
+  assert.equal(cliResolve.root, agentHome);
+  assert.equal(cliResolve.runtime, 'cli');
+  assert.equal(cliResolve.role, 'wiki');
+  assert.equal(cliResolve.agent_id, agentId);
+  assert.equal(cliResolve.config, join(agentHome, 'config.toml'));
+  assert.equal(cliResolve.memory_repo, memoryRoot);
+  assert.equal(cliResolve.memory_entry, join(memoryRoot, 'MEMORY.md'));
+  assert.equal(cliResolve.current_task, join(agentHome, 'current-task.md'));
+  assert.equal(cliResolve.work_log, join(agentHome, 'work-log.md'));
+  assert.equal(cliResolve.agent_home, agentHome);
+  assert.equal(cliResolve.local_dir, agentHome);
+  assert.equal(cliResolve.session_file, join(agentHome, 'session.json'));
+  const cliResolveText = pamemRun(['resolve', '--agent-id', agentId], { env }).stdout;
+  assert.match(cliResolveText, new RegExp(`root=${escapeRegExp(agentHome)}`));
+  assert.match(cliResolveText, /kind=agent-home/);
+  assert.match(cliResolveText, /role=wiki/);
 
   const cliStatus = pamemRun(['status', '--agent-id', agentId], { env }).stdout;
   assert.match(cliStatus, new RegExp(`root=${escapeRegExp(agentHome)}`));
@@ -311,13 +336,14 @@ old workspace sync block
 - existing workspace note
 `);
 
-  pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--workspace', slockWorkspace], { env });
+  pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--agent-id', slockAgentId, '--workspace', slockWorkspace], { env });
   assertFile(join(slockWorkspace, '.pamem', 'config.toml'));
   assertFile(join(slockWorkspace, 'MEMORY.md'));
   assertFile(join(slockWorkspace, 'notes', 'current-task.md'));
   assertFile(join(slockWorkspace, 'notes', 'work-log.md'));
   assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), 'default_profile = "coder"');
   assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
+  assertIncludes(join(slockWorkspace, '.pamem', 'config.toml'), `agent_id = "${slockAgentId}"`);
   assertNoMatch(join(slockWorkspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '# Existing Slock Agent');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '## Memory Routing');
@@ -338,6 +364,26 @@ old workspace sync block
   assert.equal(slockLint.status, 'ok');
   assert.equal(slockLint.summary.error_count, 0);
   assert.equal(slockLint.config.runtime_mode, 'slock');
+
+  const slockResolve = JSON.parse(pamemRun(['resolve', '--workspace', slockWorkspace, '--json'], { env }).stdout);
+  assert.equal(slockResolve.status, 'ok');
+  assert.equal(slockResolve.kind, 'workspace');
+  assert.equal(slockResolve.root, slockWorkspace);
+  assert.equal(slockResolve.runtime, 'slock');
+  assert.equal(slockResolve.role, 'coder');
+  assert.equal(slockResolve.agent_id, slockAgentId);
+  assert.equal(slockResolve.memory_repo, memoryRoot);
+  assert.equal(slockResolve.current_task, join(slockWorkspace, 'notes', 'current-task.md'));
+  assert.equal(slockResolve.work_log, join(slockWorkspace, 'notes', 'work-log.md'));
+  assert.equal(slockResolve.agent_home, join(xdgRoot, 'pamem', 'agents', slockResolve.agent_id));
+  const slockResolveById = JSON.parse(pamemRun(['resolve', '--agent-id', slockAgentId, '--json'], { env }).stdout);
+  assert.equal(slockResolveById.root, slockWorkspace);
+  assert.equal(slockResolveById.kind, 'workspace');
+  const slockStatusById = pamemRun(['status', '--agent-id', slockAgentId], { env }).stdout;
+  assert.match(slockStatusById, new RegExp(`root=${escapeRegExp(slockWorkspace)}`));
+  const slockListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
+  assert.deepEqual(slockListJson.agents.map((agent) => agent.agent_id), [agentId, slockAgentId]);
+  assert.equal(slockListJson.agents.find((agent) => agent.agent_id === slockAgentId)?.kind, 'workspace');
 
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_name = ""', 'author_name = "Memory Bot"');
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_email = ""', 'author_email = "memory-bot@example.invalid"');
@@ -365,6 +411,9 @@ old workspace sync block
   assert.equal(slockSkillInspect.pamem_runtime.workspace_files.pamem_dir, true);
   assert.equal(slockSkillInspect.pamem_runtime.workspace_files.memory_md, true);
   assert.equal(slockSkillInspect.pamem_runtime.codex.session_start_hook, true);
+  const slockSkillInspectById = JSON.parse(pamemRun(['skill', 'inspect', '--agent-id', slockAgentId, '--json'], { env }).stdout);
+  assert.equal(slockSkillInspectById.root, slockWorkspace);
+  assert.equal(slockSkillInspectById.pamem_runtime.kind, 'workspace');
 
   // The npm-installed CLI should reuse the same onboarding path for Slock
   // workspaces, while linking runtime files from the installed package payload.

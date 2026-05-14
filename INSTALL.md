@@ -143,6 +143,7 @@ without changing it:
 
 ```bash
 pamem list
+pamem resolve --agent-id coder-local --json
 pamem status --agent-id coder-local
 pamem hook-json --agent-id coder-local
 pamem context --agent-id coder-local
@@ -153,9 +154,13 @@ pamem skill inspect --agent-id coder-local --json
 pamem skill verify --agent-id coder-local
 ```
 
-`status`, `hook-json`, launch state, resume dispatch, and `skill` inspection
-are handled by Node. `context` still feeds the lightweight SessionStart shell
-hook so runtime startup loading stays shared with Codex/Slock hook execution.
+`resolve` is the stable read-only interface for tools that need the configured
+agent home or Slock workspace path without taking over memory responsibilities.
+Agent-id resolution checks configured CLI homes and local Slock agent
+workspaces.
+`status`, `hook-json`, launch state, resume dispatch, and `skill` inspection are
+handled by Node. `context` still feeds the lightweight SessionStart shell hook
+so runtime startup loading stays shared with Codex/Slock hook execution.
 
 To create or deliberately replace config without starting a runtime, use
 `pamem onboard`:
