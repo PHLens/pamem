@@ -99,8 +99,8 @@ Recommended local CLI practice:
 - Pick one stable `--agent-id` per long-lived local agent. The id is the
   recovery boundary for config, current task, work log, and resume state.
 - Keep role and agent id effectively one-to-one. For concurrent roles, create
-  separate ids such as `percy-coder`, `percy-reviewer`, and
-  `percy-researcher` instead of rebinding one id between roles.
+  separate ids such as `coder-local`, `reviewer-local`, and
+  `researcher-local` instead of rebinding one id between roles.
 - Keep project repositories as work directories, not memory homes. The CLI
   agent home should stay under the XDG data path, while the launched command can
   `cd` into the project.
@@ -120,32 +120,32 @@ another location, configure a git remote for that repo path and set
 Start and resume:
 
 ```bash
-pamem launch --role coder --agent-id percy-coder -- codex
-pamem launch --role coder --agent-id percy-coder --resume
+pamem launch --role coder --agent-id coder-local -- codex
+pamem launch --role coder --agent-id coder-local --resume
 ```
 
 Use distinct ids for other local role instances:
 
 ```bash
-pamem launch --role reviewer --agent-id percy-reviewer -- codex
-pamem launch --role researcher --agent-id percy-researcher -- codex
+pamem launch --role reviewer --agent-id reviewer-local -- codex
+pamem launch --role researcher --agent-id researcher-local -- codex
 ```
 
 To work in a project repo while keeping the same stable pamem agent home:
 
 ```bash
-pamem launch --role coder --agent-id percy-coder -- bash -lc 'cd /path/to/project && codex'
+pamem launch --role coder --agent-id coder-local -- bash -lc 'cd /path/to/project && codex'
 ```
 
 Without a launcher, `status`, `hook-json`, and `context` are useful for
 runtime integration and debugging:
 
 ```bash
-pamem status --agent-id percy-coder
-pamem hook-json --agent-id percy-coder
-pamem context --agent-id percy-coder
-pamem lint --agent-id percy-coder --json
-pamem pr-check --agent-id percy-coder --head HEAD --target roles/coder/ --json
+pamem status --agent-id coder-local
+pamem hook-json --agent-id coder-local
+pamem context --agent-id coder-local
+pamem lint --agent-id coder-local --json
+pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/ --json
 ```
 
 `status`, `hook-json`, launch state, and resume dispatch are handled by Node.
@@ -165,7 +165,7 @@ pamem onboard /path/to/agent-home --agent-home --profile wiki --runtime cli --fo
 Slock mode uses the Slock-generated workspace as the runtime anchor:
 
 ```bash
-pamem launch --runtime slock --role coder --workspace /root/.slock/agents/<slock-agent-id>
+pamem launch --runtime slock --role coder --workspace <slock-agent-workspace>
 ```
 
 `pamem launch` binds or repairs the workspace; the Slock runtime process itself
@@ -223,5 +223,5 @@ Run memory lint for a configured agent or workspace:
 
 ```bash
 pamem lint --agent-id coder-local --json
-pamem lint --workspace /root/.slock/agents/<slock-agent-id> --json
+pamem lint --workspace <slock-agent-workspace> --json
 ```

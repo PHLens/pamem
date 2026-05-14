@@ -29,6 +29,7 @@ It may:
 - report invalid runtime mode
 - report oversized entry files
 - report accidental `.pamem/config.toml` files inside the memory repo
+- report incomplete or unapplied `[memory_repo.git]` author config
 
 ## Command
 

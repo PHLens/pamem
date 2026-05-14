@@ -22,6 +22,8 @@ const pamem = [process.execPath, pamemBin];
 test('pamem smoke checks', () => {
   requireCommand('jq', 'jq is required for pamem shell helper checks');
 
+  assertNoPersonalFixtures();
+
   for (const file of ['bin/pamem.mjs', ...glob('lib', '.mjs')]) {
     run(process.execPath, ['--check', join(root, file)]);
   }
@@ -55,7 +57,10 @@ function runSmoke(tmpRoot) {
 
   // Workspace bootstrap creates runtime links, selected config, local task
   // files, and the shared memory skeleton.
-  pamemRun(['install', workspace], { env });
+  const install = pamemRun(['install', workspace], { env });
+  assert.match(install.stdout, /Shared memory repo initialized/);
+  assert.match(install.stdout, /--sync-remote <git-url>/);
+  assert.match(install.stdout, /--git-author-name <name> --git-author-email <email>/);
 
   assertFile(join(workspace, '.pamem', 'config.toml'));
   assertFile(join(workspace, 'MEMORY.md'));
@@ -65,6 +70,9 @@ function runSmoke(tmpRoot) {
   assertLinkTarget(join(workspace, '.pamem', 'assets'), join(root, 'assets'));
   assertIncludes(join(workspace, '.pamem', 'config.toml'), 'default_profile = "onboarding"');
   assertIncludes(join(workspace, '.pamem', 'config.toml'), 'mode = "cli"');
+  assertIncludes(join(workspace, '.pamem', 'config.toml'), '[memory_repo.git]');
+  assertIncludes(join(workspace, '.pamem', 'config.toml'), 'author_name = ""');
+  assertIncludes(join(workspace, '.pamem', 'config.toml'), 'author_email = ""');
   assertNoMatch(join(workspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
 
   for (const skill of ['memory-rule', 'memory-lint']) {
@@ -150,8 +158,13 @@ function runSmoke(tmpRoot) {
     'main',
     '--sync-executor',
     'sync-bot',
+    '--git-author-name',
+    'Memory Bot',
+    '--git-author-email',
+    'memory-bot@example.invalid',
   ], { env });
   assert.match(onboard.stdout, /Onboarded pamem workspace/);
+  assert.doesNotMatch(onboard.stdout, /Next: configure shared memory git settings/);
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'default_profile = "researcher"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'agent_id = "onboard-smoke"');
@@ -159,7 +172,11 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'remote = "origin"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'ref = "main"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'executor = "sync-bot"');
+  assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'author_name = "Memory Bot"');
+  assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'author_email = "memory-bot@example.invalid"');
   assertFile(join(customMemoryRoot, 'MEMORY.md'));
+  assert.equal(run('git', ['-C', customMemoryRoot, 'config', '--local', 'user.name']).stdout.trim(), 'Memory Bot');
+  assert.equal(run('git', ['-C', customMemoryRoot, 'config', '--local', 'user.email']).stdout.trim(), 'memory-bot@example.invalid');
   const duplicateOnboard = pamemTry(['onboard', onboardWorkspace, '--profile', 'wiki'], { env });
   assert.notEqual(duplicateOnboard.status, 0);
   assert.match(duplicateOnboard.stderr, /rerun with --force/);
@@ -231,6 +248,12 @@ function runSmoke(tmpRoot) {
   assert.equal(cliLint.summary.error_count, 0);
   assert.equal(cliLint.config_scope, 'agent-local');
   assert.equal(cliLint.config.default_profile, 'wiki');
+  assert.deepEqual(cliLint.config.git_author, {
+    name: '',
+    email: '',
+    applied_name: '',
+    applied_email: '',
+  });
 
   // Slock mode keeps task state in the Slock workspace and loads shared memory
   // through the selected profile.
@@ -276,6 +299,25 @@ old workspace sync block
   assert.equal(slockLint.status, 'ok');
   assert.equal(slockLint.summary.error_count, 0);
   assert.equal(slockLint.config.runtime_mode, 'slock');
+
+  replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_name = ""', 'author_name = "Memory Bot"');
+  replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_email = ""', 'author_email = "memory-bot@example.invalid"');
+  pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--workspace', slockWorkspace], { env });
+  assert.equal(run('git', ['-C', memoryRoot, 'config', '--local', 'user.name']).stdout.trim(), 'Memory Bot');
+  assert.equal(run('git', ['-C', memoryRoot, 'config', '--local', 'user.email']).stdout.trim(), 'memory-bot@example.invalid');
+  const slockAuthorLint = JSON.parse(pamemRun(['lint', '--workspace', slockWorkspace, '--json'], { env }).stdout);
+  assert.equal(slockAuthorLint.status, 'ok');
+  assert.equal(slockAuthorLint.config.git_author.name, 'Memory Bot');
+  assert.equal(slockAuthorLint.config.git_author.email, 'memory-bot@example.invalid');
+  assert.equal(slockAuthorLint.config.git_author.applied_name, 'Memory Bot');
+  assert.equal(slockAuthorLint.config.git_author.applied_email, 'memory-bot@example.invalid');
+  run('git', ['-C', memoryRoot, 'config', '--local', 'user.email', 'wrong@example.invalid']);
+  const slockAuthorMismatch = pamemTry(['lint', '--workspace', slockWorkspace, '--json'], { env });
+  assert.notEqual(slockAuthorMismatch.status, 0);
+  const slockAuthorMismatchJson = JSON.parse(slockAuthorMismatch.stdout);
+  assert.equal(slockAuthorMismatchJson.status, 'error');
+  assert.ok(slockAuthorMismatchJson.findings.some((finding) => finding.rule === 'ML010' && /author email/.test(finding.title)));
+  run('git', ['-C', memoryRoot, 'config', '--local', 'user.email', 'memory-bot@example.invalid']);
 
   // The npm-installed CLI should reuse the same onboarding path for Slock
   // workspaces, while linking runtime files from the installed package payload.
@@ -415,6 +457,36 @@ function appendFile(file, text) {
 
 function replaceInFile(file, search, replacement) {
   writeFileSync(file, readFileSync(file, 'utf8').replace(search, replacement));
+}
+
+function assertNoPersonalFixtures() {
+  const blocked = [
+    new RegExp(['pe', 'rcy'].join(''), 'i'),
+    new RegExp(['1033', '957037'].join('')),
+    /qq\.com/i,
+    /\/root\//,
+    /\/home\//,
+    /~\/\.slock\/agents\//,
+    new RegExp(['iZ', 'rj'].join(''), 'i'),
+    new RegExp(['0d465', '93c'].join(''), 'i'),
+  ];
+  for (const file of repoTextFiles()) {
+    const content = readFileSync(join(root, file), 'utf8');
+    for (const pattern of blocked) {
+      assert.doesNotMatch(content, pattern, `${file} must not contain personal or machine-local fixture: ${pattern}`);
+    }
+  }
+}
+
+function repoTextFiles() {
+  return run('git', ['ls-files'], { cwd: root }).stdout
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((file) => !file.endsWith('package-lock.json'))
+    .filter((file) => !file.endsWith('.png'))
+    .filter((file) => !file.endsWith('.jpg'))
+    .filter((file) => !file.endsWith('.jpeg'))
+    .filter((file) => !file.endsWith('.gif'));
 }
 
 function glob(dir, suffix) {

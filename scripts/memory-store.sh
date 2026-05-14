@@ -283,6 +283,22 @@ pamem_memory_repo_ref() {
   pamem_config_value_or_default "$config_path" 'memory_repo.sync' 'ref' 'main'
 }
 
+pamem_memory_repo_git_author_name() {
+  local workspace="$1"
+  local config_path
+
+  config_path="$(pamem_config_path "$workspace")"
+  pamem_config_value_or_default "$config_path" 'memory_repo.git' 'author_name' ''
+}
+
+pamem_memory_repo_git_author_email() {
+  local workspace="$1"
+  local config_path
+
+  config_path="$(pamem_config_path "$workspace")"
+  pamem_config_value_or_default "$config_path" 'memory_repo.git' 'author_email' ''
+}
+
 pamem_runtime_mode() {
   local workspace="$1"
   local config_path
