@@ -85,6 +85,11 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/
 for the active task, blocker, and next step. `work-log.md` records completed
 summaries and verification results. Multiple role instances should use distinct
 agent ids so each instance has its own current task and work log.
+Each CLI launch or resume writes a generated `session_id` to `session.json`,
+exports it as `PAMEM_SESSION_ID`, and records it in both `current-task.md` and
+`work-log.md` so later summaries can be traced to a concrete runtime session.
+Slock runtime does not write pamem CLI session ids; use Slock task, thread, and
+message ids for Slock-side provenance.
 
 Recommended local CLI practice:
 
@@ -192,7 +197,8 @@ experience when needed. The packaged base role template is only a bootstrap
 source for creating concrete role guides. In Slock mode, `notes/current-task.md`
 is only a thin cache because the task board and threads remain primary;
 `notes/work-log.md` keeps runtime-local completed summaries. Each Slock agent
-workspace keeps its own copy.
+workspace keeps its own copy. Slock provenance remains in Slock task, thread,
+and message ids rather than pamem CLI `session_id` records.
 
 ## Bootstrap And Repair
 

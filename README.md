@@ -104,6 +104,11 @@ role guide points to role-specific experience and topic files.
 completed summaries and verification results. For multiple role instances, each
 agent home or Slock workspace keeps its own current task and work log; only
 durable memory is shared.
+In CLI mode, each launched or resumed process gets a generated `session_id`
+stored in `session.json`, exported as `PAMEM_SESSION_ID`, and recorded in the
+agent home's `current-task.md` and `work-log.md` for traceback.
+Slock runtime does not use this CLI session id path because Slock task, thread,
+and message ids are the provenance surface.
 
 ## Docs
 

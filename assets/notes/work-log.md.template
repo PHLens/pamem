@@ -2,9 +2,12 @@
 
 Keep this file in reverse-chronological order: newest entries first.
 
+## Runtime Sessions
+- No CLI sessions recorded yet.
+
 - This file records completed work, verification results, and short handoff summaries.
 - Do not use it for the active next step; keep that in `current-task.md`.
 - Keep one work log per runtime instance. Shared durable findings belong in shared memory, not this local log.
-- This file is workspace-local in Slock mode and agent-home-local in CLI mode.
+- This file is workspace-local in Slock mode and agent-home-local in CLI mode; Slock provenance uses Slock task, thread, and message ids instead of pamem CLI session ids.
 - Durable reusable findings should be promoted to shared memory through pamem governance.
 - No closed task summaries recorded yet.

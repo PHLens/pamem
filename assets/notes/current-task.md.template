@@ -2,6 +2,14 @@
 
 Keep this file as the active runtime recovery pointer only.
 
+<!-- pamem-session:start -->
+## Runtime Session
+- Latest CLI session_id: not recorded yet
+- Action: none
+- Updated at: not recorded yet
+- Session file: not recorded yet
+<!-- pamem-session:end -->
+
 ## Active Task
 - No active task recorded yet.
 
@@ -19,6 +27,6 @@ Keep this file as the active runtime recovery pointer only.
 
 ## Source of Truth
 - CLI mode: this is the primary startup recovery file; update it at task start, after major phase/blocker/next-step changes, and before handoff.
-- Slock mode: this is a thin workspace-local cache; Slock task board and task threads remain the primary task record.
+- Slock mode: this is a thin workspace-local cache; Slock task board and task threads remain the primary task record, so Slock does not use pamem CLI session ids.
 - Keep one current-task file per runtime instance. Do not share it across roles or agents.
 - Do not store closed-task history here. Move completed summaries and validation results to `work-log.md`.

@@ -210,7 +210,9 @@ the configured memory repo rather than mirroring shared or role files into the w
 The Slock task board and threads remain primary; `current-task.md` is a thin
 cache for the active pointer, and `work-log.md` is local completed-work history.
 Multiple Slock agents naturally get separate copies under
-the Slock-managed agent workspace.
+the Slock-managed agent workspace. Slock runtime must not add CLI session-id
+records to these files; task, thread, and message ids already provide
+provenance.
 
 ### Local Convenience, Shared Infrastructure
 
@@ -231,6 +233,12 @@ standalone install; the agent home does not copy scripts or assets.
 local agent home so `--resume` can reuse it. Runtime-native resume can be
 expressed with `[runtime.resume].command`; if neither exists, `launch --resume`
 fails rather than silently starting a new session.
+Each launched or resumed CLI process receives a generated session id. Pamem
+stores it in `session.json`, exports it as `PAMEM_SESSION_ID`, and records it in
+the local `current-task.md` and `work-log.md` so runtime-local notes can be
+traced back to the concrete process session that produced them.
+This is CLI-only; Slock runtime does not need pamem session ids because Slock
+task, thread, and message ids are the traceability surface.
 Runtimes that cannot load pamem as a plugin or hook can still use
 `pamem context --agent-id <agent-id>` as a source-agnostic adapter and inject the
 printed startup context through their own prompt/context mechanism.
