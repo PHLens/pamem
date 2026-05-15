@@ -212,11 +212,24 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(agentHome, 'config.toml'), 'mode = "cli"');
   assertNoMatch(join(agentHome, 'config.toml'), /backend[ \t]*=/);
 
-  const sessionTest = 'test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi';
+  const sessionTest = 'test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && test -n "$PAMEM_SESSION_ID" && printf "$PAMEM_SESSION_ID" > "$PAMEM_LOCAL_DIR/env-session-id" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi';
   pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'sh', '-c', sessionTest], { env });
   assertFile(join(agentHome, 'start-marker'));
+  const firstSession = parseJsonFile(join(agentHome, 'session.json'));
+  assert.match(firstSession.session_id, /^[0-9a-f-]{36}$/);
+  assert.equal(firstSession.last_action, 'start');
+  assert.equal(readFileSync(join(agentHome, 'env-session-id'), 'utf8'), firstSession.session_id);
+  assertIncludes(join(agentHome, 'current-task.md'), `Latest CLI session_id: \`${firstSession.session_id}\``);
+  assertIncludes(join(agentHome, 'current-task.md'), `Session file: \`${join(agentHome, 'session.json')}\``);
+  assertIncludes(join(agentHome, 'work-log.md'), `session_id=${firstSession.session_id} action=start`);
   pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--resume'], { env });
   assertFile(join(agentHome, 'resume-marker'));
+  const resumeSession = parseJsonFile(join(agentHome, 'session.json'));
+  assert.match(resumeSession.session_id, /^[0-9a-f-]{36}$/);
+  assert.notEqual(resumeSession.session_id, firstSession.session_id);
+  assert.equal(resumeSession.last_action, 'resume');
+  assertIncludes(join(agentHome, 'current-task.md'), `Latest CLI session_id: \`${resumeSession.session_id}\``);
+  assertIncludes(join(agentHome, 'work-log.md'), `session_id=${resumeSession.session_id} action=resume`);
   assert.notEqual(pamemTry(['launch', '--role', 'coder', '--agent-id', agentId], { env }).status, 0);
 
   const cliList = pamemRun(['list'], { env }).stdout;
@@ -247,16 +260,21 @@ function runSmoke(tmpRoot) {
   assert.equal(cliStatusJson.agent_home, agentHome);
   assert.equal(cliStatusJson.local_dir, agentHome);
   assert.equal(cliStatusJson.session_file, join(agentHome, 'session.json'));
+  assert.equal(cliStatusJson.session_id, resumeSession.session_id);
+  assert.equal(cliStatusJson.last_action, 'resume');
+  assert.match(cliStatusJson.session_updated_at, /^\d{4}-\d{2}-\d{2}T/);
   assert.deepEqual(cliStatusJson.last_command, ['sh', '-c', sessionTest]);
 
   const cliStatus = pamemRun(['status', '--agent-id', agentId], { env }).stdout;
   assert.match(cliStatus, new RegExp(`root=${escapeRegExp(agentHome)}`));
   assert.match(cliStatus, /runtime=cli/);
   assert.match(cliStatus, new RegExp(`memory_repo=${escapeRegExp(memoryRoot)}`));
+  assert.match(cliStatus, new RegExp(`session_id=${escapeRegExp(resumeSession.session_id)}`));
   assert.match(cliStatus, /last_command=sh -c/);
 
   const cliEnv = pamemRun(['status', '--agent-id', agentId, '--print-env'], { env }).stdout;
   assert.match(cliEnv, new RegExp(`export PAMEM_WORKSPACE=${escapeRegExp(agentHome)}`));
+  assert.match(cliEnv, new RegExp(`export PAMEM_SESSION_ID=${escapeRegExp(resumeSession.session_id)}`));
   assert.match(cliEnv, /export PAMEM_RESUME=0/);
 
   appendFile(join(agentHome, 'config.toml'), '\n[runtime.resume]\ncommand = ["sh", "-c", "printf configured > $PAMEM_LOCAL_DIR/configured-marker"]\n');
@@ -270,6 +288,7 @@ function runSmoke(tmpRoot) {
   assert.equal(cliHookJson.pamem.runtime, 'cli');
   assert.equal(cliHookJson.pamem.current_task, join(agentHome, 'current-task.md'));
   assert.equal(cliHookJson.pamem.work_log, join(agentHome, 'work-log.md'));
+  assert.equal(cliHookJson.pamem.session_id, parseJsonFile(join(agentHome, 'session.json')).session_id);
 
   const cliContext = pamemRun(['context', '--agent-id', agentId], { env }).stdout;
   assert.match(cliContext, /Persistent memory source:/);
