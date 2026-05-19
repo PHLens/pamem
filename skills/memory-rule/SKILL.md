@@ -358,7 +358,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 
 Stable shared memory should change by promotion, not by casual append.
 
-Promote to shared or role memory only when:
+As a memory owner or when explicitly asked to curate memory, promote to shared or role memory only when:
 
 - explicitly requested by the user,
 - clearly durable across tasks,
@@ -380,7 +380,7 @@ Choose the target surface before editing:
   active role guide; do not promote durable role workflow into the workspace
   router.
 
-Use `requests/inbox/` for proposed promotions when direct write is not authorized. A promotion request should include:
+Use `requests/inbox/` for proposed promotions when direct write is not authorized or when a memory owner review is pending. If the change came from a Noesis `memory_proposal`, first run `pamem check <proposal.json> --json` and then use the same review queue or memory PR flow. A promotion request should include:
 
 - target memory surface and file
 - proposed change
@@ -642,18 +642,18 @@ When an interaction produces a durable insight, classify it:
 | Meta: reusable decision | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file with `type: finding` | "For Chinese sites, browser path > requests" |
 | Domain: concept or fact | External wiki/vault/project source | Technical concepts, source summaries, MOCs |
 
-### Finding Writeback
+### Memory Owner Review
 
-During interaction, when a meta-knowledge insight is discovered, promote it immediately only if direct write is allowed by policy. Otherwise create a promotion request.
+When acting as the pamem memory owner or handling an explicitly assigned memory curation task, review durable meta-knowledge for writeback. This is a review step, not a runtime intake/router. Directly promote only if policy allows it. Otherwise create a promotion request.
 
-Writeback triggers:
+Owner-review triggers:
 
 - A tool usage revealed a non-obvious behavior or pitfall.
 - A workflow assumption was proven wrong.
 - A technique was discovered that would improve future interactions.
 - A correction was made to a previous approach.
 
-Writeback rules:
+Owner-review rules:
 
 - Direct write: factual meta discoveries when allowed by the active profile and local policy.
 - Promotion request: rule changes, workflow modifications, cross-role knowledge, or entries that supersede existing experience.
