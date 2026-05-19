@@ -396,11 +396,13 @@ Promotion decisions:
 
 When a Noesis flow produces a `memory_proposal`, treat it as a control-plane
 review artifact. Run `pamem check <proposal.json> --json` before creating a
-memory PR or request. This gate is read-only: it validates pamem ownership,
-compact evidence, review boundaries, and proposal-only automation; it must not
-apply, rewrite, or sync memory. Noesis may coordinate intake and routing, but
-pamem remains the owner for durable memory content, lint, PR scope checks,
-compression, and sync handoff.
+memory PR or request. This gate is passive and read-only: it only consumes the
+already-produced proposal, validates pamem ownership, compact evidence, review
+boundaries, and proposal-only automation, and then stops. It must not observe
+chats, discover durable events, route signals, draft learning events, create
+promote requests, decide promotion targets, apply proposals, or sync memory.
+Noesis may coordinate intake and routing, but pamem remains the owner for
+durable memory content, lint, PR scope checks, compression, and sync handoff.
 
 Memory PR merge rule:
 
@@ -644,7 +646,7 @@ When an interaction produces a durable insight, classify it:
 
 ### Memory Owner Review
 
-When acting as the pamem memory owner or handling an explicitly assigned memory curation task, review durable meta-knowledge for writeback. This is a review step, not a runtime intake/router. Directly promote only if policy allows it. Otherwise create a promotion request.
+When acting as the pamem memory owner or handling an explicitly assigned memory curation task, review durable meta-knowledge for writeback. This is a review step, not a runtime intake/router, discovery engine, or proposal generator. Directly promote only if policy allows it. Otherwise create a promotion request.
 
 Owner-review triggers:
 

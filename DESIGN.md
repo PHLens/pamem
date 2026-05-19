@@ -327,10 +327,16 @@ correct.
 
 ### Noesis Memory Proposal Gate
 
-`pamem check <proposal.json>` is the read-only owner gate for a Noesis
-`memory_proposal`. It validates that the artifact targets pamem, remains
-proposal-only, contains compact source references, requires owner review, and
-does not embed transcripts, raw logs, or private machine-local paths.
+`pamem check <proposal.json>` is a passive read-only owner gate for a Noesis
+`memory_proposal`. It only consumes an already-produced proposal, validates
+that the artifact targets pamem, remains proposal-only, contains compact
+source references, requires owner review, and does not embed transcripts, raw
+logs, or private machine-local paths. It does not observe chats, discover
+durable events, route signals, draft learning events, create promote requests,
+decide promotion targets, write memory files, apply proposals, or sync
+repositories. Workspace-local temporary memory and runtime recovery state may
+still be handled through explicit runtime paths; they are separate from the
+shared-memory promotion flow.
 
 This command is intentionally not an apply path. It reports whether pamem can
 accept the proposal for review, then the memory owner still creates or reviews a

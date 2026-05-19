@@ -41,8 +41,11 @@ than `memory_repo.sync.ref`. Guarded surfaces require explicit review and
 
 When a Noesis heuristic-system flow produces a `memory_proposal`, the executor
 or memory owner first runs `pamem check <proposal.json> --json`. That gate only
-validates the review artifact and owner boundary. It does not apply the proposal
-or replace the later PR scope check.
+validates the review artifact and owner boundary. It does not observe chats,
+discover events, route signals, draft learning events, create promote requests,
+or apply the proposal. Workspace-local temporary memory and runtime recovery
+state remain available through explicit runtime paths; they are not part of the
+shared-memory promotion flow. The later PR scope check still applies.
 
 The shared memory repo is initialized as a git repository during bootstrap. If
 no git remote is configured, the executor reports the repo path and tells you to
