@@ -1,11 +1,11 @@
 # Memory Index
 
 ## Memory Governance
-Before any persistent memory write, compression, archive, promotion, or config/sync policy change, use the `memory-rule` plugin skill with this section and the active local config. If `memory-rule` is unavailable, pamem is not fully installed or enabled for this runtime: continue only with read-only injected context, and run `pamem install`/`pamem repair` or ask onboarding to repair the plugin before changing shared memory, local config, or sync policy.
+Before any persistent memory write, compression, archive, promotion, or config/propagation policy change, use the `memory-rule` plugin skill with this section and the active local config. If `memory-rule` is unavailable, pamem is not fully installed or enabled for this runtime: continue only with read-only injected context, and run `pamem install`/`pamem repair` or ask onboarding to repair the plugin before changing shared memory, local config, or propagation policy.
 
 Use pamem governance when:
 - updating `MEMORY.md`
-- editing `config.toml` or `.pamem/config.toml` for memory repo location, sharing, or sync policy
+- editing `config.toml` or `.pamem/config.toml` for memory repo location, sharing, or propagation policy
 - writing to `governance/`, `shared/`, `roles/`, `projects/`, `archive/`, or fallback `notes/`
 - promoting task facts into durable memory
 - compressing or archiving completed work
@@ -14,15 +14,11 @@ Use pamem governance when:
 `MEMORY.md` is a shared index, not the isolation boundary; the configured memory repo isolates durable shared memory, while runtime-local task state stays outside shared memory. If more than 3 instances are active, keep only the lead blocker, primary workstream, and a pointer to the relevant durable project note here.
 When local config points at a shared memory repo, durable project memory belongs in `projects/`; runtime-local work state remains outside the shared repo.
 Runtime startup hooks are read-only loaders. If the configured memory entry is missing, treat it as an onboarding/repair issue rather than creating shared memory during task execution.
-Ordinary task agents should propose durable shared-memory changes through PRs. If policy requires a promotion request, use `requests/inbox/` as a separate handoff queue; the packaged sync executor agent in the pamem plugin reviews, lints, and decides whether those changes become effective memory.
-Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
-
-## Sync Trigger
-If durable local memory or managed workspace config changes need cross-device retention and the user explicitly asks or workspace policy requires retention, use the `sync-request` plugin skill to create or hand off a structured request through the configured queue. If `sync-request` is unavailable, pamem sync handoff is not fully installed or enabled for this runtime: do not invent ad hoc queue files, do not run direct sync, and ask onboarding or the sync executor to repair the plugin exposure.
-Do not run sync directly from this agent; the sync executor handles git propagation when policy says to propagate the configured memory repo.
+Ordinary task agents should propose durable shared-memory changes through memory PRs. If policy requires a promotion request, use `requests/inbox/` as a separate owner-review queue; the assigned memory owner reviews, lints, and decides whether those changes become effective memory.
+Ordinary task agents do not run repository propagation during session start. Durable shared-memory changes become visible across devices through reviewed repo merge plus normal pull/bootstrap.
 
 ## Key Knowledge
-- `config.toml` or `.pamem/config.toml` - memory repo path, sharing mode, git sync remote/ref, and profile policy
+- `config.toml` or `.pamem/config.toml` - memory repo path, sharing mode, git remote/ref, and profile policy
 - `shared/preferences.md` or `notes/user-preferences.md` - collaboration preferences and constraints
 - `shared/operating-rules.md` or `notes/operating-rules.md` - stable operating defaults
 - `shared/experience.md` - cross-role findings, corrections, and meta-knowledge loaded through the active profile

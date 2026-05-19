@@ -1,33 +1,37 @@
 # Sync
 
-This document defines the sync contract for `pamem`.
-
-`pamem` standardizes sync intent. The actual propagation path is git-only.
+This document defines the propagation contract for the configured pamem memory
+repo.
 
 ## Core Rule
 
-Ordinary agents do not run sync directly and do not start the sync executor
-during session start. When durable local memory or managed workspace config
-should be retained elsewhere, they create a PR or promotion request. The
-packaged sync executor reviews that request and decides whether it becomes
-effective shared memory.
+The main shared-memory path is:
 
-`sync-request` is the fallback handoff path for agents that need a structured
-intent queue. It is useful for compatibility, low-permission handoff, or offline
-retention. It is separate from the core memory layers and is not the mainline
-path once PR-based promotion and the packaged sync executor are available.
+```text
+memory proposal -> memory owner PR/review -> merge -> pull/bootstrap
+```
 
-## Packaged Executor
+Pamem no longer exposes a separate request-generation skill or queue for
+propagation. Durable shared memory becomes effective only after owner review
+and repository merge. Other devices or workspaces receive the change through
+normal git pull, bootstrap, or runtime startup against the configured memory
+repo.
 
-`pamem` ships a sync executor agent definition at `agents/sync-executor.md`.
-It is packaged with the plugin, not seeded into the shared memory repo, and not
-a memory profile.
+Workspace-local temporary memory, recovery notes, and work logs remain local
+runtime state. They are not shared-memory promotion surfaces and are not
+propagated by this contract.
+
+## Memory Owner / Executor
+
+`pamem` ships a memory executor agent definition at
+`agents/memory-executor.md`. It is packaged with the plugin, not seeded into the
+shared memory repo, and not a memory profile.
 
 The executor may:
 
-- read pending requests
-- validate and deduplicate requests
-- run `pamem pr-check` and `memory-lint`
+- review memory PRs and promotion requests
+- run `pamem check` for Noesis memory proposals
+- run `pamem pr-check` and memory lint before merge
 - merge or reject durable memory changes
 - propagate the configured memory repo with git when policy says to do so
 
@@ -51,23 +55,15 @@ The shared memory repo is initialized as a git repository during bootstrap. If
 no git remote is configured, the executor reports the repo path and tells you to
 add a git remote for that repo before propagation.
 
-## When To Use Requests
+## Proposal And Review Paths
 
-Use a sync request when a change is durable and should outlive the current
-workspace, for example:
+Approved memory proposals can become effective memory in two ways:
 
-- `MEMORY.md`
-- stable notes
-- managed workspace config
-- reusable findings that should move across devices
+- a memory PR against the configured memory repo
+- a promotion request in `requests/inbox/` for explicit owner review
 
-Do not use a request for:
-
-- scratch notes
-- transient planning files
-- source code or branch history
-- PR status
-- project work whose main purpose is delivery rather than memory retention
+`requests/inbox/` is a memory-owner review queue. It is not a propagation queue
+and not a loaded memory layer.
 
 ## Roles
 
@@ -75,45 +71,33 @@ Do not use a request for:
 
 The workspace agent may:
 
-- decide a durable change should be promoted
-- create or refresh a sync request
-- provide the authoritative source paths
+- identify a durable memory candidate
+- produce or hand off a proposal artifact
+- open a memory PR when explicitly assigned owner/executor responsibility
 
 The workspace agent must not:
 
-- process the queue
-- mutate `processing`, `done`, or `rejected`
-- run propagation logic directly under the sync request contract
+- treat local recovery notes as shared memory
+- run repository propagation during session start
+- bypass memory owner review for guarded or cross-scope changes
 
-### Sync Executor
+### Memory Executor
 
-The packaged sync executor, or another explicitly assigned executor, may:
+The packaged memory executor, or another explicitly assigned executor, may:
 
-- read `pending/`
-- validate requests
-- reject or deduplicate requests
-- move requests through the queue
-- propagate the configured memory repo when policy says to do so
-
-## Queue Shape
-
-The active sync configuration defines the queue layout. A typical shape is:
-
-```text
-<sync-queue-root>/
-  pending/
-  processing/
-  done/
-  rejected/
-```
+- review memory PRs and `requests/inbox/` items
+- run `pamem check`, `pamem pr-check`, and lint
+- reject, accept, or ask for changes
+- propagate the configured memory repo after merge when policy says to do so
 
 ## Memory Layers
 
-Sync requests usually touch:
+Shared repo propagation usually touches:
 
-- Layer 1 stable shared memory
-- Layer 2 project memory
-- durable runtime summaries that need future retention
+- governance memory
+- shared memory
+- role memory
+- project memory
 
-They should not replace runtime-owned task handling. CLI task state stays local,
+It should not replace runtime-owned task handling. CLI task state stays local,
 and Slock task state stays in Slock.

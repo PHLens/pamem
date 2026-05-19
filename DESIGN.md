@@ -143,19 +143,19 @@ flowchart TD
 
 `pamem` directly manages the runtime contract by shipping:
 
-- `memory-rule`, `sync-request`, and `memory-lint` plugin skills
+- `memory-rule` and `memory-lint` plugin skills
 - bootstrap/repair behavior that exposes those skills to supported runtimes
 - Claude `SessionStart` hook
 - Codex bootstrap scripts
 - default memory skeleton and read-only startup behavior
 - optional profile/load policy through `config.toml` or `.pamem/config.toml`
 - shared memory repo bootstrap and executor policy entry points
-- plugin-side agent definitions such as `agents/sync-executor.md`
+- plugin-side agent definitions such as `agents/memory-executor.md`
 
-If `memory-rule` or `sync-request` is missing during a runtime session, treat
-that as an incomplete pamem plugin/bootstrap installation. Until onboarding or a
-human repairs it, agents may read injected startup context but must not change
-shared memory, local memory config, sync policy, or run repo sync.
+If `memory-rule` is missing during a runtime session, treat that as an
+incomplete pamem plugin/bootstrap installation. Until onboarding or a human
+repairs it, agents may read injected startup context but must not change shared
+memory, local memory config, propagation policy, or run repo propagation.
 
 ### Created But Not Owned By Pamem
 
@@ -184,8 +184,8 @@ role experience topic becomes too detailed for the startup-loaded guide or the
 default `experience.md`.
 
 Packaged agents live in the plugin repo, not in the shared memory repo. The
-sync executor definition is shipped as `agents/sync-executor.md`; it is not a
-profile and must not be seeded into `roles/`.
+memory executor definition is shipped as `agents/memory-executor.md`; it is not
+a profile and must not be seeded into `roles/`.
 
 ## Design Philosophy
 
@@ -194,16 +194,16 @@ profile and must not be seeded into `roles/`.
 The runtime should default to shared durable memory. A local CLI agent home is
 the runtime/config anchor; the default memory repo is machine-level shared state
 at `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/memory`. The repo location,
-sharing mode, and sync policy remain configurable for teams that need a separate
-repo or git remote. Legacy or Slock workspaces may still use
+sharing mode, and git propagation settings remain configurable for teams that
+need a separate repo or git remote. Legacy or Slock workspaces may still use
 `.pamem/config.toml`.
 
 In Slock runtime mode, the Slock-generated agent workspace is the config, hook,
 and task-recovery anchor, not the memory repo. Its `.pamem/config.toml` should
 normally point to the same machine-level shared memory repo so multiple Slock
 and CLI agents can reuse durable memory while Slock continues to own task state.
-The workspace `MEMORY.md` stays a thin router/intro only; Memory Governance and
-sync trigger instructions live in the shared repo's top-level `MEMORY.md`.
+The workspace `MEMORY.md` stays a thin router/intro only; Memory Governance
+instructions live in the shared repo's top-level `MEMORY.md`.
 Slock workspaces keep `notes/current-task.md` and `notes/work-log.md` for
 runtime-local state, and profile loading reads shared/role memory directly from
 the configured memory repo rather than mirroring shared or role files into the workspace.
@@ -218,7 +218,7 @@ provenance.
 
 CLI-native memory is a convenience feature for one tool, one machine, or one session flow.
 `pamem` is the shared infrastructure around that feature: it standardizes durable memory
-layers, profile selection, write gates, promotion, and sync boundaries so Claude, Codex,
+layers, profile selection, write gates, promotion, and propagation boundaries so Claude, Codex,
 and Slock can share the same governed memory without turning runtime-local task state into
 shared history.
 
@@ -286,7 +286,7 @@ layers.
 
 When an agent home uses `config.toml`, or a workspace uses `.pamem/config.toml`,
 that file is the local source of truth for profiles, memory repo location,
-sharing mode, load targets, write targets, sync policy, and optional
+sharing mode, load targets, write targets, propagation policy, and optional
 `[memory_repo.git]` author identity. It belongs to the agent home or workspace,
 not inside the shared memory repo itself. Onboarding can seed it from
 `assets/config.toml.template`, but ordinary task agents should treat it as
@@ -297,7 +297,7 @@ them to the configured memory repo's repo-local `git config user.name` and
 `user.email` during install, repair, launch, or onboard. The config remains the
 source of truth; the git config is execution state that should be repairable.
 The author fields must be configured together.
-When pamem initializes a new shared memory repo and either the sync remote or
+When pamem initializes a new shared memory repo and either the git remote or
 git author is still unset, the CLI prints a reminder to provide the missing
 `[memory_repo.sync].remote` and `[memory_repo.git]` values.
 
@@ -311,7 +311,7 @@ accidental `.pamem/config.toml` committed inside the memory repo. If
 `[memory_repo.git]` author identity is configured, lint also verifies that the
 repo-local git author is applied.
 
-It must not run automatically from startup or compact hooks, and it must not repair, promote, sync, or rewrite memory files.
+It must not run automatically from startup or compact hooks, and it must not repair, promote, propagate, or rewrite memory files.
 
 ### Memory PR Check
 
@@ -320,7 +320,7 @@ base and head ref in the configured memory repo, verifies that changed files are
 inside declared `--target` paths, blocks guarded surfaces unless
 `--allow-guarded` is explicitly supplied, and runs `memory-lint`.
 
-The check is meant for both humans and the packaged sync executor. It does not
+The check is meant for both humans and the packaged memory executor. It does not
 replace human review: it proves changed-file scope and baseline memory health,
 while the reviewer still decides whether the memory content is durable and
 correct.
@@ -333,7 +333,7 @@ that the artifact targets pamem, remains proposal-only, contains compact
 source references, requires owner review, and does not embed transcripts, raw
 logs, or private machine-local paths. It does not observe chats, discover
 durable events, route signals, draft learning events, create promote requests,
-decide promotion targets, write memory files, apply proposals, or sync
+decide promotion targets, write memory files, apply proposals, or propagate
 repositories. Workspace-local temporary memory and runtime recovery state may
 still be handled through explicit runtime paths; they are separate from the
 shared-memory promotion flow.
@@ -341,13 +341,13 @@ shared-memory promotion flow.
 This command is intentionally not an apply path. It reports whether pamem can
 accept the proposal for review, then the memory owner still creates or reviews a
 pamem-owned memory PR or request. Noesis owns intake, routing, and proposal
-review state; pamem owns memory content, lint, scope checks, and sync handoff.
+review state; pamem owns memory content, lint, scope checks, and memory-owner handoff.
 
 ### Hook Boundaries
 
 `SessionStart` is retained because it is the runtime's read-only memory loader.
 It may report a missing or oversized memory entry file, but it must not create,
-repair, rewrite, promote, or sync shared memory.
+repair, rewrite, promote, or propagate shared memory.
 
 An automatic `PreCompact` hook is not part of the runtime contract. Compact-time
 automatic writes are too easy to confuse with durable memory promotion. The
@@ -390,31 +390,17 @@ Agent memory is the schema layer, not the wiki. Its growth direction is not "kno
 
 ### Plugin Capability Boundary
 
-`memory-rule` and `sync-request` are pamem runtime capabilities, not optional
-advice. Supported bootstrap paths should expose them to the agent runtime. A
-missing capability is a setup or runtime exposure problem to repair, not
-permission for ordinary task agents to bypass governance by editing memory,
-config, sync queues, or repo sync behavior directly.
+`memory-rule` is a pamem runtime capability, not optional advice. Supported
+bootstrap paths should expose it to the agent runtime. A missing capability is a
+setup or runtime exposure problem to repair, not permission for ordinary task
+agents to bypass governance by editing memory, config, or repo propagation
+behavior directly.
 
-### Sync Request Separation
-
-Sync request handoff remains separate from memory governance. Memory governance
-decides whether a memory or managed-config change is durable and eligible for
-retention; a sync request only records the intent when explicitly asked or when
-workspace policy requires one. Use the `sync-request` plugin skill to create the
-structured request. If it is unavailable, repair pamem plugin exposure before
-creating requests; do not create ad hoc queue files or run sync directly. This
-is not a mechanism for project work, branches, PRs, or source-code delivery.
-
-### Sync Risk Surface
+### Propagation Risk Surface
 
 The highest-risk operation is actual propagation of the shared memory repo:
-git push is executor-only unless a user explicitly assigns sync-executor responsibility.
+git push is executor-only unless a user explicitly assigns memory-executor responsibility.
 
 `config.toml` or `.pamem/config.toml` changes are also high risk because they can redirect the
-memory repo, remote, profile, write targets, or executor. Treat config
+memory repo, remote, profile, write targets, or propagation policy. Treat config
 changes as onboarding/config-owner work.
-
-A sync request is lower risk than direct sync because it only writes or hands
-off a pending request, but it can trigger an assigned executor. Use it only when
-the user explicitly asks or workspace policy requires retention.

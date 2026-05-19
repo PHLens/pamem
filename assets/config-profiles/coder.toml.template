@@ -46,11 +46,6 @@ requires_review_for = [
   "roles/**"
 ]
 
-[sync]
-executor = "<configured-sync-executor>"
-# GitHub PRs are the default proposal path; the sync executor reviews and merges when policy allows.
-policy = "github_pr_only"
-
 [profiles.coder]
 role = "coder"
 description = "Implementation profile for code changes and task execution."

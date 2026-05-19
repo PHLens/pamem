@@ -47,11 +47,6 @@ requires_review_for = [
   "roles/**"
 ]
 
-[sync]
-executor = "<configured-sync-executor>"
-# GitHub PRs are the default proposal path; the sync executor reviews and merges when policy allows.
-policy = "github_pr_only"
-
 [profiles.onboarding]
 role = "onboarding"
 description = "Onboarding profile for seeding shared memory and creating new agents."

@@ -79,9 +79,10 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(workspace, '.pamem', 'config.toml'), 'author_email = ""');
   assertNoMatch(join(workspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
 
-  for (const skill of ['memory-lint', 'memory-rule', 'sync-request']) {
+  for (const skill of ['memory-lint', 'memory-rule']) {
     assertLinkTarget(join(workspace, '.codex', 'skills', skill), join(root, 'skills', skill));
   }
+  assertMissing(join(workspace, '.codex', 'skills', 'sync-request'), 'retired sync-request skill must not be installed');
 
   assertFile(join(memoryRoot, 'MEMORY.md'));
   assertFile(join(memoryRoot, 'governance', 'constitution.md'));
@@ -140,6 +141,7 @@ function runSmoke(tmpRoot) {
   ]) {
     assert.ok(packFiles.has(file), `npm pack should include ${file}`);
   }
+  assert.equal(packFiles.has('skills/sync-request/SKILL.md'), false, 'npm pack should not include retired sync-request skill');
   for (const file of ['lib/skills.mjs', 'scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
     assert.equal(packFiles.has(file), false, `npm pack should not include removed script ${file}`);
   }
@@ -161,8 +163,6 @@ function runSmoke(tmpRoot) {
     'origin',
     '--sync-ref',
     'main',
-    '--sync-executor',
-    'sync-bot',
     '--git-author-name',
     'Memory Bot',
     '--git-author-email',
@@ -176,7 +176,6 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), `path = "${customMemoryRoot}"`);
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'remote = "origin"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'ref = "main"');
-  assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'executor = "sync-bot"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'author_name = "Memory Bot"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'author_email = "memory-bot@example.invalid"');
   assertFile(join(customMemoryRoot, 'MEMORY.md'));
@@ -200,9 +199,10 @@ function runSmoke(tmpRoot) {
   pamemRun(['remove', removeWorkspace], { env });
   const removeHooks = parseJsonFile(join(removeWorkspace, '.codex', 'hooks.json'));
   assertNoHookCommand(removeHooks, '.pamem/scripts/memory-session-start.sh');
-  for (const skill of ['memory-lint', 'memory-rule', 'sync-request']) {
+  for (const skill of ['memory-lint', 'memory-rule']) {
     assertMissing(join(removeWorkspace, '.codex', 'skills', skill), `pamem remove must remove managed skill link: ${skill}`);
   }
+  assertMissing(join(removeWorkspace, '.codex', 'skills', 'sync-request'), 'pamem remove must clear retired sync-request link if present');
 
   // Agent-home launch and CLI lifecycle.
   pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId], { env });
@@ -328,8 +328,8 @@ old workspace governance block
 ## Role
 coder
 
-## Sync Trigger
-old workspace sync block
+## Old Sync Notes
+old workspace propagation block
 
 ## Key Knowledge
 - existing workspace note
@@ -350,7 +350,7 @@ old workspace sync block
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '.pamem/config.toml');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'existing workspace note');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace governance block');
-  assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace sync block');
+  assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace propagation block');
 
   const slockContext = pamemRun(['context', '--workspace', slockWorkspace], { env }).stdout;
   assert.match(slockContext, /runtime=slock/);
