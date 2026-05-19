@@ -39,6 +39,11 @@ merge. `--base` may be supplied when reviewing against a protected ref other
 than `memory_repo.sync.ref`. Guarded surfaces require explicit review and
 `--allow-guarded`; this flag is an audit signal, not a way to skip review.
 
+When a Noesis heuristic-system flow produces a `memory_proposal`, the executor
+or memory owner first runs `pamem check <proposal.json> --json`. That gate only
+validates the review artifact and owner boundary. It does not apply the proposal
+or replace the later PR scope check.
+
 The shared memory repo is initialized as a git repository during bootstrap. If
 no git remote is configured, the executor reports the repo path and tells you to
 add a git remote for that repo before propagation.

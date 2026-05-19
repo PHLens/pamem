@@ -63,6 +63,7 @@ pamem list
 pamem status --agent-id coder-local --json
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
+pamem check <proposal.json> --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 ```
 
@@ -92,6 +93,14 @@ mismatch if the repo-local config drifts.
 When pamem initializes a new shared memory repo without a configured sync
 remote or git author, the CLI prints a follow-up reminder with the relevant
 flags and config fields.
+
+For Noesis-style heuristic-system flows, pamem is the memory owner component.
+Noesis may produce a reviewed `memory_proposal`, but it must not edit the memory
+repo directly. Use `pamem check <proposal.json> --json` as the read-only owner
+gate before turning an approved proposal into a pamem-owned memory PR or
+request. The check validates the proposal-only boundary, compact source
+references, pamem target surface, and absence of raw transcripts or logs; it
+performs no writes and no sync.
 
 In Slock mode, `pamem launch` binds or repairs the existing Slock workspace; it
 does not create or start the Slock agent process. `MEMORY.md` stays a thin

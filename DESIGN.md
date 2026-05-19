@@ -325,6 +325,18 @@ replace human review: it proves changed-file scope and baseline memory health,
 while the reviewer still decides whether the memory content is durable and
 correct.
 
+### Noesis Memory Proposal Gate
+
+`pamem check <proposal.json>` is the read-only owner gate for a Noesis
+`memory_proposal`. It validates that the artifact targets pamem, remains
+proposal-only, contains compact source references, requires owner review, and
+does not embed transcripts, raw logs, or private machine-local paths.
+
+This command is intentionally not an apply path. It reports whether pamem can
+accept the proposal for review, then the memory owner still creates or reviews a
+pamem-owned memory PR or request. Noesis owns intake, routing, and proposal
+review state; pamem owns memory content, lint, scope checks, and sync handoff.
+
 ### Hook Boundaries
 
 `SessionStart` is retained because it is the runtime's read-only memory loader.

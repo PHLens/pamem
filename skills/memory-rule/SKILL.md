@@ -394,6 +394,14 @@ Promotion decisions:
 - rejected changes move to `requests/rejected/` with a short reason.
 - ordinary task agents must not silently promote contentious or cross-scope rules.
 
+When a Noesis flow produces a `memory_proposal`, treat it as a control-plane
+review artifact. Run `pamem check <proposal.json> --json` before creating a
+memory PR or request. This gate is read-only: it validates pamem ownership,
+compact evidence, review boundaries, and proposal-only automation; it must not
+apply, rewrite, or sync memory. Noesis may coordinate intake and routing, but
+pamem remains the owner for durable memory content, lint, PR scope checks,
+compression, and sync handoff.
+
 Memory PR merge rule:
 
 - The sync executor, or a human reviewer acting as executor, decides whether a memory PR is merged.

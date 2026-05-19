@@ -130,6 +130,7 @@ function runSmoke(tmpRoot) {
     'bin/pamem.mjs',
     'lib/cli.mjs',
     'lib/install.mjs',
+    'lib/check.mjs',
     'lib/onboard.mjs',
     'lib/runtime.mjs',
     'assets/config.toml.template',
@@ -383,6 +384,43 @@ old workspace sync block
   assert.deepEqual(slockListJson.agents.map((agent) => agent.agent_id), [agentId, slockAgentId]);
   assert.equal(slockListJson.agents.find((agent) => agent.agent_id === slockAgentId)?.kind, 'workspace');
 
+  const memoryProposalPath = join(tmpRoot, 'memory-proposal.json');
+  writeJsonFile(memoryProposalPath, validMemoryProposal());
+  const memoryProposalCheck = JSON.parse(pamemRun(['check', memoryProposalPath, '--workspace', slockWorkspace, '--json'], { env }).stdout);
+  assert.equal(memoryProposalCheck.status, 'ok');
+  assert.equal(memoryProposalCheck.component, 'pamem');
+  assert.equal(memoryProposalCheck.proposal_type, 'memory_proposal');
+  assert.equal(memoryProposalCheck.target_owner, 'pamem');
+  assert.equal(memoryProposalCheck.memory_repo, memoryRoot);
+  assert.equal(memoryProposalCheck.downstream_execution, 'not-run');
+  assert.deepEqual(memoryProposalCheck.writes, []);
+  assert.equal(memoryProposalCheck.summary.error_count, 0);
+  assert.match(pamemRun(['check', '--help'], { env }).stdout, /Read-only owner gate/);
+
+  const wrongOwnerProposalPath = join(tmpRoot, 'wiki-proposal.json');
+  writeJsonFile(wrongOwnerProposalPath, validMemoryProposal({
+    proposal_type: 'wiki_proposal',
+    target_owner: 'LoreForge',
+    target_surface: 'loreforge',
+    requested_output: {
+      kind: 'wiki_proposal',
+      target_owner: 'LoreForge',
+      review_required: true,
+    },
+  }));
+  const wrongOwnerProposal = pamemTry(['check', wrongOwnerProposalPath, '--workspace', slockWorkspace, '--json'], { env });
+  assert.notEqual(wrongOwnerProposal.status, 0);
+  const wrongOwnerProposalJson = JSON.parse(wrongOwnerProposal.stdout);
+  assert.equal(wrongOwnerProposalJson.status, 'error');
+  assert.ok(wrongOwnerProposalJson.checks.some((item) => item.id === 'proposal.proposal_type'));
+
+  const rawEvidenceProposalPath = join(tmpRoot, 'raw-evidence-proposal.json');
+  writeJsonFile(rawEvidenceProposalPath, validMemoryProposal({ transcript: ['raw message should stay outside memory proposals'] }));
+  const rawEvidenceProposal = pamemTry(['check', rawEvidenceProposalPath, '--workspace', slockWorkspace, '--json'], { env });
+  assert.notEqual(rawEvidenceProposal.status, 0);
+  const rawEvidenceProposalJson = JSON.parse(rawEvidenceProposal.stdout);
+  assert.ok(rawEvidenceProposalJson.checks.some((item) => item.id === 'proposal.transcript.raw_evidence'));
+
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_name = ""', 'author_name = "Memory Bot"');
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_email = ""', 'author_email = "memory-bot@example.invalid"');
   pamemRun(['launch', '--runtime', 'slock', '--role', 'coder', '--workspace', slockWorkspace], { env });
@@ -523,6 +561,76 @@ function assertNoMatch(file, pattern) {
 
 function parseJsonFile(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+function writeJsonFile(file, value) {
+  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function validMemoryProposal(overrides = {}) {
+  return {
+    schema_version: '0.1',
+    proposal_id: '2026-05-19T12-00-00Z__promote__01__memory_proposal',
+    proposal_type: 'memory_proposal',
+    status: 'pending_review',
+    created_at: '2026-05-19T12:00:00.000Z',
+    request_id: '2026-05-19T12-00-00Z__promote',
+    request_path: '.noesis/promote-requests/2026-05-19T12-00-00Z__promote.json',
+    source_refs: [
+      {
+        kind: 'slock_thread',
+        ref: '#heuristic-system:example',
+        summary: 'Thread where a durable memory candidate was reviewed.',
+      },
+    ],
+    trigger: {
+      kind: 'user_correction',
+      summary: 'A memory boundary was corrected.',
+    },
+    target_owner: 'pamem',
+    target_surface: 'pamem',
+    review_required: true,
+    risk: 'medium',
+    summary: 'Record a durable memory owner boundary.',
+    rationale: 'The correction affects future memory promotion behavior.',
+    candidate_items: [
+      {
+        id: 'item-1',
+        summary: 'Keep Noesis as control plane and pamem as memory owner.',
+        evidence: 'The user clarified the owner boundary in a task thread.',
+        candidate_kind: 'memory',
+        target_surface: 'pamem',
+        risk: 'medium',
+        review_required: true,
+        reason: 'The boundary is reusable across future memory promotion tasks.',
+      },
+    ],
+    requested_output: {
+      kind: 'memory_proposal',
+      target_owner: 'pamem',
+      review_required: true,
+    },
+    acceptance_checks: [
+      {
+        kind: 'promote_check',
+        command: 'noesis promote check .noesis/promote-requests/example.json --json',
+        expected: 'status has no errors before owner review',
+        status: 'passed',
+      },
+    ],
+    automation_boundary: {
+      mode: 'proposal_only',
+      allow_apply: false,
+      downstream_execution: 'not-run',
+      owner_apply_required: true,
+    },
+    outcome: {
+      status: 'not_applied',
+      applied_by: null,
+      applied_at: null,
+    },
+    ...overrides,
+  };
 }
 
 function assertNoHookCommand(hooksJson, command) {
