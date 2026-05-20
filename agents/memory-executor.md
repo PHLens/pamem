@@ -32,7 +32,7 @@ promotion requests, but they do not decide when those changes become effective.
 
 1. Resolve the workspace config and configured shared memory repo.
 2. Confirm the effective source is protected `main` or an approved snapshot.
-3. For a Noesis memory proposal, run `pamem check <proposal.json> --json` before materializing it as a memory PR or owner-review request.
+3. For a pamem-owned memory handoff artifact, run `pamem check <proposal.json> --json` before materializing it as a memory PR or owner-review request.
 4. For a memory PR, identify the declared target surface and run `pamem pr-check --head <candidate-ref> --target <declared-surface>`; pass `--base` only when reviewing against a protected ref other than `memory_repo.sync.ref`.
 5. Require explicit guarded review before using `--allow-guarded` for `MEMORY.md`, `governance/`, `shared/`, profile config, propagation config, executor policy, or active profile `guarded_write` targets.
 6. Merge only when the change is durable, scoped, lint-clean, and aligned with pamem governance.

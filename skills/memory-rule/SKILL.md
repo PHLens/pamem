@@ -378,7 +378,7 @@ Choose the target surface before editing:
   active role guide; do not promote durable role workflow into the workspace
   router.
 
-Use `requests/inbox/` for proposed promotions when direct write is not authorized or when a memory owner review is pending. If the change came from a Noesis `memory_proposal`, first run `pamem check <proposal.json> --json` and then use the same review queue or memory PR flow. A promotion request should include:
+Use `requests/inbox/` for proposed promotions when direct write is not authorized or when a memory owner review is pending. If the change came from an upstream `memory_proposal`, first run `pamem check <proposal.json> --json` and then use the same review queue or memory PR flow. A promotion request should include:
 
 - target memory surface and file
 - proposed change
@@ -392,15 +392,16 @@ Promotion decisions:
 - rejected changes move to `requests/rejected/` with a short reason.
 - ordinary task agents must not silently promote contentious or cross-scope rules.
 
-When a Noesis flow produces a `memory_proposal`, treat it as a control-plane
-review artifact. Run `pamem check <proposal.json> --json` before creating a
-memory PR or request. This gate is passive and read-only: it only consumes the
-already-produced proposal, validates pamem ownership, compact evidence, review
-boundaries, and proposal-only automation, and then stops. It must not observe
-chats, discover durable events, route signals, draft learning events, create
-promote requests, decide promotion targets, apply proposals, or propagate memory.
-Noesis may coordinate intake and routing, but pamem remains the owner for
-durable memory content, lint, PR scope checks, compression, and memory-owner handoff.
+When an upstream control plane produces a `memory_proposal`, treat it as a
+control-plane review artifact. Run `pamem check <proposal.json> --json` before
+creating a memory PR or request. This gate is passive and read-only: it only
+consumes the already-produced proposal, validates pamem ownership, compact
+evidence, review boundaries, and proposal-only automation, and then stops. It
+must not observe chats, discover durable events, route signals, draft learning
+events, create promote requests, decide promotion targets, apply proposals, or
+propagate memory. Upstream control planes may coordinate intake and routing,
+but pamem remains the owner for durable memory content, lint, PR scope checks,
+compression, and memory-owner handoff.
 
 Memory PR merge rule:
 

@@ -30,7 +30,7 @@ shared memory repo, and not a memory profile.
 The executor may:
 
 - review memory PRs and promotion requests
-- run `pamem check` for Noesis memory proposals
+- run `pamem check` for pamem-owned memory handoff artifacts
 - run `pamem pr-check` and memory lint before merge
 - merge or reject durable memory changes
 - propagate the configured memory repo with git when policy says to do so
@@ -43,8 +43,8 @@ merge. `--base` may be supplied when reviewing against a protected ref other
 than `memory_repo.sync.ref`. Guarded surfaces require explicit review and
 `--allow-guarded`; this flag is an audit signal, not a way to skip review.
 
-When a Noesis heuristic-system flow produces a `memory_proposal`, the executor
-or memory owner first runs `pamem check <proposal.json> --json`. That gate only
+When an upstream control plane produces a `memory_proposal`, the executor or
+memory owner first runs `pamem check <proposal.json> --json`. That gate only
 validates the review artifact and owner boundary. It does not observe chats,
 discover events, route signals, draft learning events, create promote requests,
 or apply the proposal. Workspace-local temporary memory and runtime recovery

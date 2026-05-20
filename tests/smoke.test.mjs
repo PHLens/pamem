@@ -570,12 +570,12 @@ function writeJsonFile(file, value) {
 function validMemoryProposal(overrides = {}) {
   return {
     schema_version: '0.1',
-    proposal_id: '2026-05-19T12-00-00Z__promote__01__memory_proposal',
+    proposal_id: '2026-05-19T12-00-00Z__memory_owner__01__memory_proposal',
     proposal_type: 'memory_proposal',
     status: 'pending_review',
     created_at: '2026-05-19T12:00:00.000Z',
-    request_id: '2026-05-19T12-00-00Z__promote',
-    request_path: '.noesis/promote-requests/2026-05-19T12-00-00Z__promote.json',
+    request_id: '2026-05-19T12-00-00Z__memory_owner',
+    request_path: 'proposals/2026-05-19T12-00-00Z__memory_owner.json',
     source_refs: [
       {
         kind: 'slock_thread',
@@ -596,7 +596,7 @@ function validMemoryProposal(overrides = {}) {
     candidate_items: [
       {
         id: 'item-1',
-        summary: 'Keep Noesis as control plane and pamem as memory owner.',
+        summary: 'Keep the upstream control plane separate from pamem memory ownership.',
         evidence: 'The user clarified the owner boundary in a task thread.',
         candidate_kind: 'memory',
         target_surface: 'pamem',
@@ -613,7 +613,7 @@ function validMemoryProposal(overrides = {}) {
     acceptance_checks: [
       {
         kind: 'promote_check',
-        command: 'noesis promote check .noesis/promote-requests/example.json --json',
+        command: 'upstream-proposal-check proposals/example.json --json',
         expected: 'status has no errors before owner review',
         status: 'passed',
       },

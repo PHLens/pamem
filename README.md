@@ -94,16 +94,16 @@ When pamem initializes a new shared memory repo without a configured git
 remote or git author, the CLI prints a follow-up reminder with the relevant
 flags and config fields.
 
-For Noesis-style heuristic-system flows, pamem is a passive memory owner gate.
-It only consumes an already-produced Noesis `memory_proposal` and validates
-whether it is safe and well-scoped for memory-owner review. It does not
-observe chats, discover durable events, route signals, draft learning events,
-create promote requests, decide promotion targets, write memory files, apply
-proposals, or propagate repositories. Use `pamem check <proposal.json> --json` as
-the read-only owner gate before turning a reviewed proposal into a pamem-owned
-memory PR or request. Workspace-local temporary memory and runtime recovery
-state remain allowed through explicit runtime paths; they are not a shared-memory
-promotion path.
+pamem is an independent memory owner component. It exposes a passive,
+read-only owner gate for already-produced memory handoff artifacts such as
+`memory_proposal`. `pamem check <proposal.json> --json` validates whether an
+artifact is safe and well-scoped for memory-owner review. It does not observe
+chats, discover durable events, route signals, draft learning events, create
+promote requests, decide promotion targets, write memory files, apply proposals,
+or propagate repositories. After the gate passes, an assigned memory owner may
+turn the reviewed artifact into a pamem-owned memory PR or request.
+Workspace-local temporary memory and runtime recovery state remain allowed
+through explicit runtime paths; they are not a shared-memory promotion path.
 
 In Slock mode, `pamem launch` binds or repairs the existing Slock workspace; it
 does not create or start the Slock agent process. `MEMORY.md` stays a thin
