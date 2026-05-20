@@ -34,7 +34,7 @@
     "cli",
     "hooks",
     "persistent-memory",
-    "sync"
+    "propagation"
   ],
   "engines": {
     "node": ">=18"

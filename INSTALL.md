@@ -63,7 +63,6 @@ Useful options:
 --memory-repo <path>
 --sync-remote <target>
 --sync-ref <ref>
---sync-executor <name>
 ```
 
 If config already exists, launch refuses to bind a different role. Profile
@@ -190,8 +189,8 @@ notes/work-log.md
 ```
 
 The shared memory repo remains configured by `[memory_repo].path`. The workspace
-`MEMORY.md` is only a thin router; governance and sync trigger text live in the
-shared repo entry file. The active profile loads shared memory and the startup
+`MEMORY.md` is only a thin router; governance text lives in the shared repo
+entry file. The active profile loads shared memory and the startup
 role guide at `roles/<role>/<role>.md`; that guide points to detailed role
 experience when needed. The packaged base role template is only a bootstrap
 source for creating concrete role guides. In Slock mode, `notes/current-task.md`
@@ -217,7 +216,6 @@ Install/repair creates or refreshes:
 - `.codex/hooks.json`
 - `.codex/skills/memory-rule`
 - `.codex/skills/memory-lint`
-- `.codex/skills/sync-request`
 - the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode
 

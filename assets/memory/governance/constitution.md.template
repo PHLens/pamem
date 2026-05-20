@@ -1,8 +1,8 @@
 # Governance
 
 - Shared memory is the durable store when `memory_repo.path` is configured.
-- Local `config.toml` or workspace `.pamem/config.toml` owns repo location, sharing mode, and sync behavior.
+- Local `config.toml` or workspace `.pamem/config.toml` owns repo location, sharing mode, and propagation behavior.
 - `MEMORY.md` stays a thin index, not a transcript.
-- Runtime startup hooks are read-only loaders; they do not repair or sync shared memory.
-- Sync for the memory repo is handled only by an assigned executor through git propagation or external sync tooling.
-- The packaged sync executor agent lives in the pamem plugin `agents/` directory, not in shared memory.
+- Runtime startup hooks are read-only loaders; they do not repair or propagate shared memory.
+- Propagation for the memory repo is handled through reviewed git merge plus normal pull/bootstrap.
+- Any memory executor agent lives in the pamem plugin `agents/` directory, not in shared memory.

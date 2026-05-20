@@ -17,7 +17,7 @@ This skill must not:
 - modify memory repo files
 - repair missing files
 - promote memory requests
-- run sync
+- run repository propagation
 - run automatically from startup or compact hooks
 
 It may:

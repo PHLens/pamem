@@ -7,8 +7,8 @@ It provides:
 - memory governance and startup loading
 - CLI and Slock task-state boundaries
 - git-backed shared memory repo bootstrap and config templates
-- a packaged sync executor agent definition
-- sync request handoff and executor policy
+- memory owner / executor review policy
+- git-backed memory PR checks and propagation policy
 
 ## Install CLI
 
@@ -63,6 +63,7 @@ pamem list
 pamem status --agent-id coder-local --json
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
+pamem check <proposal.json> --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
 ```
 
@@ -89,9 +90,20 @@ pamem launch --role coder --agent-id coder-local --git-author-name "Memory Bot" 
 Pamem stores this in `[memory_repo.git]`, applies it to the configured memory
 repo's local `git config user.name/user.email`, and `pamem lint` reports a
 mismatch if the repo-local config drifts.
-When pamem initializes a new shared memory repo without a configured sync
+When pamem initializes a new shared memory repo without a configured git
 remote or git author, the CLI prints a follow-up reminder with the relevant
 flags and config fields.
+
+pamem is an independent memory owner component. It exposes a passive,
+read-only owner gate for already-produced memory handoff artifacts such as
+`memory_proposal`. `pamem check <proposal.json> --json` validates whether an
+artifact is safe and well-scoped for memory-owner review. It does not observe
+chats, discover durable events, route signals, draft learning events, create
+promote requests, decide promotion targets, write memory files, apply proposals,
+or propagate repositories. After the gate passes, an assigned memory owner may
+turn the reviewed artifact into a pamem-owned memory PR or request.
+Workspace-local temporary memory and runtime recovery state remain allowed
+through explicit runtime paths; they are not a shared-memory promotion path.
 
 In Slock mode, `pamem launch` binds or repairs the existing Slock workspace; it
 does not create or start the Slock agent process. `MEMORY.md` stays a thin
@@ -114,8 +126,8 @@ and message ids are the provenance surface.
 
 - [INSTALL.md](INSTALL.md): bootstrap, repair, remove, and workspace modes
 - [DESIGN.md](DESIGN.md): layers, precedence, and runtime model
-- [SYNC.md](SYNC.md): sync request handoff and sync executor boundaries
-- `agents/sync-executor.md`: packaged sync executor agent definition
+- [SYNC.md](SYNC.md): git-backed memory repo propagation boundaries
+- `agents/memory-executor.md`: packaged memory owner / executor agent definition
 - `bin/pamem.mjs`: human-facing npm CLI entrypoint
 - `lib/`: Node CLI command, config, onboarding, runtime state, install/remove, and process helpers
 - `scripts/memory-session-start.sh`: lightweight SessionStart hook used by runtimes and `pamem context`

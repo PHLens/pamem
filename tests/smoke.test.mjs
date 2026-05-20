@@ -79,9 +79,10 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(workspace, '.pamem', 'config.toml'), 'author_email = ""');
   assertNoMatch(join(workspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
 
-  for (const skill of ['memory-lint', 'memory-rule', 'sync-request']) {
+  for (const skill of ['memory-lint', 'memory-rule']) {
     assertLinkTarget(join(workspace, '.codex', 'skills', skill), join(root, 'skills', skill));
   }
+  assertMissing(join(workspace, '.codex', 'skills', 'sync-request'), 'retired sync-request skill must not be installed');
 
   assertFile(join(memoryRoot, 'MEMORY.md'));
   assertFile(join(memoryRoot, 'governance', 'constitution.md'));
@@ -130,6 +131,7 @@ function runSmoke(tmpRoot) {
     'bin/pamem.mjs',
     'lib/cli.mjs',
     'lib/install.mjs',
+    'lib/check.mjs',
     'lib/onboard.mjs',
     'lib/runtime.mjs',
     'assets/config.toml.template',
@@ -139,6 +141,7 @@ function runSmoke(tmpRoot) {
   ]) {
     assert.ok(packFiles.has(file), `npm pack should include ${file}`);
   }
+  assert.equal(packFiles.has('skills/sync-request/SKILL.md'), false, 'npm pack should not include retired sync-request skill');
   for (const file of ['lib/skills.mjs', 'scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
     assert.equal(packFiles.has(file), false, `npm pack should not include removed script ${file}`);
   }
@@ -160,8 +163,6 @@ function runSmoke(tmpRoot) {
     'origin',
     '--sync-ref',
     'main',
-    '--sync-executor',
-    'sync-bot',
     '--git-author-name',
     'Memory Bot',
     '--git-author-email',
@@ -175,7 +176,6 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), `path = "${customMemoryRoot}"`);
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'remote = "origin"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'ref = "main"');
-  assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'executor = "sync-bot"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'author_name = "Memory Bot"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'author_email = "memory-bot@example.invalid"');
   assertFile(join(customMemoryRoot, 'MEMORY.md'));
@@ -199,9 +199,10 @@ function runSmoke(tmpRoot) {
   pamemRun(['remove', removeWorkspace], { env });
   const removeHooks = parseJsonFile(join(removeWorkspace, '.codex', 'hooks.json'));
   assertNoHookCommand(removeHooks, '.pamem/scripts/memory-session-start.sh');
-  for (const skill of ['memory-lint', 'memory-rule', 'sync-request']) {
+  for (const skill of ['memory-lint', 'memory-rule']) {
     assertMissing(join(removeWorkspace, '.codex', 'skills', skill), `pamem remove must remove managed skill link: ${skill}`);
   }
+  assertMissing(join(removeWorkspace, '.codex', 'skills', 'sync-request'), 'pamem remove must clear retired sync-request link if present');
 
   // Agent-home launch and CLI lifecycle.
   pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId], { env });
@@ -327,8 +328,8 @@ old workspace governance block
 ## Role
 coder
 
-## Sync Trigger
-old workspace sync block
+## Old Sync Notes
+old workspace propagation block
 
 ## Key Knowledge
 - existing workspace note
@@ -349,7 +350,7 @@ old workspace sync block
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '.pamem/config.toml');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'existing workspace note');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace governance block');
-  assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace sync block');
+  assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace propagation block');
 
   const slockContext = pamemRun(['context', '--workspace', slockWorkspace], { env }).stdout;
   assert.match(slockContext, /runtime=slock/);
@@ -382,6 +383,43 @@ old workspace sync block
   const slockListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
   assert.deepEqual(slockListJson.agents.map((agent) => agent.agent_id), [agentId, slockAgentId]);
   assert.equal(slockListJson.agents.find((agent) => agent.agent_id === slockAgentId)?.kind, 'workspace');
+
+  const memoryProposalPath = join(tmpRoot, 'memory-proposal.json');
+  writeJsonFile(memoryProposalPath, validMemoryProposal());
+  const memoryProposalCheck = JSON.parse(pamemRun(['check', memoryProposalPath, '--workspace', slockWorkspace, '--json'], { env }).stdout);
+  assert.equal(memoryProposalCheck.status, 'ok');
+  assert.equal(memoryProposalCheck.component, 'pamem');
+  assert.equal(memoryProposalCheck.proposal_type, 'memory_proposal');
+  assert.equal(memoryProposalCheck.target_owner, 'pamem');
+  assert.equal(memoryProposalCheck.memory_repo, memoryRoot);
+  assert.equal(memoryProposalCheck.downstream_execution, 'not-run');
+  assert.deepEqual(memoryProposalCheck.writes, []);
+  assert.equal(memoryProposalCheck.summary.error_count, 0);
+  assert.match(pamemRun(['check', '--help'], { env }).stdout, /Read-only owner gate/);
+
+  const wrongOwnerProposalPath = join(tmpRoot, 'wiki-proposal.json');
+  writeJsonFile(wrongOwnerProposalPath, validMemoryProposal({
+    proposal_type: 'wiki_proposal',
+    target_owner: 'LoreForge',
+    target_surface: 'loreforge',
+    requested_output: {
+      kind: 'wiki_proposal',
+      target_owner: 'LoreForge',
+      review_required: true,
+    },
+  }));
+  const wrongOwnerProposal = pamemTry(['check', wrongOwnerProposalPath, '--workspace', slockWorkspace, '--json'], { env });
+  assert.notEqual(wrongOwnerProposal.status, 0);
+  const wrongOwnerProposalJson = JSON.parse(wrongOwnerProposal.stdout);
+  assert.equal(wrongOwnerProposalJson.status, 'error');
+  assert.ok(wrongOwnerProposalJson.checks.some((item) => item.id === 'proposal.proposal_type'));
+
+  const rawEvidenceProposalPath = join(tmpRoot, 'raw-evidence-proposal.json');
+  writeJsonFile(rawEvidenceProposalPath, validMemoryProposal({ transcript: ['raw message should stay outside memory proposals'] }));
+  const rawEvidenceProposal = pamemTry(['check', rawEvidenceProposalPath, '--workspace', slockWorkspace, '--json'], { env });
+  assert.notEqual(rawEvidenceProposal.status, 0);
+  const rawEvidenceProposalJson = JSON.parse(rawEvidenceProposal.stdout);
+  assert.ok(rawEvidenceProposalJson.checks.some((item) => item.id === 'proposal.transcript.raw_evidence'));
 
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_name = ""', 'author_name = "Memory Bot"');
   replaceInFile(join(slockWorkspace, '.pamem', 'config.toml'), 'author_email = ""', 'author_email = "memory-bot@example.invalid"');
@@ -523,6 +561,76 @@ function assertNoMatch(file, pattern) {
 
 function parseJsonFile(file) {
   return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+function writeJsonFile(file, value) {
+  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function validMemoryProposal(overrides = {}) {
+  return {
+    schema_version: '0.1',
+    proposal_id: '2026-05-19T12-00-00Z__memory_owner__01__memory_proposal',
+    proposal_type: 'memory_proposal',
+    status: 'pending_review',
+    created_at: '2026-05-19T12:00:00.000Z',
+    request_id: '2026-05-19T12-00-00Z__memory_owner',
+    request_path: 'proposals/2026-05-19T12-00-00Z__memory_owner.json',
+    source_refs: [
+      {
+        kind: 'slock_thread',
+        ref: '#heuristic-system:example',
+        summary: 'Thread where a durable memory candidate was reviewed.',
+      },
+    ],
+    trigger: {
+      kind: 'user_correction',
+      summary: 'A memory boundary was corrected.',
+    },
+    target_owner: 'pamem',
+    target_surface: 'pamem',
+    review_required: true,
+    risk: 'medium',
+    summary: 'Record a durable memory owner boundary.',
+    rationale: 'The correction affects future memory promotion behavior.',
+    candidate_items: [
+      {
+        id: 'item-1',
+        summary: 'Keep the upstream control plane separate from pamem memory ownership.',
+        evidence: 'The user clarified the owner boundary in a task thread.',
+        candidate_kind: 'memory',
+        target_surface: 'pamem',
+        risk: 'medium',
+        review_required: true,
+        reason: 'The boundary is reusable across future memory promotion tasks.',
+      },
+    ],
+    requested_output: {
+      kind: 'memory_proposal',
+      target_owner: 'pamem',
+      review_required: true,
+    },
+    acceptance_checks: [
+      {
+        kind: 'promote_check',
+        command: 'upstream-proposal-check proposals/example.json --json',
+        expected: 'status has no errors before owner review',
+        status: 'passed',
+      },
+    ],
+    automation_boundary: {
+      mode: 'proposal_only',
+      allow_apply: false,
+      downstream_execution: 'not-run',
+      owner_apply_required: true,
+    },
+    outcome: {
+      status: 'not_applied',
+      applied_by: null,
+      applied_at: null,
+    },
+    ...overrides,
+  };
 }
 
 function assertNoHookCommand(hooksJson, command) {

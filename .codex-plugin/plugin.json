@@ -10,7 +10,7 @@
     "agent-memory",
     "hooks",
     "bootstrap",
-    "sync",
+    "propagation",
     "agents"
   ],
   "skills": "./skills/",

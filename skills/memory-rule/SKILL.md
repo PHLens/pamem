@@ -1,18 +1,17 @@
 ---
 name: memory-rule
-description: Governs profile-based agent memory loading, semantic shared-memory paths, promotion, compression, sync-request handoff, conflict repair, and archiving. Use when maintaining MEMORY.md, notes/, shared memory repos, or any persistent memory so agents keep stable behavior without turning memory into an unstructured log.
+description: Governs profile-based agent memory loading, semantic shared-memory paths, promotion, compression, memory owner review, conflict repair, and archiving. Use when maintaining MEMORY.md, notes/, shared memory repos, or any persistent memory so agents keep stable behavior without turning memory into an unstructured log.
 ---
 
 # Memory Rule
 
-This plugin skill governs how persistent agent memory is structured, loaded, updated, promoted, archived, and handed off for optional sync.
+This plugin skill governs how persistent agent memory is structured, loaded, updated, promoted, archived, and handed off for owner review.
 
 ## Hard Boundary
 
 - This skill is the memory constitution, not a fact store.
 - Do not put dynamic task facts inside this skill.
 - Do not use `MEMORY.md` as a transcript, diary, evidence chain, or detailed work log.
-- Do not merge `sync-request` into this skill; `sync-request` stays separate.
 - Stable rules may constrain memory updates; mutable memory must not redefine stable rules.
 - Memory does not replace project repositories, issue trackers, PRs, delivery artifacts, or external knowledge bases.
 
@@ -22,7 +21,7 @@ This plugin skill governs how persistent agent memory is structured, loaded, upd
 
 ```text
 MEMORY.md          = human-readable startup index and pointers
-config.toml or .pamem/config.toml = machine-readable profile, runtime, memory repo location, load, write, and sync policy when present
+config.toml or .pamem/config.toml = machine-readable profile, runtime, memory repo location, load, write, and propagation policy when present
 governance/ or this skill = constitution and governance
 shared/ or notes/         = stable shared preferences, rules, and cross-role experience
 roles/                    = role guides and role-scoped experience
@@ -31,7 +30,6 @@ archive/ or notes/        = archive summaries not loaded by default, usually CLI
 requests/           = optional promotion handoff queue, not a loaded memory layer
 XDG data agent home = CLI runtime-local config and task recovery by agent id
 git push / repo propagation = executor-only write path for the configured memory repo
-sync-request        = separate request-generation skill for cross-device retention
 ```
 
 Keep persistent memory files in English unless there is an explicit local exception.
@@ -132,7 +130,7 @@ Governance defines the memory operating model:
 - precedence and conflict rules
 - write gates
 - promotion and archival lifecycle
-- sync-request handoff boundary
+- memory owner review and propagation boundary
 
 Governance includes this skill, non-editable startup rules, and `governance/constitution.md` when a shared memory repo provides one. It must not be auto-mutated by ordinary task agents.
 
@@ -204,11 +202,11 @@ Archive stores summaries, not transcripts or raw evidence chains.
 
 ## Profile Configuration
 
-When local `config.toml` or `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, sync policy, and optional memory repo git author identity. `MEMORY.md` should point to it instead of duplicating its details.
+When local `config.toml` or `.pamem/config.toml` exists, it is the machine-readable source for profiles, runtime mode, memory repo location, sharing mode, load targets, write targets, propagation policy, and optional memory repo git author identity. `MEMORY.md` should point to it instead of duplicating its details.
 
-For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, git remote, optional `[memory_repo.git]` author identity, queue root, executor, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
+For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, git remote, optional `[memory_repo.git]` author identity, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
-The wiki profile stores curation workflow, knowledge pointers, and sync handoff memory; domain knowledge itself belongs in the external wiki.
+The wiki profile stores curation workflow and knowledge pointers; domain knowledge itself belongs in the external wiki.
 
 Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
 Profile selection happens during onboarding, preferably through `pamem init`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
@@ -269,11 +267,11 @@ Rules:
   task-relevant.
 - Project memory is loaded from `projects/` and wins over role memory on conflict.
 - Ordinary task agents should write promotion requests or open PRs, not directly make effective shared-memory writes.
-- Ordinary task agents do not start or assign the sync executor during session start; they hand off durable memory/config changes as PRs or promotion requests, and executor-side review decides when sync-executor work is activated.
+- Ordinary task agents do not run repository propagation during session start; they hand off durable memory/config changes as PRs or promotion requests, and owner review decides when those changes become effective shared memory.
 - `guarded_write` is empty for ordinary bundled profiles. If a local policy adds guarded targets, treat them as PR/request candidates unless explicit executor/config-owner responsibility is assigned.
-- The packaged sync executor agent lives in the pamem plugin at `agents/sync-executor.md`; it is not a memory profile and must not be copied into shared memory.
-- Config changes that alter ownership, precedence, or sync policy should be treated as governance changes and reviewed by the config owner or onboarding profile.
-- Humans and the sync executor can run `pamem pr-check` against the configured memory repo before merging a memory PR. The check verifies changed-file scope, guarded surfaces, and memory lint; it does not replace content review.
+- The packaged memory executor agent lives in the pamem plugin at `agents/memory-executor.md`; it is not a memory profile and must not be copied into shared memory.
+- Config changes that alter ownership, precedence, or propagation policy should be treated as governance changes and reviewed by the config owner or onboarding profile.
+- Humans and the memory executor can run `pamem pr-check` against the configured memory repo before merging a memory PR. The check verifies changed-file scope, guarded surfaces, and memory lint; it does not replace content review.
 - If no config exists, use the per-agent notes fallback load order.
 
 ## Startup Load Workflow
@@ -358,7 +356,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 
 Stable shared memory should change by promotion, not by casual append.
 
-Promote to shared or role memory only when:
+As a memory owner or when explicitly asked to curate memory, promote to shared or role memory only when:
 
 - explicitly requested by the user,
 - clearly durable across tasks,
@@ -380,7 +378,7 @@ Choose the target surface before editing:
   active role guide; do not promote durable role workflow into the workspace
   router.
 
-Use `requests/inbox/` for proposed promotions when direct write is not authorized. A promotion request should include:
+Use `requests/inbox/` for proposed promotions when direct write is not authorized or when a memory owner review is pending. If the change came from an upstream `memory_proposal`, first run `pamem check <proposal.json> --json` and then use the same review queue or memory PR flow. A promotion request should include:
 
 - target memory surface and file
 - proposed change
@@ -394,13 +392,24 @@ Promotion decisions:
 - rejected changes move to `requests/rejected/` with a short reason.
 - ordinary task agents must not silently promote contentious or cross-scope rules.
 
+When an upstream control plane produces a `memory_proposal`, treat it as a
+control-plane review artifact. Run `pamem check <proposal.json> --json` before
+creating a memory PR or request. This gate is passive and read-only: it only
+consumes the already-produced proposal, validates pamem ownership, compact
+evidence, review boundaries, and proposal-only automation, and then stops. It
+must not observe chats, discover durable events, route signals, draft learning
+events, create promote requests, decide promotion targets, apply proposals, or
+propagate memory. Upstream control planes may coordinate intake and routing,
+but pamem remains the owner for durable memory content, lint, PR scope checks,
+compression, and memory-owner handoff.
+
 Memory PR merge rule:
 
-- The sync executor, or a human reviewer acting as executor, decides whether a memory PR is merged.
+- The memory executor, or a human reviewer acting as executor, decides whether a memory PR is merged.
 - Every memory PR must declare its intended memory surface, such as `roles/coder/`, `projects/<project-key>.md`, or `requests/inbox/` when a separate handoff queue is used.
 - Before merge, run `pamem pr-check --head <candidate-ref> --target <declared-surface>` from an agent home or workspace that points to the target memory repo; pass `--base` only when reviewing against a protected ref other than `memory_repo.sync.ref`.
 - A PR that changes files outside the declared target must be split or retargeted before merge.
-- `MEMORY.md`, `governance/`, `shared/`, and active profile `guarded_write` targets require explicit guarded review and `--allow-guarded`; use the flag only after verifying the reviewer has config-owner, onboarding, sync-executor, or explicit human authority for that surface.
+- `MEMORY.md`, `governance/`, `shared/`, and active profile `guarded_write` targets require explicit guarded review and `--allow-guarded`; use the flag only after verifying the reviewer has config-owner, onboarding, memory-executor, or explicit human authority for that surface.
 - `pamem pr-check` is a scope and lint gate. The reviewer still checks content quality, durability, privacy, precedence, and whether the change belongs in memory at all.
 
 Keep in `projects/` when the content is:
@@ -426,54 +435,27 @@ Archive to CLI-local work log or optional `archive/` when:
 In Slock mode, ordinary task summaries stay in Slock unless a durable finding is
 promoted to project or shared memory.
 
-## Sync-Request Boundary
-
-Do not merge `sync-request` into `memory-rule`.
-
-`memory-rule` owns the decision gate for whether a memory or managed-config change is durable. `sync-request` owns the separate act of creating a structured request for cross-device retention.
-
-Use `sync-request` only when:
-
-- the user explicitly asks for sync or retention, or
-- workspace policy explicitly requires a sync request for this durable memory/config change.
-
-Do not create unsolicited sync requests from ordinary memory maintenance.
-
-Never use `sync-request` for:
-
-- source-code delivery,
-- feature branches,
-- PR creation or review status,
-- project work transport,
-- raw command output,
-- task-local planning files, or
-- unstable in-progress chatter.
-
-Do not use the sync queue as the memory promotion queue. Use `requests/inbox/` or a task thread for promotion review.
-
-Repository propagation is separate from `sync-request`: it is executor-only git work after policy decides the configured memory repo should be propagated. Ordinary task agents should not run it unless explicitly assigned executor responsibility.
-
-## Hook And Sync Risk Boundary
+## Hook And Propagation Risk Boundary
 
 Strict write control matters because pamem is shared across agents and
 runtimes.
 
 - `SessionStart` is a read-only loader. It may report missing or oversized
-  memory, but it must not create, repair, rewrite, promote, or sync shared
+  memory, but it must not create, repair, rewrite, promote, or propagate shared
   memory.
 - An automatic `PreCompact` hook is not part of the runtime contract. The
   `memory-pre-compact.sh` script may be used only as an explicit CLI-local
   helper for current-task state; it must not write the shared memory repo.
-- git push is executor-only unless the user explicitly assigns sync
+- git push is executor-only unless the user explicitly assigns memory
   executor responsibility.
 - `config.toml` or `.pamem/config.toml` changes are governance changes when they alter memory
-  repo location, sharing mode, runtime mode, profile, write targets, sync
-  remote, ref, or executor.
+  repo location, sharing mode, runtime mode, profile, write targets, remote, ref,
+  or propagation policy.
 - Memory PRs must pass `pamem pr-check` before merge; guarded changes require
   explicit review plus `--allow-guarded`.
 - Install, onboard, and repair scripts may create or restore skeleton files;
   use them for setup/repair, not ordinary task execution.
-- `requests/inbox/` is the memory promotion review queue, not a sync queue and not a loaded memory layer.
+- `requests/inbox/` is the memory promotion review queue, not a propagation queue and not a loaded memory layer.
 
 ## Multi-Instance Concurrency
 
@@ -634,18 +616,18 @@ When an interaction produces a durable insight, classify it:
 | Meta: reusable decision | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file with `type: finding` | "For Chinese sites, browser path > requests" |
 | Domain: concept or fact | External wiki/vault/project source | Technical concepts, source summaries, MOCs |
 
-### Finding Writeback
+### Memory Owner Review
 
-During interaction, when a meta-knowledge insight is discovered, promote it immediately only if direct write is allowed by policy. Otherwise create a promotion request.
+When acting as the pamem memory owner or handling an explicitly assigned memory curation task, review durable meta-knowledge for writeback. This is a review step, not a runtime intake/router, discovery engine, or proposal generator. Directly promote only if policy allows it. Otherwise create a promotion request.
 
-Writeback triggers:
+Owner-review triggers:
 
 - A tool usage revealed a non-obvious behavior or pitfall.
 - A workflow assumption was proven wrong.
 - A technique was discovered that would improve future interactions.
 - A correction was made to a previous approach.
 
-Writeback rules:
+Owner-review rules:
 
 - Direct write: factual meta discoveries when allowed by the active profile and local policy.
 - Promotion request: rule changes, workflow modifications, cross-role knowledge, or entries that supersede existing experience.
@@ -700,7 +682,7 @@ When new memory conflicts with existing memory:
 | Placeholder text remains | Fill it in or remove it |
 | Project-specific content appears in shared or role memory | Move it to `projects/` |
 | Role-scoped experience is scattered across task files | Promote or request promotion into the role guide, role experience, or a role-local topic file based on startup value |
-| Sync request is used for project delivery | Cancel and use normal project workflow |
+| Memory promotion request is used for project delivery | Cancel and use normal project workflow |
 
 ## Anti-Patterns
 
@@ -712,8 +694,7 @@ When new memory conflicts with existing memory:
 | Treat role overlay as higher priority than project rules | Let project memory override role memory |
 | Repeat corrections in multiple places | Keep one authoritative entry with `type: correction` and supersession |
 | Write evidence chains | Record outcome or lesson only |
-| Use `sync-request` as a promotion queue | Use `requests/inbox/` or review in the task thread |
-| Create unsolicited sync requests | Create them only by explicit user request or workspace policy |
+| Use propagation as a promotion queue | Use `requests/inbox/` or review in the task thread |
 | Load archive by default | Load archive only when task-relevant |
 
 ## Last Updated

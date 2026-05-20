@@ -46,14 +46,9 @@ requires_review_for = [
   "roles/**"
 ]
 
-[sync]
-executor = "<configured-sync-executor>"
-# GitHub PRs are the default proposal path; the sync executor reviews and merges when policy allows.
-policy = "github_pr_only"
-
 [profiles.wiki]
 role = "wiki"
-description = "Wiki profile for curation workflow, knowledge pointers, and sync handoffs."
+description = "Wiki profile for curation workflow and knowledge pointers."
 load = [
   "governance/constitution.md",
   "shared/preferences.md",

@@ -279,7 +279,7 @@ for changed in "${CHANGED_FILES[@]}"; do
   if is_guarded_path "$changed" && [ "$ALLOW_GUARDED" -ne 1 ]; then
     add_finding "error" "MP002" "$changed" \
       "Changed file is a guarded memory surface" \
-      "Guarded surfaces require explicit config-owner or sync-executor approval and --allow-guarded." \
+      "Guarded surfaces require explicit config-owner or memory-executor approval and --allow-guarded." \
       "$changed" \
       "request-guarded-review"
     continue
