@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -78,11 +79,17 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(workspace, '.pamem', 'config.toml'), 'author_name = ""');
   assertIncludes(join(workspace, '.pamem', 'config.toml'), 'author_email = ""');
   assertNoMatch(join(workspace, '.pamem', 'config.toml'), /backend[ \t]*=/);
+  assertIncludes(join(workspace, '.codex', 'config.toml'), 'hooks = true');
+  assertNoMatch(join(workspace, '.codex', 'config.toml'), /codex_hooks/);
 
   for (const skill of ['memory-lint', 'memory-rule']) {
     assertLinkTarget(join(workspace, '.codex', 'skills', skill), join(root, 'skills', skill));
   }
   assertMissing(join(workspace, '.codex', 'skills', 'sync-request'), 'retired sync-request skill must not be installed');
+  writeFileSync(join(workspace, '.codex', 'config.toml'), '[features]\ncodex_hooks = true\n');
+  pamemRun(['repair', workspace], { env });
+  assertIncludes(join(workspace, '.codex', 'config.toml'), 'hooks = true');
+  assertNoMatch(join(workspace, '.codex', 'config.toml'), /codex_hooks/);
 
   assertFile(join(memoryRoot, 'MEMORY.md'));
   assertFile(join(memoryRoot, 'governance', 'constitution.md'));
@@ -279,6 +286,24 @@ function runSmoke(tmpRoot) {
   assert.match(cliEnv, new RegExp(`export PAMEM_WORKSPACE=${escapeRegExp(agentHome)}`));
   assert.match(cliEnv, new RegExp(`export PAMEM_SESSION_ID=${escapeRegExp(resumeSession.session_id)}`));
   assert.match(cliEnv, /export PAMEM_RESUME=0/);
+
+  const fakeBin = join(tmpRoot, 'fake-bin');
+  mkdirSync(fakeBin, { recursive: true });
+  writeExecutable(join(fakeBin, 'codex'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$PAMEM_LOCAL_DIR/codex-args"\n');
+  writeExecutable(join(fakeBin, 'claude'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$PAMEM_LOCAL_DIR/claude-args"\n');
+  const fakeEnv = { ...env, PATH: `${fakeBin}:${process.env.PATH}` };
+
+  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'codex'], { env: fakeEnv });
+  assertIncludes(join(agentHome, 'codex-args'), '--dangerously-bypass-approvals-and-sandbox');
+  assert.deepEqual(parseJsonFile(join(agentHome, 'session.json')).last_command, ['codex', '--dangerously-bypass-approvals-and-sandbox']);
+  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'codex', '--dangerously-bypass-approvals-and-sandbox', 'prompt'], { env: fakeEnv });
+  assert.equal(readFileSync(join(agentHome, 'codex-args'), 'utf8').split(/\r?\n/).filter((line) => line === '--dangerously-bypass-approvals-and-sandbox').length, 1);
+
+  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'claude'], { env: fakeEnv });
+  assertIncludes(join(agentHome, 'claude-args'), '--dangerously-skip-permissions');
+  assert.deepEqual(parseJsonFile(join(agentHome, 'session.json')).last_command, ['claude', '--dangerously-skip-permissions']);
+  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'claude', '--dangerously-skip-permissions', 'prompt'], { env: fakeEnv });
+  assert.equal(readFileSync(join(agentHome, 'claude-args'), 'utf8').split(/\r?\n/).filter((line) => line === '--dangerously-skip-permissions').length, 1);
 
   appendFile(join(agentHome, 'config.toml'), '\n[runtime.resume]\ncommand = ["sh", "-c", "printf configured > $PAMEM_LOCAL_DIR/configured-marker"]\n');
   rmSync(join(agentHome, 'resume-marker'), { force: true });
@@ -677,6 +702,11 @@ function appendFile(file, text) {
 
 function replaceInFile(file, search, replacement) {
   writeFileSync(file, readFileSync(file, 'utf8').replace(search, replacement));
+}
+
+function writeExecutable(file, content) {
+  writeFileSync(file, content);
+  chmodSync(file, 0o755);
 }
 
 function assertNoPersonalFixtures() {
