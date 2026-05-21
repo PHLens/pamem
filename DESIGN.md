@@ -271,10 +271,13 @@ alternate defaults, not simultaneous runtime roles. Each profile loads shared
 experience and the role guide; the role guide leaves deeper role experience or
 topic files for on-demand reading.
 
-Role selection belongs to launch and onboarding. `pamem launch` writes the
-selected `config.toml` before runtime hooks start reading it; startup hooks must
-treat the selected role policy as read-only. Explicit workspace onboarding
-still writes `.pamem/config.toml` for compatibility.
+Role selection belongs to launch, setup, and onboarding. `pamem launch` writes
+the selected `config.toml` before runtime hooks start reading it; startup hooks
+must treat the selected role policy as read-only. `pamem setup` is the stable
+component-facing wrapper for external bootstrappers: it requires an explicit
+profile, uses the same intentional onboarding path, installs managed runtime
+bootstrap files, and can emit one JSON report. Explicit low-level workspace
+onboarding still writes `.pamem/config.toml` for compatibility.
 
 Ordinary task profiles are intentionally narrow write surfaces. They load
 shared, role, and project memory. Durable shared-memory changes should be
