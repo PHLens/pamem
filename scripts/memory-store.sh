@@ -451,7 +451,7 @@ pamem_ensure_memory_repo_skeleton() {
   pamem_copy_if_missing "$assets_dir/notes/operating-rules.md.template" "$repo_root/shared/operating-rules.md"
   pamem_copy_if_missing "$assets_dir/memory/shared/experience.md.template" "$repo_root/shared/experience.md"
 
-  for role in onboarding coder reviewer researcher wiki; do
+  for role in onboarding coder reviewer researcher; do
     local role_title
     local role_workflow
     local role_experience
@@ -474,13 +474,8 @@ pamem_ensure_memory_repo_skeleton() {
         ;;
       researcher)
         role_title="Researcher"
-        role_workflow="research workflow"
-        role_experience="research findings, corrections, and retrieval lessons"
-        ;;
-      wiki)
-        role_title="Wiki"
-        role_workflow="curation workflow"
-        role_experience="wiki workflow, curation, retrieval, and handoff lessons"
+        role_workflow="research, source capture, and knowledge curation workflow"
+        role_experience="research findings, source curation, retrieval, and handoff lessons"
         ;;
     esac
 

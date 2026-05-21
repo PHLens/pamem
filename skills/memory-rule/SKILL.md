@@ -80,9 +80,6 @@ memory/
     onboarding/
       onboarding.md
       experience.md
-    wiki/
-      wiki.md
-      experience.md
   projects/
     <project-key>.md
   archive/
@@ -162,8 +159,8 @@ Shared experience is loaded through the active profile overlay. It does not outr
 
 Examples:
 
-- role guides such as `roles/coder/coder.md`, `roles/reviewer/reviewer.md`, `roles/wiki/wiki.md`, and `roles/onboarding/onboarding.md`
-- role-specific experience such as `roles/coder/experience.md`, `roles/reviewer/experience.md`, `roles/wiki/experience.md`, and `roles/onboarding/experience.md`
+- role guides such as `roles/coder/coder.md`, `roles/reviewer/reviewer.md`, `roles/researcher/researcher.md`, and `roles/onboarding/onboarding.md`
+- role-specific experience such as `roles/coder/experience.md`, `roles/reviewer/experience.md`, `roles/researcher/experience.md`, and `roles/onboarding/experience.md`
 - role-local topic files for detailed on-demand workflow or findings
 
 The role guide `roles/<role>/<role>.md` is the startup entry point for that
@@ -206,7 +203,7 @@ When local `config.toml` or `.pamem/config.toml` exists, it is the machine-reada
 
 For onboarding, seed `config.toml` or `.pamem/config.toml` from `assets/config.toml.template` and then replace the placeholders with the agent's actual repo path, sharing mode, git remote, optional `[memory_repo.git]` author identity, and profile owners. If the workspace should default to a different role, use the matching standalone starter in `assets/config-profiles/`.
 
-The wiki profile stores curation workflow and knowledge pointers; domain knowledge itself belongs in the external wiki.
+The researcher profile also covers source capture and wiki curation workflow. Domain knowledge itself belongs in the external wiki.
 
 Only one `default_profile` should be active in a workspace at a time. Role-specific starters are separate entry points, not simultaneous overlays.
 Profile selection happens during onboarding, preferably through `pamem init`. After an agent starts, runtime hooks and ordinary task agents must treat `default_profile` as read-only; switching profile requires deliberate re-onboarding and restart.
@@ -342,7 +339,7 @@ If the answer is no to long-term value, do not write it to stable memory.
 | Shared operating rules | `shared/operating-rules.md` | `notes/operating-rules.md` | Stable operating defaults; must not override governance |
 | Cross-role shared experience | `shared/experience.md` | n/a | Durable findings shared across roles and loaded through the active profile |
 | Role guide | `roles/<role>/<role>.md` | n/a | Short startup guide for role-specific workflow and pointers |
-| Role-scoped experience | `roles/<role>/experience.md` or role-local topic files | `notes/experience.md` | Reusable role memory such as coder/reviewer/wiki habits |
+| Role-scoped experience | `roles/<role>/experience.md` or role-local topic files | `notes/experience.md` | Reusable role memory such as coder/reviewer/researcher habits |
 | Error corrections and prohibitions | `roles/<role>/experience.md` or a role-local topic file | `notes/experience.md` | Use `type: correction`; avoid duplicates |
 | Reusable technical findings | `roles/<role>/experience.md` or a role-local topic file | `notes/experience.md` | Outcomes only, never raw evidence chains |
 | Methodological meta-knowledge | `shared/experience.md`, `roles/<role>/experience.md`, or a role-local topic file | `notes/experience.md` | Tool tips, workflow improvements, corrected assumptions |

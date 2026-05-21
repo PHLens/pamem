@@ -98,10 +98,11 @@ function runSmoke(tmpRoot) {
   assertFile(join(memoryRoot, 'shared', 'experience.md'));
   run('git', ['-C', memoryRoot, 'rev-parse', '--is-inside-work-tree']);
   assertMissing(join(memoryRoot, 'roles', 'base'), 'shared memory repo must not materialize base role templates');
-  for (const role of ['onboarding', 'coder', 'reviewer', 'researcher', 'wiki']) {
+  for (const role of ['onboarding', 'coder', 'reviewer', 'researcher']) {
     assertFile(join(memoryRoot, 'roles', role, `${role}.md`));
     assertFile(join(memoryRoot, 'roles', role, 'experience.md'));
   }
+  assertMissing(join(memoryRoot, 'roles', 'wiki'), 'wiki role should be folded into researcher');
   assertNoMatch(join(memoryRoot, 'roles', 'onboarding', 'onboarding.md'), /{{ROLE_/);
 
   run('git', ['-C', memoryRoot, 'config', 'user.email', 'pamem-smoke@example.invalid']);
@@ -151,6 +152,7 @@ function runSmoke(tmpRoot) {
   ]) {
     assert.ok(packFiles.has(file), `npm pack should include ${file}`);
   }
+  assert.equal(packFiles.has('assets/config-profiles/wiki.toml.template'), false, 'npm pack should not include retired wiki profile template');
   assert.equal(packFiles.has('skills/sync-request/SKILL.md'), false, 'npm pack should not include retired sync-request skill');
   for (const file of ['lib/skills.mjs', 'scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
     assert.equal(packFiles.has(file), false, `npm pack should not include removed script ${file}`);
@@ -191,11 +193,14 @@ function runSmoke(tmpRoot) {
   assertFile(join(customMemoryRoot, 'MEMORY.md'));
   assert.equal(run('git', ['-C', customMemoryRoot, 'config', '--local', 'user.name']).stdout.trim(), 'Memory Bot');
   assert.equal(run('git', ['-C', customMemoryRoot, 'config', '--local', 'user.email']).stdout.trim(), 'memory-bot@example.invalid');
-  const duplicateOnboard = pamemTry(['onboard', onboardWorkspace, '--profile', 'wiki'], { env });
+  const duplicateOnboard = pamemTry(['onboard', onboardWorkspace, '--profile', 'coder'], { env });
   assert.notEqual(duplicateOnboard.status, 0);
   assert.match(duplicateOnboard.stderr, /rerun with --force/);
-  pamemRun(['onboard', onboardWorkspace, '--profile', 'wiki', '--runtime', 'cli', '--force'], { env });
-  assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'default_profile = "wiki"');
+  const retiredWikiOnboard = pamemTry(['onboard', join(tmpRoot, 'retired-wiki-onboard'), '--profile', 'wiki'], { env });
+  assert.notEqual(retiredWikiOnboard.status, 0);
+  assert.match(retiredWikiOnboard.stderr, /unsupported profile: wiki/);
+  pamemRun(['onboard', onboardWorkspace, '--profile', 'coder', '--runtime', 'cli', '--force'], { env });
+  assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'default_profile = "coder"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'mode = "cli"');
 
   const setupWorkspace = join(tmpRoot, 'setup');
@@ -204,7 +209,7 @@ function runSmoke(tmpRoot) {
     'setup',
     setupWorkspace,
     '--profile',
-    'wiki',
+    'researcher',
     '--runtime',
     'slock',
     '--agent-id',
@@ -216,17 +221,20 @@ function runSmoke(tmpRoot) {
   assert.equal(setup.status, 'ok');
   assert.equal(setup.command, 'setup');
   assert.equal(setup.downstream_execution, 'pamem-onboard');
-  assert.equal(setup.profile, 'wiki');
+  assert.equal(setup.profile, 'researcher');
   assert.equal(setup.runtime, 'slock');
   assert.equal(setup.agent_id, 'setup-smoke');
   assert.equal(setup.memory_repo, setupMemoryRoot);
-  assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'default_profile = "wiki"');
+  assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'default_profile = "researcher"');
   assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
   assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'agent_id = "setup-smoke"');
   assertFile(join(setupMemoryRoot, 'MEMORY.md'));
   const setupWithoutProfile = pamemTry(['setup', join(tmpRoot, 'setup-no-profile')], { env });
   assert.notEqual(setupWithoutProfile.status, 0);
   assert.match(setupWithoutProfile.stderr, /pamem setup requires --profile/);
+  const retiredWikiSetup = pamemTry(['setup', join(tmpRoot, 'retired-wiki-setup'), '--profile', 'wiki'], { env });
+  assert.notEqual(retiredWikiSetup.status, 0);
+  assert.match(retiredWikiSetup.stderr, /unsupported profile: wiki/);
 
   run('npm', ['install', '--global', '--prefix', npmPrefix, root]);
   const installedPamem = join(npmPrefix, 'bin', 'pamem');
@@ -245,16 +253,19 @@ function runSmoke(tmpRoot) {
   assertMissing(join(removeWorkspace, '.codex', 'skills', 'sync-request'), 'pamem remove must clear retired sync-request link if present');
 
   // Agent-home launch and CLI lifecycle.
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId], { env });
+  const retiredWikiLaunch = pamemTry(['launch', '--role', 'wiki', '--agent-id', 'retired-wiki-agent'], { env });
+  assert.notEqual(retiredWikiLaunch.status, 0);
+  assert.match(retiredWikiLaunch.stderr, /unsupported role: wiki/);
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId], { env });
   assertFile(join(agentHome, 'config.toml'));
   assertFile(join(agentHome, 'current-task.md'));
   assertFile(join(agentHome, 'work-log.md'));
-  assertIncludes(join(agentHome, 'config.toml'), 'default_profile = "wiki"');
+  assertIncludes(join(agentHome, 'config.toml'), 'default_profile = "researcher"');
   assertIncludes(join(agentHome, 'config.toml'), 'mode = "cli"');
   assertNoMatch(join(agentHome, 'config.toml'), /backend[ \t]*=/);
 
   const sessionTest = 'test "$PWD" = "$PAMEM_WORKSPACE" && test -s "$PAMEM_CURRENT_TASK" && test -n "$PAMEM_SESSION_ID" && printf "$PAMEM_SESSION_ID" > "$PAMEM_LOCAL_DIR/env-session-id" && if [ "$PAMEM_RESUME" = 1 ]; then printf resume > "$PAMEM_LOCAL_DIR/resume-marker"; else printf start > "$PAMEM_LOCAL_DIR/start-marker"; fi';
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'sh', '-c', sessionTest], { env });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'sh', '-c', sessionTest], { env });
   assertFile(join(agentHome, 'start-marker'));
   const firstSession = parseJsonFile(join(agentHome, 'session.json'));
   assert.match(firstSession.session_id, /^[0-9a-f-]{36}$/);
@@ -263,7 +274,7 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(agentHome, 'current-task.md'), `Latest CLI session_id: \`${firstSession.session_id}\``);
   assertIncludes(join(agentHome, 'current-task.md'), `Session file: \`${join(agentHome, 'session.json')}\``);
   assertIncludes(join(agentHome, 'work-log.md'), `session_id=${firstSession.session_id} action=start`);
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--resume'], { env });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--resume'], { env });
   assertFile(join(agentHome, 'resume-marker'));
   const resumeSession = parseJsonFile(join(agentHome, 'session.json'));
   assert.match(resumeSession.session_id, /^[0-9a-f-]{36}$/);
@@ -275,13 +286,13 @@ function runSmoke(tmpRoot) {
 
   const cliList = pamemRun(['list'], { env }).stdout;
   assert.match(cliList, /agent_id\truntime\trole\tkind\thome/);
-  assert.match(cliList, new RegExp(`${escapeRegExp(agentId)}\\tcli\\twiki\\tagent-home\\t${escapeRegExp(agentHome)}`));
+  assert.match(cliList, new RegExp(`${escapeRegExp(agentId)}\\tcli\\tresearcher\\tagent-home\\t${escapeRegExp(agentHome)}`));
   const cliListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
   assert.equal(cliListJson.agents_dir, join(xdgRoot, 'pamem', 'agents'));
   assert.equal(cliListJson.slock_agents_dir, slockAgentsRoot);
   assert.deepEqual(cliListJson.agents.map((agent) => agent.agent_id), [agentId]);
   assert.equal(cliListJson.agents[0].runtime, 'cli');
-  assert.equal(cliListJson.agents[0].role, 'wiki');
+  assert.equal(cliListJson.agents[0].role, 'researcher');
   assert.equal(cliListJson.agents[0].kind, 'agent-home');
   assert.equal(cliListJson.agents[0].home, agentHome);
   assert.equal(cliListJson.agents[0].config, join(agentHome, 'config.toml'));
@@ -291,7 +302,7 @@ function runSmoke(tmpRoot) {
   assert.equal(cliStatusJson.kind, 'agent-home');
   assert.equal(cliStatusJson.root, agentHome);
   assert.equal(cliStatusJson.runtime, 'cli');
-  assert.equal(cliStatusJson.role, 'wiki');
+  assert.equal(cliStatusJson.role, 'researcher');
   assert.equal(cliStatusJson.agent_id, agentId);
   assert.equal(cliStatusJson.config, join(agentHome, 'config.toml'));
   assert.equal(cliStatusJson.memory_repo, memoryRoot);
@@ -324,21 +335,21 @@ function runSmoke(tmpRoot) {
   writeExecutable(join(fakeBin, 'claude'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$PAMEM_LOCAL_DIR/claude-args"\n');
   const fakeEnv = { ...env, PATH: `${fakeBin}:${process.env.PATH}` };
 
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'codex'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'codex'], { env: fakeEnv });
   assertIncludes(join(agentHome, 'codex-args'), '--dangerously-bypass-approvals-and-sandbox');
   assert.deepEqual(parseJsonFile(join(agentHome, 'session.json')).last_command, ['codex', '--dangerously-bypass-approvals-and-sandbox']);
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'codex', '--dangerously-bypass-approvals-and-sandbox', 'prompt'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'codex', '--dangerously-bypass-approvals-and-sandbox', 'prompt'], { env: fakeEnv });
   assert.equal(readFileSync(join(agentHome, 'codex-args'), 'utf8').split(/\r?\n/).filter((line) => line === '--dangerously-bypass-approvals-and-sandbox').length, 1);
 
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'claude'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'claude'], { env: fakeEnv });
   assertIncludes(join(agentHome, 'claude-args'), '--dangerously-skip-permissions');
   assert.deepEqual(parseJsonFile(join(agentHome, 'session.json')).last_command, ['claude', '--dangerously-skip-permissions']);
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--', 'claude', '--dangerously-skip-permissions', 'prompt'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'claude', '--dangerously-skip-permissions', 'prompt'], { env: fakeEnv });
   assert.equal(readFileSync(join(agentHome, 'claude-args'), 'utf8').split(/\r?\n/).filter((line) => line === '--dangerously-skip-permissions').length, 1);
 
   appendFile(join(agentHome, 'config.toml'), '\n[runtime.resume]\ncommand = ["sh", "-c", "printf configured > $PAMEM_LOCAL_DIR/configured-marker"]\n');
   rmSync(join(agentHome, 'resume-marker'), { force: true });
-  pamemRun(['launch', '--role', 'wiki', '--agent-id', agentId, '--resume'], { env });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--resume'], { env });
   assertFile(join(agentHome, 'configured-marker'));
   assertMissing(join(agentHome, 'resume-marker'), 'configured resume command should take precedence over last session command');
 
@@ -351,7 +362,7 @@ function runSmoke(tmpRoot) {
 
   const cliContext = pamemRun(['context', '--agent-id', agentId], { env }).stdout;
   assert.match(cliContext, /Persistent memory source:/);
-  assert.match(cliContext, /Source: `roles\/wiki\/wiki.md`/);
+  assert.match(cliContext, /Source: `roles\/researcher\/researcher.md`/);
   assert.doesNotMatch(cliContext, /Source: `roles\/base\/base.md`/);
   assert.match(cliContext, /CLI runtime current task source:/);
 
@@ -359,7 +370,7 @@ function runSmoke(tmpRoot) {
   assert.equal(cliLint.status, 'ok');
   assert.equal(cliLint.summary.error_count, 0);
   assert.equal(cliLint.config_scope, 'agent-local');
-  assert.equal(cliLint.config.default_profile, 'wiki');
+  assert.equal(cliLint.config.default_profile, 'researcher');
   assert.deepEqual(cliLint.config.git_author, {
     name: '',
     email: '',
