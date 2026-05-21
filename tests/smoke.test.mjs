@@ -120,7 +120,7 @@ function runSmoke(tmpRoot) {
   assert.equal(pkg.name, '@phlens/pamem');
   assert.equal(pkg.bin.pamem, './bin/pamem.mjs');
   assert.equal(pkg.scripts.test, 'node --test tests/smoke.test.mjs');
-  assert.equal(pkg.version, '0.8.0');
+  assert.equal(pkg.version, '0.9.0');
   assert.equal(claude.version, pkg.version);
   assert.equal(codex.version, pkg.version);
   assert.equal(marketplace.plugins.find((plugin) => plugin.name === 'pamem')?.version, pkg.version);
@@ -131,6 +131,7 @@ function runSmoke(tmpRoot) {
     'bin/pamem.mjs',
     'lib/cli.mjs',
     'lib/install.mjs',
+    'lib/update.mjs',
     'lib/check.mjs',
     'lib/onboard.mjs',
     'lib/runtime.mjs',
@@ -317,6 +318,10 @@ function runSmoke(tmpRoot) {
   const removedSkillCommand = pamemTry(['skill', 'list', '--agent-id', agentId], { env });
   assert.notEqual(removedSkillCommand.status, 0);
   assert.match(removedSkillCommand.stderr, /unknown pamem command: skill/);
+
+  assert.match(pamemRun(['update', '--help'], { env }).stdout, /Usage: pamem update/);
+  assert.match(pamemRun(['update', '--dry-run'], { env }).stdout, /git -C .* fetch origin main.*git -C .* pull --ff-only origin main|npm install -g git\+ssh:\/\/git@github\.com\/PHLens\/pamem\.git/s);
+  assert.match(pamemTry(['update', '--agent-id', 'missing-agent'], { env }).stderr, /unknown update argument/);
 
   // Slock mode keeps task state in the Slock workspace and loads shared memory
   // through the selected profile.

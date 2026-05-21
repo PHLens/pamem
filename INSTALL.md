@@ -32,8 +32,9 @@ Then verify:
 pamem --help
 ```
 
-After installing, use `pamem install` to install or repair runtime/plugin
-files, then `pamem launch` to start a role/runtime instance.
+After installing, use `pamem update` to update pamem itself, `pamem install` or
+`pamem repair` for workspace runtime/plugin files, then `pamem launch` to start
+a role/runtime instance.
 
 ## Launch An Agent
 
@@ -205,6 +206,7 @@ Use the public CLI for bootstrap and cleanup:
 
 ```bash
 pamem install <workspace>
+pamem update
 pamem repair <workspace>
 pamem remove <workspace>
 ```
@@ -218,6 +220,12 @@ Install/repair creates or refreshes:
 - `.codex/skills/memory-lint`
 - the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode
+
+`pamem update` updates the local pamem package or checkout. It does not mutate
+agent workspaces or shared memory. After updating pamem, run
+`pamem repair <workspace>` when a workspace's managed hooks, skill links, or
+bootstrap files need to be refreshed. Use `pamem update --dry-run` to print the
+self-update command without executing it.
 
 `pamem remove` removes managed Codex hook and skill entries. It leaves memory
 files and config in place so the workspace can be repaired later.

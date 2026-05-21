@@ -30,9 +30,9 @@ Then verify:
 pamem --help
 ```
 
-The package exposes the `pamem` command directly. Use `pamem install` to install
-or repair runtime/plugin files, then `pamem launch` to start a role/runtime
-instance.
+The package exposes the `pamem` command directly. Use `pamem update` to update
+the local pamem package or checkout. Use `pamem install` and `pamem repair` for
+workspace bootstrap files, then `pamem launch` to start a role/runtime instance.
 
 ## Plugin Install
 
@@ -65,6 +65,7 @@ pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem check <proposal.json> --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
+pamem update --dry-run
 ```
 
 `status --json` is the stable read-only interface for other tools that need the
@@ -77,7 +78,13 @@ For Slock workspaces, use the workspace anchor explicitly:
 
 ```bash
 pamem launch --runtime slock --role coder --workspace <slock-agent-workspace>
+pamem repair <slock-agent-workspace>
 ```
+
+`pamem update` updates pamem itself. If a workspace's hooks, skill links, or
+bootstrap files need to be refreshed after the package update, run
+`pamem repair <workspace>` explicitly. Repair does not change role binding,
+rewrite config, or edit shared memory.
 
 To pin commits in the configured memory repo to a specific identity, configure
 the repo-local git author during onboarding or launch:
@@ -124,7 +131,7 @@ and message ids are the provenance surface.
 
 ## Docs
 
-- [INSTALL.md](INSTALL.md): bootstrap, repair, remove, and workspace modes
+- [INSTALL.md](INSTALL.md): bootstrap, update, repair, remove, and workspace modes
 - [DESIGN.md](DESIGN.md): layers, precedence, and runtime model
 - [SYNC.md](SYNC.md): git-backed memory repo propagation boundaries
 - `agents/memory-executor.md`: packaged memory owner / executor agent definition
