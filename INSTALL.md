@@ -32,9 +32,10 @@ Then verify:
 pamem --help
 ```
 
-After installing, use `pamem update` to update pamem itself, `pamem install` or
-`pamem repair` for workspace runtime/plugin files, then `pamem launch` to start
-a role/runtime instance.
+After installing, use `pamem update` to update pamem itself, `pamem setup` when
+an external bootstrapper needs a deliberate workspace binding, `pamem install`
+or `pamem repair` for workspace runtime/plugin files, then `pamem launch` to
+start a role/runtime instance.
 
 ## Launch An Agent
 
@@ -164,7 +165,20 @@ workspaces.
 loading stays shared with Codex/Slock hook execution.
 
 To create or deliberately replace config without starting a runtime, use
-`pamem onboard`:
+`pamem setup`. This is the stable component-facing wrapper for external
+bootstrappers:
+
+```bash
+pamem setup /path/to/workspace --profile coder --runtime slock --json
+pamem setup /path/to/agent-home --agent-home --profile wiki --runtime cli --force --json
+```
+
+`pamem setup` requires an explicit profile, installs managed bootstrap files,
+and returns a single JSON object when `--json` is passed. Internally it uses the
+same intentional onboarding path as `pamem onboard`; `install` and `repair` are
+only for refreshing bootstrap files without changing role binding.
+
+For low-level manual onboarding, use `pamem onboard`:
 
 ```bash
 pamem onboard /path/to/workspace --profile coder --runtime slock
@@ -206,6 +220,7 @@ Use the public CLI for bootstrap and cleanup:
 
 ```bash
 pamem install <workspace>
+pamem setup <workspace> --profile coder --runtime slock --json
 pamem update
 pamem repair <workspace>
 pamem remove <workspace>

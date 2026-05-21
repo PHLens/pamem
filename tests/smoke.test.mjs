@@ -139,6 +139,7 @@ function runSmoke(tmpRoot) {
     'bin/pamem.mjs',
     'lib/cli.mjs',
     'lib/install.mjs',
+    'lib/setup.mjs',
     'lib/update.mjs',
     'lib/check.mjs',
     'lib/onboard.mjs',
@@ -196,6 +197,36 @@ function runSmoke(tmpRoot) {
   pamemRun(['onboard', onboardWorkspace, '--profile', 'wiki', '--runtime', 'cli', '--force'], { env });
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'default_profile = "wiki"');
   assertIncludes(join(onboardWorkspace, '.pamem', 'config.toml'), 'mode = "cli"');
+
+  const setupWorkspace = join(tmpRoot, 'setup');
+  const setupMemoryRoot = join(tmpRoot, 'setup-memory');
+  const setup = JSON.parse(pamemRun([
+    'setup',
+    setupWorkspace,
+    '--profile',
+    'wiki',
+    '--runtime',
+    'slock',
+    '--agent-id',
+    'setup-smoke',
+    '--memory-repo',
+    setupMemoryRoot,
+    '--json',
+  ], { env }).stdout);
+  assert.equal(setup.status, 'ok');
+  assert.equal(setup.command, 'setup');
+  assert.equal(setup.downstream_execution, 'pamem-onboard');
+  assert.equal(setup.profile, 'wiki');
+  assert.equal(setup.runtime, 'slock');
+  assert.equal(setup.agent_id, 'setup-smoke');
+  assert.equal(setup.memory_repo, setupMemoryRoot);
+  assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'default_profile = "wiki"');
+  assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
+  assertIncludes(join(setupWorkspace, '.pamem', 'config.toml'), 'agent_id = "setup-smoke"');
+  assertFile(join(setupMemoryRoot, 'MEMORY.md'));
+  const setupWithoutProfile = pamemTry(['setup', join(tmpRoot, 'setup-no-profile')], { env });
+  assert.notEqual(setupWithoutProfile.status, 0);
+  assert.match(setupWithoutProfile.stderr, /pamem setup requires --profile/);
 
   run('npm', ['install', '--global', '--prefix', npmPrefix, root]);
   const installedPamem = join(npmPrefix, 'bin', 'pamem');
@@ -557,6 +588,7 @@ function assertSubcommandHelp() {
     'pr-check',
     'install',
     'onboard',
+    'setup',
     'repair',
     'update',
     'remove',

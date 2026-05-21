@@ -31,8 +31,10 @@ pamem --help
 ```
 
 The package exposes the `pamem` command directly. Use `pamem update` to update
-the local pamem package or checkout. Use `pamem install` and `pamem repair` for
-workspace bootstrap files, then `pamem launch` to start a role/runtime instance.
+the local pamem package or checkout. Use `pamem setup` when an external
+bootstrapper needs to bind a workspace deliberately, `pamem install` and
+`pamem repair` for workspace bootstrap files, then `pamem launch` to start a
+role/runtime instance.
 
 ## Plugin Install
 
@@ -77,9 +79,16 @@ configured CLI homes and local Slock agent workspaces.
 For Slock workspaces, use the workspace anchor explicitly:
 
 ```bash
+pamem setup <slock-agent-workspace> --profile coder --runtime slock --json
 pamem launch --runtime slock --role coder --workspace <slock-agent-workspace>
 pamem repair <slock-agent-workspace>
 ```
+
+`pamem setup` is the stable component-facing bootstrap wrapper for external
+tools. It requires an explicit profile, writes pamem config only through the
+intentional onboarding path, installs managed bootstrap files, and emits a
+single JSON report with `--json`. `pamem install` and `pamem repair` remain
+bootstrap refresh commands; they do not change role binding.
 
 `pamem update` updates pamem itself. If a workspace's hooks, skill links, or
 bootstrap files need to be refreshed after the package update, run
