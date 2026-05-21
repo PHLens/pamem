@@ -113,6 +113,7 @@ function runSmoke(tmpRoot) {
   assert.equal(Object.hasOwn(parseJsonFile(join(workspace, '.codex', 'hooks.json')).hooks ?? {}, 'PreCompact'), false);
 
   assert.match(pamemRun(['--help']).stdout, /Usage: pamem <command> \[options\]/);
+  assertSubcommandHelp();
   const pkg = parseJsonFile(join(root, 'package.json'));
   const claude = parseJsonFile(join(root, '.claude-plugin', 'plugin.json'));
   const codex = parseJsonFile(join(root, '.codex-plugin', 'plugin.json'));
@@ -517,6 +518,29 @@ function pamemRun(args, options = {}) {
 
 function pamemTry(args, options = {}) {
   return tryRun(pamem[0], [...pamem.slice(1), ...args], options);
+}
+
+function assertSubcommandHelp() {
+  for (const command of [
+    'launch',
+    'list',
+    'status',
+    'hook-json',
+    'context',
+    'lint',
+    'check',
+    'pr-check',
+    'install',
+    'onboard',
+    'repair',
+    'update',
+    'remove',
+  ]) {
+    const help = pamemRun([command, '--help']).stdout;
+    assert.match(help, new RegExp(`Usage: pamem ${escapeRegExp(command)}`));
+    const helpCommand = pamemRun(['help', command]).stdout;
+    assert.equal(helpCommand, help);
+  }
 }
 
 function run(command, args, options = {}) {
