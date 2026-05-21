@@ -53,7 +53,10 @@ Supported roles:
 - `coder`
 - `reviewer`
 - `researcher`
-- `wiki`
+
+`researcher` also covers source capture and wiki curation work. The retired
+`wiki` role is rejected by new setup/onboard/launch flows; re-onboard legacy
+wiki workspaces with `--profile researcher` when migrating them.
 
 Useful options:
 
@@ -170,7 +173,7 @@ bootstrappers:
 
 ```bash
 pamem setup /path/to/workspace --profile coder --runtime slock --json
-pamem setup /path/to/agent-home --agent-home --profile wiki --runtime cli --force --json
+pamem setup /path/to/agent-home --agent-home --profile researcher --runtime cli --force --json
 ```
 
 `pamem setup` requires an explicit profile, installs managed bootstrap files,
@@ -182,7 +185,7 @@ For low-level manual onboarding, use `pamem onboard`:
 
 ```bash
 pamem onboard /path/to/workspace --profile coder --runtime slock
-pamem onboard /path/to/agent-home --agent-home --profile wiki --runtime cli --force
+pamem onboard /path/to/agent-home --agent-home --profile researcher --runtime cli --force
 ```
 
 ## Slock Runtime

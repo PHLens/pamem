@@ -1,5 +1,5 @@
 # pamem shared config template for the researcher profile
-# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml when a legacy workspace should default to research work.
+# Copy this file to config.toml for an XDG agent home, or to .pamem/config.toml when a legacy workspace should default to research, source capture, or wiki curation work.
 # Managed by a human or an onboarding-authorized profile. Ordinary task agents read it but do not rewrite it directly.
 
 version = 1
@@ -48,7 +48,7 @@ requires_review_for = [
 
 [profiles.researcher]
 role = "researcher"
-description = "Research profile for gathering findings and durable meta-knowledge."
+description = "Research profile for gathering findings, curating sources, and maintaining durable meta-knowledge."
 load = [
   "governance/constitution.md",
   "shared/preferences.md",
