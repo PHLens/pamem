@@ -229,10 +229,11 @@ that home’s `config.toml`, and keeps CLI task recovery there rather than insid
 the shared memory repo. Use a different `--agent-id` for each concurrent role
 instance. The runtime source can be a plugin, source checkout, or future
 standalone install; the agent home does not copy scripts or assets.
-`pamem launch --role <role> -- <launcher>` records the launcher command in the
-local agent home so `--resume` can reuse it. Runtime-native resume can be
+`pamem launch --role <role> --runtime codex|claude` records the launcher command
+in the local agent home so `--resume` can reuse it. Runtime-native resume can be
 expressed with `[runtime.resume].command`; if neither exists, `launch --resume`
-fails rather than silently starting a new session.
+fails rather than silently starting a new session. The legacy
+`-- <launcher>` form remains available for custom launchers.
 Each launched or resumed CLI process receives a generated session id. Pamem
 stores it in `session.json`, exports it as `PAMEM_SESSION_ID`, and records it in
 the local `current-task.md` and `work-log.md` so runtime-local notes can be

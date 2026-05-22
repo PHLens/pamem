@@ -335,17 +335,24 @@ function runSmoke(tmpRoot) {
   writeExecutable(join(fakeBin, 'claude'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$PAMEM_LOCAL_DIR/claude-args"\n');
   const fakeEnv = { ...env, PATH: `${fakeBin}:${process.env.PATH}` };
 
-  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'codex'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--runtime', 'codex'], { env: fakeEnv });
   assertIncludes(join(agentHome, 'codex-args'), '--dangerously-bypass-approvals-and-sandbox');
   assert.deepEqual(parseJsonFile(join(agentHome, 'session.json')).last_command, ['codex', '--dangerously-bypass-approvals-and-sandbox']);
-  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'codex', '--dangerously-bypass-approvals-and-sandbox', 'prompt'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--runtime', 'codex', '--runtime-arg', '--dangerously-bypass-approvals-and-sandbox', '--runtime-arg', 'prompt'], { env: fakeEnv });
   assert.equal(readFileSync(join(agentHome, 'codex-args'), 'utf8').split(/\r?\n/).filter((line) => line === '--dangerously-bypass-approvals-and-sandbox').length, 1);
 
-  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'claude'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--runtime', 'claude'], { env: fakeEnv });
   assertIncludes(join(agentHome, 'claude-args'), '--dangerously-skip-permissions');
   assert.deepEqual(parseJsonFile(join(agentHome, 'session.json')).last_command, ['claude', '--dangerously-skip-permissions']);
-  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--', 'claude', '--dangerously-skip-permissions', 'prompt'], { env: fakeEnv });
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', agentId, '--runtime', 'claude', '--runtime-arg', '--dangerously-skip-permissions', '--runtime-arg', 'prompt'], { env: fakeEnv });
   assert.equal(readFileSync(join(agentHome, 'claude-args'), 'utf8').split(/\r?\n/).filter((line) => line === '--dangerously-skip-permissions').length, 1);
+
+  const launcherMemoryRoot = join(tmpRoot, 'launcher-memory');
+  pamemRun(['launch', '--role', 'researcher', '--agent-id', 'launcher-option-agent', '--runtime', 'claude', '--memory-repo', launcherMemoryRoot], { env: fakeEnv });
+  const launcherHome = join(xdgRoot, 'pamem', 'agents', 'launcher-option-agent');
+  assertIncludes(join(launcherHome, 'config.toml'), `path = "${launcherMemoryRoot}"`);
+  assertIncludes(join(launcherHome, 'claude-args'), '--dangerously-skip-permissions');
+  assert.deepEqual(parseJsonFile(join(launcherHome, 'session.json')).last_command, ['claude', '--dangerously-skip-permissions']);
 
   appendFile(join(agentHome, 'config.toml'), '\n[runtime.resume]\ncommand = ["sh", "-c", "printf configured > $PAMEM_LOCAL_DIR/configured-marker"]\n');
   rmSync(join(agentHome, 'resume-marker'), { force: true });
@@ -454,7 +461,8 @@ old workspace propagation block
   const slockStatusById = pamemRun(['status', '--agent-id', slockAgentId], { env }).stdout;
   assert.match(slockStatusById, new RegExp(`root=${escapeRegExp(slockWorkspace)}`));
   const slockListJson = JSON.parse(pamemRun(['list', '--json'], { env }).stdout);
-  assert.deepEqual(slockListJson.agents.map((agent) => agent.agent_id), [agentId, slockAgentId]);
+  assert.deepEqual(slockListJson.agents.map((agent) => agent.agent_id), ['launcher-option-agent', agentId, slockAgentId]);
+  assert.equal(slockListJson.agents.find((agent) => agent.agent_id === 'launcher-option-agent')?.role, 'researcher');
   assert.equal(slockListJson.agents.find((agent) => agent.agent_id === slockAgentId)?.kind, 'workspace');
 
   const memoryProposalPath = join(tmpRoot, 'memory-proposal.json');

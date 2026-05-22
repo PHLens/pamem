@@ -44,7 +44,7 @@ writes config if needed, exposes packaged skills, and seeds the configured
 memory repo.
 
 ```bash
-pamem launch --role coder --agent-id coder-local -- codex
+pamem launch --role coder --agent-id coder-local --runtime codex
 ```
 
 Supported roles:
@@ -129,15 +129,15 @@ another location, configure a git remote for that repo path and set
 Start and resume:
 
 ```bash
-pamem launch --role coder --agent-id coder-local -- codex
+pamem launch --role coder --agent-id coder-local --runtime codex
 pamem launch --role coder --agent-id coder-local --resume
 ```
 
 Use distinct ids for other local role instances:
 
 ```bash
-pamem launch --role reviewer --agent-id reviewer-local -- codex
-pamem launch --role researcher --agent-id researcher-local -- codex
+pamem launch --role reviewer --agent-id reviewer-local --runtime codex
+pamem launch --role researcher --agent-id researcher-local --runtime claude
 ```
 
 To work in a project repo while keeping the same stable pamem agent home:
@@ -145,6 +145,11 @@ To work in a project repo while keeping the same stable pamem agent home:
 ```bash
 pamem launch --role coder --agent-id coder-local -- bash -lc 'cd /path/to/project && codex'
 ```
+
+Use `--runtime codex` or `--runtime claude` for the built-in launchers so pamem
+keeps parsing options such as `--memory-repo`. Use `--runtime-arg <arg>` to pass
+launcher-specific arguments. The `-- <command>` form remains available for
+custom launchers.
 
 Without a launcher, `status`, `hook-json`, and `context` are useful for runtime
 integration and debugging:
