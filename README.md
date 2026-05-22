@@ -54,7 +54,7 @@ copying them.
 Start a CLI session with a fixed role:
 
 ```bash
-pamem launch --role coder --agent-id coder-local -- codex
+pamem launch --role coder --agent-id coder-local --runtime codex
 ```
 
 Resume and inspect the runtime:
@@ -100,7 +100,7 @@ the repo-local git author during onboarding or launch:
 
 ```bash
 pamem onboard /path/to/workspace --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
-pamem launch --role coder --agent-id coder-local --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
+pamem launch --role coder --agent-id coder-local --runtime codex --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
 ```
 
 Pamem stores this in `[memory_repo.git]`, applies it to the configured memory
