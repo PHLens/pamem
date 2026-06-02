@@ -129,9 +129,9 @@ function runSmoke(tmpRoot) {
   assert.equal(pkg.name, '@phlens/pamem');
   assert.equal(pkg.bin.pamem, './bin/pamem.mjs');
   assert.equal(pkg.scripts.test, 'node --test tests/smoke.test.mjs');
-  assert.equal(pkg.version, '0.9.1');
+  assert.equal(pkg.version, '0.9.2');
   assert.equal(claude.version, pkg.version);
-  assert.equal(claude.hooks, './hooks/hooks.json');
+  assert.equal(Object.hasOwn(claude, 'hooks'), false);
   assert.equal(claudeHooks.hooks.SessionStart[0].hooks[0].command, '"${CLAUDE_PLUGIN_ROOT}"/scripts/memory-session-start.sh');
   assert.equal(codex.version, pkg.version);
   assert.equal(marketplace.plugins.find((plugin) => plugin.name === 'pamem')?.version, pkg.version);
