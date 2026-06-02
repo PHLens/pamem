@@ -47,6 +47,12 @@ claude plugin marketplace add git@github.com:PHLens/pamem.git
 claude plugin install pamem@phlens --scope project
 ```
 
+The Claude plugin exposes the pamem `SessionStart` hook through
+`hooks/hooks.json`. If an existing Claude project install does not inject
+memory context, update the project plugin from Claude Code with
+`/plugin update`, or uninstall and reinstall `pamem@phlens`, then restart the
+session.
+
 Codex bootstrap reuses the installed plugin runtime. It links the packaged
 `scripts/`, `assets/`, and `skills/` directories into the workspace instead of
 copying them.
