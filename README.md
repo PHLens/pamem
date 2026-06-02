@@ -31,10 +31,11 @@ pamem --help
 ```
 
 The package exposes the `pamem` command directly. Use `pamem update` to update
-the local pamem package or checkout. Use `pamem setup` when an external
-bootstrapper needs to bind a workspace deliberately, `pamem install` and
-`pamem repair` for workspace bootstrap files, then `pamem launch` to start a
-role/runtime instance.
+the local pamem package or checkout. User-facing runtime/session management is
+owned by Noesis: use `noesis launch`, `noesis list`, and `noesis remove`.
+Pamem remains the memory owner component surface: use `pamem setup` when an
+external bootstrapper needs to bind a workspace deliberately, and `pamem
+install` / `pamem repair` for low-level workspace bootstrap files.
 
 ## Plugin Install
 
@@ -51,17 +52,18 @@ copying them.
 
 ## Use
 
-Start a CLI session with a fixed role:
+Start a CLI session with a fixed role through Noesis:
 
 ```bash
-pamem launch --role coder --agent-id coder-local --runtime codex
+noesis launch --profile coder --runtime codex --agent-id coder-local
 ```
 
-Resume and inspect the runtime:
+Resume, list, remove, and inspect the runtime:
 
 ```bash
-pamem launch --role coder --agent-id coder-local --resume
-pamem list
+noesis launch --profile coder --runtime codex --agent-id coder-local --resume
+noesis list
+noesis remove --agent-id coder-local
 pamem status --agent-id coder-local --json
 pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
@@ -79,8 +81,8 @@ configured CLI homes and local Slock agent workspaces.
 For Slock workspaces, use the workspace anchor explicitly:
 
 ```bash
+noesis launch --runtime slock --profile coder --workspace <slock-agent-workspace>
 pamem setup <slock-agent-workspace> --profile coder --runtime slock --json
-pamem launch --runtime slock --role coder --workspace <slock-agent-workspace>
 pamem repair <slock-agent-workspace>
 ```
 
@@ -96,11 +98,11 @@ bootstrap files need to be refreshed after the package update, run
 rewrite config, or edit shared memory.
 
 To pin commits in the configured memory repo to a specific identity, configure
-the repo-local git author during onboarding or launch:
+the repo-local git author during setup or onboarding:
 
 ```bash
+pamem setup /path/to/workspace --profile coder --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
 pamem onboard /path/to/workspace --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
-pamem launch --role coder --agent-id coder-local --runtime codex --git-author-name "Memory Bot" --git-author-email memory-bot@example.invalid
 ```
 
 Pamem stores this in `[memory_repo.git]`, applies it to the configured memory
@@ -121,8 +123,9 @@ turn the reviewed artifact into a pamem-owned memory PR or request.
 Workspace-local temporary memory and runtime recovery state remain allowed
 through explicit runtime paths; they are not a shared-memory promotion path.
 
-In Slock mode, `pamem launch` binds or repairs the existing Slock workspace; it
-does not create or start the Slock agent process. `MEMORY.md` stays a thin
+In Slock mode, Noesis binds or repairs the existing Slock workspace through
+`pamem setup`; neither Noesis nor pamem creates the Slock agent process.
+`MEMORY.md` stays a thin
 router to config, shared memory, and the active role guide such as
 `roles/coder/coder.md`. Pamem uses its packaged base role template only when
 bootstrapping role guides; the shared memory repo stores concrete roles. The
@@ -132,20 +135,20 @@ role guide points to role-specific experience and topic files.
 completed summaries and verification results. For multiple role instances, each
 agent home or Slock workspace keeps its own current task and work log; only
 durable memory is shared.
-In CLI mode, each launched or resumed process gets a generated `session_id`
-stored in `session.json`, exported as `PAMEM_SESSION_ID`, and recorded in the
-agent home's `current-task.md` and `work-log.md` for traceback.
+In CLI mode, Noesis records each launched or resumed process in the agent
+home's `session.json`, exports the corresponding `PAMEM_SESSION_ID`, and keeps
+runtime-local task files available through pamem status/context surfaces.
 Slock runtime does not use this CLI session id path because Slock task, thread,
 and message ids are the provenance surface.
 
 ## Docs
 
-- [INSTALL.md](INSTALL.md): bootstrap, update, repair, remove, and workspace modes
+- [INSTALL.md](INSTALL.md): bootstrap, update, repair, and workspace modes
 - [DESIGN.md](DESIGN.md): layers, precedence, and runtime model
 - [SYNC.md](SYNC.md): git-backed memory repo propagation boundaries
 - `agents/memory-executor.md`: packaged memory owner / executor agent definition
 - `bin/pamem.mjs`: human-facing npm CLI entrypoint
-- `lib/`: Node CLI command, config, onboarding, runtime state, install/remove, and process helpers
+- `lib/`: Node CLI command, config, onboarding, runtime state, install, and process helpers
 - `scripts/memory-session-start.sh`: lightweight SessionStart hook used by runtimes and `pamem context`
 - `scripts/memory-pre-compact.sh`: lightweight explicit PreCompact helper
 - `scripts/memory-pr-check.sh`: read-only memory PR scope and lint check

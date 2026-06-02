@@ -290,14 +290,14 @@ if [ -n "$GIT_AUTHOR_NAME" ] || [ -n "$GIT_AUTHOR_EMAIL" ]; then
       if [ "$GIT_CONFIG_NAME" != "$GIT_AUTHOR_NAME" ]; then
         add_finding "error" "ML010" "$(repo_display_path "$CONFIG_PATH")" "" \
           "Memory repo git author name is not applied" \
-          "Run pamem install, repair, launch, or onboard so memory_repo.git.author_name is applied to the repo-local git config." \
+          "Run pamem setup, install, repair, or onboard so memory_repo.git.author_name is applied to the repo-local git config." \
           "expected=$GIT_AUTHOR_NAME actual=$GIT_CONFIG_NAME" \
           "repair-workspace"
       fi
       if [ "$GIT_CONFIG_EMAIL" != "$GIT_AUTHOR_EMAIL" ]; then
         add_finding "error" "ML010" "$(repo_display_path "$CONFIG_PATH")" "" \
           "Memory repo git author email is not applied" \
-          "Run pamem install, repair, launch, or onboard so memory_repo.git.author_email is applied to the repo-local git config." \
+          "Run pamem setup, install, repair, or onboard so memory_repo.git.author_email is applied to the repo-local git config." \
           "expected=$GIT_AUTHOR_EMAIL actual=$GIT_CONFIG_EMAIL" \
           "repair-workspace"
       fi

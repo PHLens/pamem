@@ -32,19 +32,23 @@ Then verify:
 pamem --help
 ```
 
-After installing, use `pamem update` to update pamem itself, `pamem setup` when
-an external bootstrapper needs a deliberate workspace binding, `pamem install`
-or `pamem repair` for workspace runtime/plugin files, then `pamem launch` to
-start a role/runtime instance.
+After installing, use `pamem update` to update pamem itself. User-facing
+runtime/session management is owned by Noesis: use `noesis launch`, `noesis
+list`, and `noesis remove`. Pamem remains the memory owner component surface:
+use `pamem setup` when an external bootstrapper needs a deliberate workspace
+binding, and `pamem install` / `pamem repair` for low-level workspace
+runtime/plugin files.
 
-## Launch An Agent
+## Launch An Agent Through Noesis
 
-Use `pamem launch` once per agent or Slock workspace. It chooses the role,
-writes config if needed, exposes packaged skills, and seeds the configured
-memory repo.
+Use `noesis launch` once per agent or Slock workspace. Noesis owns the
+user-facing runtime/session UX and calls pamem's component-facing setup/status
+surfaces for memory readiness.
 
 ```bash
-pamem launch --role coder --agent-id coder-local --runtime codex
+noesis launch --profile coder --runtime codex --agent-id coder-local
+noesis launch --profile coder --runtime codex --agent-id coder-local --resume
+noesis launch --runtime slock --profile coder --workspace <slock-agent-workspace>
 ```
 
 Supported roles:
@@ -55,13 +59,13 @@ Supported roles:
 - `researcher`
 
 `researcher` also covers source capture and wiki curation work. The retired
-`wiki` role is rejected by new setup/onboard/launch flows; re-onboard legacy
+`wiki` role is rejected by new setup/onboard flows; re-onboard legacy
 wiki workspaces with `--profile researcher` when migrating them.
 
-Useful options:
+Noesis forwards memory bootstrap intent to pamem setup. Useful setup options:
 
 ```bash
---role <name>
+--profile <name>
 --runtime <cli|slock>
 --agent-id <id>
 --workspace <path>
@@ -70,9 +74,9 @@ Useful options:
 --sync-ref <ref>
 ```
 
-If config already exists, launch refuses to bind a different role. Profile
-changes should be deliberate re-onboarding through the internal onboarding
-helper.
+If config already exists, pamem setup refuses accidental profile/runtime
+rebinding unless `--force` is passed. Profile changes should be deliberate
+re-onboarding through the internal onboarding helper.
 
 ## CLI Runtime
 
@@ -89,9 +93,10 @@ ${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/
 for the active task, blocker, and next step. `work-log.md` records completed
 summaries and verification results. Multiple role instances should use distinct
 agent ids so each instance has its own current task and work log.
-Each CLI launch or resume writes a generated `session_id` to `session.json`,
-exports it as `PAMEM_SESSION_ID`, and records it in both `current-task.md` and
-`work-log.md` so later summaries can be traced to a concrete runtime session.
+Noesis writes a generated `session_id` to `session.json` when it launches or
+resumes a CLI runtime, exports it as `PAMEM_SESSION_ID`, and records it in
+runtime-local task files so later summaries can be traced to a concrete
+runtime session.
 Slock runtime does not write pamem CLI session ids; use Slock task, thread, and
 message ids for Slock-side provenance.
 
@@ -104,15 +109,15 @@ Recommended local CLI practice:
   pamem --help
   ```
 
-- Treat `pamem` as the explicit agent launcher.
+- Treat `noesis launch` as the explicit agent launcher.
 - Pick one stable `--agent-id` per long-lived local agent. The id is the
   recovery boundary for config, current task, work log, and resume state.
 - Keep role and agent id effectively one-to-one. For concurrent roles, create
   separate ids such as `coder-local`, `reviewer-local`, and
   `researcher-local` instead of rebinding one id between roles.
 - Keep project repositories as work directories, not memory homes. The CLI
-  agent home should stay under the XDG data path, while the launched command can
-  `cd` into the project.
+  agent home should stay under the XDG data path; launch the runtime through
+  Noesis from the project context when needed.
 - Use `pamem status`, `pamem context`, and `pamem lint` before debugging startup
   behavior. Use `pamem pr-check` when proposing shared-memory changes.
 
@@ -129,33 +134,33 @@ another location, configure a git remote for that repo path and set
 Start and resume:
 
 ```bash
-pamem launch --role coder --agent-id coder-local --runtime codex
-pamem launch --role coder --agent-id coder-local --resume
+noesis launch --profile coder --agent-id coder-local --runtime codex
+noesis launch --profile coder --agent-id coder-local --runtime codex --resume
 ```
 
 Use distinct ids for other local role instances:
 
 ```bash
-pamem launch --role reviewer --agent-id reviewer-local --runtime codex
-pamem launch --role researcher --agent-id researcher-local --runtime claude
+noesis launch --profile reviewer --agent-id reviewer-local --runtime codex
+noesis launch --profile researcher --agent-id researcher-local --runtime claude
 ```
 
 To work in a project repo while keeping the same stable pamem agent home:
 
 ```bash
-pamem launch --role coder --agent-id coder-local -- bash -lc 'cd /path/to/project && codex'
+cd /path/to/project
+noesis launch --profile coder --agent-id coder-local --runtime codex
 ```
 
-Use `--runtime codex` or `--runtime claude` for the built-in launchers so pamem
-keeps parsing options such as `--memory-repo`. Use `--runtime-arg <arg>` to pass
-launcher-specific arguments. The `-- <command>` form remains available for
-custom launchers.
+Use `--runtime codex` or `--runtime claude` for built-in launchers. Use Noesis
+runtime options for launcher-specific arguments and memory options for pamem
+setup passthrough.
 
 Without a launcher, `status`, `hook-json`, and `context` are useful for runtime
 integration and debugging:
 
 ```bash
-pamem list
+noesis list
 pamem status --agent-id coder-local --json
 pamem status --agent-id coder-local
 pamem hook-json --agent-id coder-local
@@ -168,7 +173,7 @@ pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/ --json
 agent home or Slock workspace path without taking over memory responsibilities.
 Agent-id resolution checks configured CLI homes and local Slock agent
 workspaces.
-`status`, `hook-json`, launch state, and resume dispatch are handled by Node.
+`status`, `hook-json`, and context inspection are handled by Node.
 `context` still feeds the lightweight SessionStart shell hook so runtime startup
 loading stays shared with Codex/Slock hook execution.
 
@@ -198,11 +203,11 @@ pamem onboard /path/to/agent-home --agent-home --profile researcher --runtime cl
 Slock mode uses the Slock-generated workspace as the runtime anchor:
 
 ```bash
-pamem launch --runtime slock --role coder --workspace <slock-agent-workspace>
+noesis launch --runtime slock --profile coder --workspace <slock-agent-workspace>
 ```
 
-`pamem launch` binds or repairs the workspace; the Slock runtime process itself
-still starts through Slock.
+Noesis binds or repairs the workspace by calling pamem setup/status. The Slock
+runtime process itself still starts through Slock.
 
 The workspace owns local task state:
 
@@ -224,14 +229,13 @@ and message ids rather than pamem CLI `session_id` records.
 
 ## Bootstrap And Repair
 
-Use the public CLI for bootstrap and cleanup:
+Use the public CLI for bootstrap and repair:
 
 ```bash
 pamem install <workspace>
 pamem setup <workspace> --profile coder --runtime slock --json
 pamem update
 pamem repair <workspace>
-pamem remove <workspace>
 ```
 
 Install/repair creates or refreshes:
@@ -250,8 +254,8 @@ agent workspaces or shared memory. After updating pamem, run
 bootstrap files need to be refreshed. Use `pamem update --dry-run` to print the
 self-update command without executing it.
 
-`pamem remove` removes managed Codex hook and skill entries. It leaves memory
-files and config in place so the workspace can be repaired later.
+User-facing cleanup has moved to `noesis remove`, which removes launch
+integration while leaving memory files and config in place.
 
 ## Validate
 
