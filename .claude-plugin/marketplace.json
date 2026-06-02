@@ -11,7 +11,7 @@
       "name": "pamem",
       "source": "./",
       "description": "Persistent agent memory runtime with governance, hooks, and bootstrap.",
-      "version": "0.9.0",
+      "version": "0.9.1",
       "author": {
         "name": "Pamem Contributors"
       },

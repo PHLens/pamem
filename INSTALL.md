@@ -74,6 +74,11 @@ Noesis forwards memory bootstrap intent to pamem setup. Useful setup options:
 --sync-ref <ref>
 ```
 
+Claude project installs use the pamem plugin `SessionStart` hook from
+`hooks/hooks.json`. After updating pamem, an already-installed Claude project
+plugin may need `/plugin update` inside Claude Code, or uninstall/reinstall of
+`pamem@phlens`, before the next session sees the new hook version.
+
 If config already exists, pamem setup refuses accidental profile/runtime
 rebinding unless `--force` is passed. Profile changes should be deliberate
 re-onboarding through the internal onboarding helper.

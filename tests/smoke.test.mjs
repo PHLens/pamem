@@ -125,11 +125,14 @@ function runSmoke(tmpRoot) {
   const claude = parseJsonFile(join(root, '.claude-plugin', 'plugin.json'));
   const codex = parseJsonFile(join(root, '.codex-plugin', 'plugin.json'));
   const marketplace = parseJsonFile(join(root, '.claude-plugin', 'marketplace.json'));
+  const claudeHooks = parseJsonFile(join(root, 'hooks', 'hooks.json'));
   assert.equal(pkg.name, '@phlens/pamem');
   assert.equal(pkg.bin.pamem, './bin/pamem.mjs');
   assert.equal(pkg.scripts.test, 'node --test tests/smoke.test.mjs');
-  assert.equal(pkg.version, '0.9.0');
+  assert.equal(pkg.version, '0.9.1');
   assert.equal(claude.version, pkg.version);
+  assert.equal(claude.hooks, './hooks/hooks.json');
+  assert.equal(claudeHooks.hooks.SessionStart[0].hooks[0].command, '"${CLAUDE_PLUGIN_ROOT}"/scripts/memory-session-start.sh');
   assert.equal(codex.version, pkg.version);
   assert.equal(marketplace.plugins.find((plugin) => plugin.name === 'pamem')?.version, pkg.version);
 
@@ -144,6 +147,7 @@ function runSmoke(tmpRoot) {
     'lib/onboard.mjs',
     'lib/runtime.mjs',
     'assets/config.toml.template',
+    'hooks/hooks.json',
     'scripts/memory-session-start.sh',
     'scripts/memory-pre-compact.sh',
     'skills/memory-lint/scripts/memory-lint.sh',
