@@ -140,7 +140,6 @@ function runSmoke(tmpRoot) {
     'lib/cli.mjs',
     'lib/install.mjs',
     'lib/setup.mjs',
-    'lib/update.mjs',
     'lib/check.mjs',
     'lib/onboard.mjs',
     'lib/runtime.mjs',
@@ -153,7 +152,7 @@ function runSmoke(tmpRoot) {
   }
   assert.equal(packFiles.has('assets/config-profiles/wiki.toml.template'), false, 'npm pack should not include retired wiki profile template');
   assert.equal(packFiles.has('skills/sync-request/SKILL.md'), false, 'npm pack should not include retired sync-request skill');
-  for (const file of ['lib/skills.mjs', 'scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
+  for (const file of ['lib/update.mjs', 'lib/skills.mjs', 'scripts/install-pamem.sh', 'scripts/repair-pamem.sh', 'scripts/remove-pamem.sh', 'scripts/onboard-pamem.sh', 'scripts/pamem-cli.sh']) {
     assert.equal(packFiles.has(file), false, `npm pack should not include removed script ${file}`);
   }
 
@@ -360,9 +359,11 @@ function runSmoke(tmpRoot) {
   assert.notEqual(removedSkillCommand.status, 0);
   assert.match(removedSkillCommand.stderr, /unknown pamem command: skill/);
 
-  assert.match(pamemRun(['update', '--help'], { env }).stdout, /Usage: pamem update/);
-  assert.match(pamemRun(['update', '--dry-run'], { env }).stdout, /git -C .* fetch origin main.*git -C .* pull --ff-only origin main|npm install -g git\+ssh:\/\/git@github\.com\/PHLens\/pamem\.git/s);
-  assert.match(pamemTry(['update', '--agent-id', 'missing-agent'], { env }).stderr, /unknown update argument/);
+  const retiredUpdate = pamemTry(['update', '--help'], { env });
+  assert.equal(retiredUpdate.status, 2);
+  assert.match(retiredUpdate.stderr, /pamem update has moved to noesis update/);
+  assert.match(retiredUpdate.stderr, /Noesis-managed package and component maintenance/);
+  assert.equal(pamemTry(['update', '--dry-run'], { env }).status, 2);
 
   // Slock mode keeps task state in the Slock workspace and loads shared memory
   // through the selected profile.
@@ -577,14 +578,13 @@ function assertSubcommandHelp() {
     'onboard',
     'setup',
     'repair',
-    'update',
   ]) {
     const help = pamemRun([command, '--help']).stdout;
     assert.match(help, new RegExp(`Usage: pamem ${escapeRegExp(command)}`));
     const helpCommand = pamemRun(['help', command]).stdout;
     assert.equal(helpCommand, help);
   }
-  for (const command of ['launch', 'list', 'remove']) {
+  for (const command of ['launch', 'list', 'remove', 'update']) {
     const retired = pamemTry([command, '--help']);
     assert.equal(retired.status, 2);
     assert.match(retired.stderr, new RegExp(`moved to noesis ${command}`));

@@ -32,12 +32,12 @@ Then verify:
 pamem --help
 ```
 
-After installing, use `pamem update` to update pamem itself. User-facing
-runtime/session management is owned by Noesis: use `noesis launch`, `noesis
-list`, and `noesis remove`. Pamem remains the memory owner component surface:
-use `pamem setup` when an external bootstrapper needs a deliberate workspace
-binding, and `pamem install` / `pamem repair` for low-level workspace
-runtime/plugin files.
+After installing, use `noesis update` to maintain Noesis-managed package and
+component checkouts, including pamem. User-facing runtime/session management is
+also owned by Noesis: use `noesis launch`, `noesis list`, and `noesis remove`.
+Pamem remains the memory owner component surface: use `pamem setup` when an
+external bootstrapper needs a deliberate workspace binding, and `pamem install`
+/ `pamem repair` for low-level workspace runtime/plugin files.
 
 ## Launch An Agent Through Noesis
 
@@ -234,7 +234,7 @@ Use the public CLI for bootstrap and repair:
 ```bash
 pamem install <workspace>
 pamem setup <workspace> --profile coder --runtime slock --json
-pamem update
+noesis update
 pamem repair <workspace>
 ```
 
@@ -248,11 +248,10 @@ Install/repair creates or refreshes:
 - the configured shared memory repo skeleton, including the startup role guides
 - runtime-local task files for the selected runtime mode
 
-`pamem update` updates the local pamem package or checkout. It does not mutate
-agent workspaces or shared memory. After updating pamem, run
-`pamem repair <workspace>` when a workspace's managed hooks, skill links, or
-bootstrap files need to be refreshed. Use `pamem update --dry-run` to print the
-self-update command without executing it.
+`noesis update` updates Noesis-managed package/component checkouts, including
+pamem, without making pamem a separate user maintenance path. After updating
+pamem, run `pamem repair <workspace>` when a workspace's managed hooks, skill
+links, or bootstrap files need to be refreshed.
 
 User-facing cleanup has moved to `noesis remove`, which removes launch
 integration while leaving memory files and config in place.
