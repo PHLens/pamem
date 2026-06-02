@@ -112,7 +112,7 @@ Map fallback files to the same semantic surfaces:
 - `roles/<role>/<role>.md` is the startup-loaded role guide and should stay short.
 - `notes/experience.md` is the compatibility surface for active role experience in `roles/<role>/experience.md` or role-local topic files.
 - `notes/projects/<project-key>.md` is CLI-local compatibility for `projects/<project-key>.md`.
-- XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files when `pamem start` or `resume` is used.
+- XDG data `pamem/agents/<agent-id>/current-task.md` and `work-log.md` are the preferred CLI runtime files for Noesis-launched pamem agent homes.
 - `notes/current-task.md` and `notes/work-log.md` are CLI-local compatibility files, not durable shared memory layers.
 
 ## Memory Surfaces
@@ -257,7 +257,7 @@ Rules:
 
 - Profiles describe what to load; they do not create new precedence.
 - Profile choice is fixed at onboarding time; do not switch profiles dynamically inside an active agent session.
-- `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise `pamem resume` may reuse the last launcher recorded by `pamem start -- <launcher>`.
+- `runtime.resume.command`, when set, is the runtime-native resume launcher; otherwise Noesis launch/resume may reuse the last launcher it recorded in the pamem agent home.
 - Shared experience is a profile overlay loaded from `shared/experience.md`.
 - Role guides are startup-loaded overlays from `roles/<role>/<role>.md`; role
   experience and role-local topic files are read through the role guide when
@@ -502,7 +502,7 @@ If last-write-wins occurs on a shared durable memory file:
 
 Use runtime-local current-task memory only when the runtime owns no stronger task-state surface.
 
-- CLI mode: XDG data `pamem/agents/<agent-id>/current-task.md` is the preferred local startup-safe task summary when `pamem start` or `resume` is used; `notes/current-task.md` is the compatibility fallback.
+- CLI mode: XDG data `pamem/agents/<agent-id>/current-task.md` is the preferred local startup-safe task summary for Noesis-launched pamem agent homes; `notes/current-task.md` is the compatibility fallback.
 - Slock mode: the Slock task board, task thread, and workspace files are the task-state source of truth.
 
 Keep it short: task, status, current phase, blocker, next step, and pointers.
