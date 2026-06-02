@@ -30,9 +30,10 @@ Then verify:
 pamem --help
 ```
 
-The package exposes the `pamem` command directly. Use `pamem update` to update
-the local pamem package or checkout. User-facing runtime/session management is
-owned by Noesis: use `noesis launch`, `noesis list`, and `noesis remove`.
+The package exposes the `pamem` command directly for memory-owner component
+surfaces. User-facing runtime/session management and package/component
+maintenance are owned by Noesis: use `noesis launch`, `noesis list`,
+`noesis remove`, and `noesis update`.
 Pamem remains the memory owner component surface: use `pamem setup` when an
 external bootstrapper needs to bind a workspace deliberately, and `pamem
 install` / `pamem repair` for low-level workspace bootstrap files.
@@ -69,7 +70,7 @@ pamem context --agent-id coder-local
 pamem lint --agent-id coder-local --json
 pamem check <proposal.json> --agent-id coder-local --json
 pamem pr-check --agent-id coder-local --head HEAD --target roles/coder/
-pamem update --dry-run
+noesis update
 ```
 
 `status --json` is the stable read-only interface for other tools that need the
@@ -92,10 +93,11 @@ intentional onboarding path, installs managed bootstrap files, and emits a
 single JSON report with `--json`. `pamem install` and `pamem repair` remain
 bootstrap refresh commands; they do not change role binding.
 
-`pamem update` updates pamem itself. If a workspace's hooks, skill links, or
-bootstrap files need to be refreshed after the package update, run
-`pamem repair <workspace>` explicitly. Repair does not change role binding,
-rewrite config, or edit shared memory.
+Use `noesis update` to update Noesis and managed pamem/LoreForge component
+checkouts together. If a workspace's hooks, skill links, or bootstrap files
+need to be refreshed after the package update, run `pamem repair <workspace>`
+explicitly. Repair does not change role binding, rewrite config, or edit shared
+memory.
 
 To pin commits in the configured memory repo to a specific identity, configure
 the repo-local git author during setup or onboarding:
@@ -143,7 +145,7 @@ and message ids are the provenance surface.
 
 ## Docs
 
-- [INSTALL.md](INSTALL.md): bootstrap, update, repair, and workspace modes
+- [INSTALL.md](INSTALL.md): bootstrap, Noesis-managed update, repair, and workspace modes
 - [DESIGN.md](DESIGN.md): layers, precedence, and runtime model
 - [SYNC.md](SYNC.md): git-backed memory repo propagation boundaries
 - `agents/memory-executor.md`: packaged memory owner / executor agent definition
