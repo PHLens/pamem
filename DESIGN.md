@@ -175,8 +175,8 @@ small runtime-local recovery notes:
 - `notes/current-task.md` in CLI and Slock runtime modes
 - `notes/work-log.md` in CLI and Slock runtime modes
 - `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/config.toml` for default CLI agent-home config
-- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` when `pamem launch` starts or resumes a CLI session
-- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when `pamem launch` starts or resumes a CLI session
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/current-task.md` when Noesis starts or resumes a CLI session
+- `${XDG_DATA_HOME:-$HOME/.local/share}/pamem/agents/<agent-id>/work-log.md` when Noesis starts or resumes a CLI session
 
 But it does not decide the actual contents of those files for a specific agent.
 Agents may later add role-local topic files through memory promotion when a
@@ -229,15 +229,16 @@ that home’s `config.toml`, and keeps CLI task recovery there rather than insid
 the shared memory repo. Use a different `--agent-id` for each concurrent role
 instance. The runtime source can be a plugin, source checkout, or future
 standalone install; the agent home does not copy scripts or assets.
-`pamem launch --role <role> --runtime codex|claude` records the launcher command
-in the local agent home so `--resume` can reuse it. Runtime-native resume can be
-expressed with `[runtime.resume].command`; if neither exists, `launch --resume`
-fails rather than silently starting a new session. The legacy
-`-- <launcher>` form remains available for custom launchers.
-Each launched or resumed CLI process receives a generated session id. Pamem
+`noesis launch --profile <role> --runtime codex|claude` records the launcher
+command in the local agent home so `--resume` can reuse it. Runtime-native
+resume can be expressed with `[runtime.resume].command`; if neither exists,
+Noesis fails rather than silently starting a new session.
+Each launched or resumed CLI process receives a generated session id. Noesis
 stores it in `session.json`, exports it as `PAMEM_SESSION_ID`, and records it in
 the local `current-task.md` and `work-log.md` so runtime-local notes can be
-traced back to the concrete process session that produced them.
+traced back to the concrete process session that produced them. Pamem exposes
+the same agent-home paths through `pamem status`, `pamem hook-json`, and
+`pamem context`, but it no longer owns user-facing process launch.
 This is CLI-only; Slock runtime does not need pamem session ids because Slock
 task, thread, and message ids are the traceability surface.
 Runtimes that cannot load pamem as a plugin or hook can still use
@@ -272,13 +273,13 @@ alternate defaults, not simultaneous runtime roles. Each profile loads shared
 experience and the role guide; the role guide leaves deeper role experience or
 topic files for on-demand reading.
 
-Role selection belongs to launch, setup, and onboarding. `pamem launch` writes
-the selected `config.toml` before runtime hooks start reading it; startup hooks
-must treat the selected role policy as read-only. `pamem setup` is the stable
-component-facing wrapper for external bootstrappers: it requires an explicit
-profile, uses the same intentional onboarding path, installs managed runtime
-bootstrap files, and can emit one JSON report. Explicit low-level workspace
-onboarding still writes `.pamem/config.toml` for compatibility.
+Role selection belongs to Noesis launch, pamem setup, and explicit onboarding.
+Noesis calls `pamem setup` before runtime hooks start reading config; startup
+hooks must treat the selected role policy as read-only. `pamem setup` is the
+stable component-facing wrapper for external bootstrappers: it requires an
+explicit profile, uses the same intentional onboarding path, installs managed
+runtime bootstrap files, and can emit one JSON report. Explicit low-level
+workspace onboarding still writes `.pamem/config.toml` for compatibility.
 
 Ordinary task profiles are intentionally narrow write surfaces. They load
 shared, role, and project memory. Durable shared-memory changes should be
@@ -298,7 +299,7 @@ read-only and route changes through the config owner or onboarding review.
 
 When `[memory_repo.git].author_name` and `author_email` are set, pamem applies
 them to the configured memory repo's repo-local `git config user.name` and
-`user.email` during install, repair, launch, or onboard. The config remains the
+`user.email` during setup, install, repair, or onboard. The config remains the
 source of truth; the git config is execution state that should be repairable.
 The author fields must be configured together.
 When pamem initializes a new shared memory repo and either the git remote or

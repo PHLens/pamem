@@ -13,7 +13,7 @@ agent_id = ""
 
 [runtime.resume]
 # Optional runtime-native resume launcher, e.g. ["codex", "resume"].
-# Empty means pamem launch --resume falls back to the launcher recorded by pamem launch.
+# Empty means noesis launch --resume falls back to the launcher recorded by Noesis.
 command = []
 
 [memory_repo]
@@ -28,7 +28,7 @@ remote = ""
 ref = "main"
 
 [memory_repo.git]
-# Optional repo-local git author applied to the configured memory repo by install/repair/onboard/launch.
+# Optional repo-local git author applied to the configured memory repo by setup/install/repair/onboard.
 # Leave both empty to use the repo or environment default.
 author_name = ""
 author_email = ""
