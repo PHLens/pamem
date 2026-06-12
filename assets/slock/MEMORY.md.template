@@ -8,7 +8,7 @@ Durable memory is loaded from the configured pamem shared memory repo.
 - The durable startup memory index lives in the shared repo `MEMORY.md`.
 - Shared memory is loaded from the active profile, including shared preferences,
   operating rules, and shared experience.
-- The active role guide lives in `roles/<role>/<role>.md`; read it for
+- The active role guide lives in `roles/{{ROLE_NAME}}/{{ROLE_NAME}}.md`; read it for
   role-specific workflow and pointers to role experience or topic files.
 - `notes/current-task.md` is a thin active-task cache; Slock task board and threads remain primary.
 - `notes/work-log.md` is the runtime-local completed-work summary.

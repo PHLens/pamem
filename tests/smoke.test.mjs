@@ -91,6 +91,9 @@ function runSmoke(tmpRoot) {
   assertNoMatch(join(workspace, '.codex', 'config.toml'), /codex_hooks/);
 
   assertFile(join(memoryRoot, 'MEMORY.md'));
+  assertIncludes(join(memoryRoot, 'MEMORY.md'), 'roles/onboarding/onboarding.md');
+  assertNoMatch(join(memoryRoot, 'MEMORY.md'), /roles\/<role>\//);
+  assertNoMatch(join(memoryRoot, 'MEMORY.md'), /{{ROLE_NAME}}/);
   assertFile(join(memoryRoot, 'governance', 'constitution.md'));
   assertFile(join(memoryRoot, 'shared', 'preferences.md'));
   assertFile(join(memoryRoot, 'shared', 'operating-rules.md'));
@@ -283,6 +286,8 @@ function runSmoke(tmpRoot) {
   assertIncludes(join(agentHome, 'config.toml'), 'default_profile = "researcher"');
   assertIncludes(join(agentHome, 'config.toml'), 'mode = "cli"');
   assertNoMatch(join(agentHome, 'config.toml'), /backend[ \t]*=/);
+  assertIncludes(join(memoryRoot, 'MEMORY.md'), 'roles/onboarding/onboarding.md');
+  assertNoMatch(join(memoryRoot, 'MEMORY.md'), /roles\/researcher\/researcher\.md/);
   const cliSession = {
     version: 1,
     session_id: '11111111-1111-4111-8111-111111111111',
@@ -376,6 +381,8 @@ function runSmoke(tmpRoot) {
 ## Memory Governance
 old workspace governance block
 
+The active role guide lives in roles/<role>/<role>.md.
+
 ## Role
 coder
 
@@ -407,6 +414,9 @@ old workspace propagation block
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '# Existing Slock Agent');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '## Memory Routing');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'Durable memory is loaded from the configured pamem shared memory repo.');
+  assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'roles/coder/coder.md');
+  assertNoMatch(join(slockWorkspace, 'MEMORY.md'), /roles\/<role>\//);
+  assertNoMatch(join(slockWorkspace, 'MEMORY.md'), /{{ROLE_NAME}}/);
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), '.pamem/config.toml');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'existing workspace note');
   assertIncludes(join(slockWorkspace, 'MEMORY.md'), 'old workspace governance block');
@@ -509,6 +519,8 @@ old workspace propagation block
   assertIncludes(join(packageSlockWorkspace, '.pamem', 'config.toml'), 'mode = "slock"');
   assertIncludes(join(packageSlockWorkspace, 'MEMORY.md'), '## Memory Routing');
   assertIncludes(join(packageSlockWorkspace, 'MEMORY.md'), 'Durable memory is loaded from the configured pamem shared memory repo.');
+  assertIncludes(join(packageSlockWorkspace, 'MEMORY.md'), 'roles/reviewer/reviewer.md');
+  assertNoMatch(join(packageSlockWorkspace, 'MEMORY.md'), /roles\/<role>\//);
   const packageSlockContext = run(installedPamem, ['context', '--workspace', packageSlockWorkspace], { env }).stdout;
   assert.match(packageSlockContext, /runtime=slock/);
   assert.match(packageSlockContext, /Source: `roles\/reviewer\/reviewer.md`/);
