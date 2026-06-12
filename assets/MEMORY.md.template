@@ -22,8 +22,8 @@ Ordinary task agents do not run repository propagation during session start. Dur
 - `shared/preferences.md` or `notes/user-preferences.md` - collaboration preferences and constraints
 - `shared/operating-rules.md` or `notes/operating-rules.md` - stable operating defaults
 - `shared/experience.md` - cross-role findings, corrections, and meta-knowledge loaded through the active profile
-- `roles/<role>/<role>.md` - startup-loaded role guide; it points to role-specific experience and role-local topic files
-- `roles/<role>/experience.md`, role-local topic files, or `notes/experience.md` - role-scoped findings, corrections, and meta-knowledge
+- `roles/{{ROLE_NAME}}/{{ROLE_NAME}}.md` - startup-loaded role guide; it points to role-specific experience and role-local topic files
+- `roles/{{ROLE_NAME}}/experience.md`, role-local topic files, or `notes/experience.md` - role-scoped findings, corrections, and meta-knowledge
 - `projects/<project-key>.md` or `notes/projects/<project-key>.md` - project-specific stable context
 
 ## Active Context
